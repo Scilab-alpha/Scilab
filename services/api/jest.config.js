@@ -7,4 +7,7 @@ module.exports = {
   roots: ['<rootDir>/src'],
   testEnvironment: 'node',
   moduleFileExtensions: ['ts', 'js', 'json', 'node'],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
 };

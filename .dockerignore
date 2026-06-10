@@ -1,0 +1,15 @@
+.git
+.github
+.turbo
+.vercel
+node_modules
+**/node_modules
+**/dist
+**/.next
+**/build
+**/coverage
+**/.env
+**/.env.*
+!.env.example
+*.log
+*.tsbuildinfo
