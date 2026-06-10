@@ -1,0 +1,153 @@
+/**
+ * Academic Serenity — Color System
+ * Calm · minimal · reading-focused
+ */
+
+:root {
+  /* ── Brand ── */
+  --primary-color: #d3ab9e;
+  --primary-color-hover: #c49a8d;
+  --secondary-color: #3ac9c1;
+  --tag-text-color: #5c3f35;
+
+  /* ── Font colors ── */
+  --font-color-primary: #2c2420;
+  --font-color-secondary: #5c534e;
+  --font-color-muted: #8a827c;
+  --font-color-inverse: #ffffff;
+  --font-color-link: #5c3f35;
+  --font-color-destructive: #b54a4a;
+
+  /* ── Layered surfaces ── */
+  --background-color: #f9f9fa;
+  --surface-color: #ffffff;
+  --surface-raised-color: #f3f3f4;
+  --surface-muted-color: #edeeef;
+  --border-color: rgba(211, 171, 158, 0.15);
+  --ring-color: rgba(211, 171, 158, 0.3);
+
+  /* ── Shadows ── */
+  --shadow-ambient: 0 4px 20px rgba(211, 171, 158, 0.05);
+  --shadow-ambient-hover: 0 6px 24px rgba(211, 171, 158, 0.1);
+
+  /* ── Tags / chips ── */
+  --tag-background: rgba(211, 171, 158, 0.12);
+
+  /* ── Button: primary ── */
+  --button-primary-bg: var(--primary-color);
+  --button-primary-text: #ffffff;
+  --button-primary-hover: var(--primary-color-hover);
+  --button-primary-border: transparent;
+
+  /* ── Button: secondary (outline clay) ── */
+  --button-secondary-bg: transparent;
+  --button-secondary-text: var(--font-color-primary);
+  --button-secondary-hover: rgba(211, 171, 158, 0.08);
+  --button-secondary-border: var(--primary-color);
+
+  /* ── Button: outline ── */
+  --button-outline-bg: transparent;
+  --button-outline-text: var(--font-color-primary);
+  --button-outline-hover: var(--surface-raised-color);
+  --button-outline-border: var(--border-color);
+
+  /* ── Button: ghost ── */
+  --button-ghost-bg: transparent;
+  --button-ghost-text: var(--font-color-secondary);
+  --button-ghost-hover: var(--surface-raised-color);
+  --button-ghost-border: transparent;
+
+  /* ── Button: destructive ── */
+  --button-destructive-bg: #b54a4a;
+  --button-destructive-text: #ffffff;
+  --button-destructive-hover: #9e3f3f;
+  --button-destructive-border: transparent;
+
+  /* ── Button padding ── */
+  --button-padding-x: 1rem;
+  --button-padding-y: 0.5rem;
+  --button-padding-x-sm: 0.75rem;
+  --button-padding-y-sm: 0.375rem;
+  --button-padding-x-lg: 1.5rem;
+  --button-padding-y-lg: 0.625rem;
+
+  /* ── shadcn/ui bridge ── */
+  --background: var(--background-color);
+  --foreground: var(--font-color-primary);
+  --card: var(--surface-color);
+  --card-foreground: var(--font-color-primary);
+  --popover: var(--surface-color);
+  --popover-foreground: var(--font-color-primary);
+  --primary: var(--primary-color);
+  --primary-foreground: var(--button-primary-text);
+  --secondary: var(--surface-raised-color);
+  --secondary-foreground: var(--font-color-primary);
+  --muted: var(--surface-muted-color);
+  --muted-foreground: var(--font-color-muted);
+  --accent: rgba(211, 171, 158, 0.12);
+  --accent-foreground: var(--tag-text-color);
+  --destructive: var(--button-destructive-bg);
+  --destructive-foreground: var(--button-destructive-text);
+  --border: var(--border-color);
+  --input: var(--border-color);
+  --input-background: var(--surface-raised-color);
+  --switch-background: var(--surface-muted-color);
+  --ring: var(--ring-color);
+
+  /* ── Charts: teal only for metrics/progress ── */
+  --chart-1: #3ac9c1;
+  --chart-2: #d3ab9e;
+  --chart-3: #8aafa8;
+  --chart-4: #c4b5a8;
+  --chart-5: #5c534e;
+
+  /* ── Sidebar ── */
+  --sidebar: var(--surface-color);
+  --sidebar-foreground: var(--font-color-primary);
+  --sidebar-primary: var(--primary-color);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(211, 171, 158, 0.12);
+  --sidebar-accent-foreground: var(--tag-text-color);
+  --sidebar-border: var(--border-color);
+  --sidebar-ring: var(--ring-color);
+}
+
+.dark {
+  --primary-color: #d3ab9e;
+  --primary-color-hover: #e0bdb2;
+  --font-color-primary: #f3f0ee;
+  --font-color-secondary: #c4bbb5;
+  --font-color-muted: #9a928c;
+  --background-color: #1e1c1b;
+  --surface-color: #2a2726;
+  --surface-raised-color: #332f2e;
+  --surface-muted-color: #3d3938;
+  --border-color: rgba(211, 171, 158, 0.12);
+  --shadow-ambient: 0 4px 20px rgba(0, 0, 0, 0.2);
+  --shadow-ambient-hover: 0 6px 24px rgba(0, 0, 0, 0.28);
+
+  --background: var(--background-color);
+  --foreground: var(--font-color-primary);
+  --card: var(--surface-color);
+  --card-foreground: var(--font-color-primary);
+  --popover: var(--surface-color);
+  --popover-foreground: var(--font-color-primary);
+  --primary: var(--primary-color);
+  --primary-foreground: #ffffff;
+  --secondary: var(--surface-raised-color);
+  --secondary-foreground: var(--font-color-primary);
+  --muted: var(--surface-muted-color);
+  --muted-foreground: var(--font-color-muted);
+  --accent: rgba(211, 171, 158, 0.15);
+  --accent-foreground: #e8d5cf;
+  --border: var(--border-color);
+  --input: var(--border-color);
+  --input-background: var(--surface-raised-color);
+  --ring: var(--ring-color);
+
+  --sidebar: var(--surface-color);
+  --sidebar-foreground: var(--font-color-primary);
+  --sidebar-accent: rgba(211, 171, 158, 0.15);
+  --sidebar-accent-foreground: #e8d5cf;
+  --sidebar-border: var(--border-color);
+}
