@@ -10,3 +10,314 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+
+  @@map("auth_provider")
+}
+
+enum StatusAccount {
+  ACTIVE
+  INACTIVE
+  BANNED
+
+  @@map("status_account")
+}
+
+enum RoleAccount {
+  USER
+  ADMIN
+
+  @@map("role_account")
+}
+
+enum RankingMetricType {
+  QUARTILE
+  RANK
+  SCORE
+  PERCENTILE
+
+  @@map("ranking_metric_type")
+}
+
+enum RankingSource {
+  SCIMAGO
+  SCOPUS
+  WOS
+  DOAJ
+  OTHER
+
+  @@map("ranking_source")
+}
+
+enum ZoneType {
+  COUNTRY
+  REGION
+
+  @@map("type_zone")
+}
+
+enum ZoneSource {
+  ISO
+  SCIMAGO
+  SCOPUS
+  OTHER
+
+  @@map("source_zone")
+}
+
+model User {
+  id          String        @id @default(uuid()) @map("user_id") @db.Uuid
+  email       String        @unique @db.VarChar(255)
+  password    String        @db.VarChar(255)
+  type        AuthProvider
+  status      StatusAccount
+  role        RoleAccount
+  lastName    String?       @map("last_name") @db.VarChar(255)
+  firstName   String?       @map("first_name") @db.VarChar(255)
+  imageUrl    String?       @map("url_image") @db.VarChar(2048)
+  dateOfBirth DateTime?     @map("date_of_birth") @db.Date
+  gender      Boolean?
+
+  @@map("user")
+}
+
+model Publisher {
+  id          String    @id @default(uuid()) @map("publisher_id") @db.Uuid
+  displayName String?   @map("display_name") @db.VarChar(255)
+  imageUrl    String?   @map("image_url") @db.VarChar(2048)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  journals    Journal[]
+
+  @@map("publisher")
+}
+
+model Zone {
+  id              String     @id @default(uuid()) @map("zone_id") @db.Uuid
+  code            String?    @db.VarChar(50)
+  name            String?    @db.VarChar(255)
+  type            ZoneType
+  isoCode         String?    @map("iso_code") @db.VarChar(50)
+  source          ZoneSource
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamp(6)
+  countryJournals Journal[]  @relation("JournalCountry")
+  regionJournals  Journal[]  @relation("JournalRegion")
+
+  @@unique([code, type, source])
+  @@map("zone")
+}
+
+model Journal {
+  id                       String                   @id @default(uuid()) @map("journal_id") @db.Uuid
+  sourceId                 String?                  @map("source_id") @db.VarChar(255)
+  publisherId              String?                  @map("publisher_id") @db.Uuid
+  countryId                String?                  @map("country") @db.Uuid
+  regionId                 String?                  @map("region") @db.Uuid
+  displayName              String?                  @map("display_name") @db.VarChar(255)
+  type                     String?                  @db.VarChar(100)
+  isOpenAccess             Boolean?                 @map("is_open_access")
+  isOaDiamond              Boolean?                 @map("is_oa_diamond")
+  coverage                 String?                  @db.VarChar(255)
+  publisher                Publisher?               @relation(fields: [publisherId], references: [id])
+  country                  Zone?                    @relation("JournalCountry", fields: [countryId], references: [id])
+  region                   Zone?                    @relation("JournalRegion", fields: [regionId], references: [id])
+  issns                    JournalIssn[]
+  volumes                  Volume[]
+  rankings                 JournalRanking[]
+  journalSubjectCategories JournalSubjectCategory[]
+
+  @@index([publisherId])
+  @@index([countryId])
+  @@index([regionId])
+  @@index([sourceId])
+  @@map("journal")
+}
+
+model JournalIssn {
+  id        String   @id @default(uuid()) @map("journal_issn_id") @db.Uuid
+  journalId String?  @map("journal_id") @db.Uuid
+  issn      String?  @db.VarChar(32)
+  journal   Journal? @relation(fields: [journalId], references: [id])
+
+  @@unique([journalId, issn])
+  @@index([journalId])
+  @@map("journal_issn")
+}
+
+model SubjectArea {
+  id                String            @id @default(uuid()) @map("subject_area_id") @db.Uuid
+  displayName       String?           @map("display_name") @db.VarChar(255)
+  description       String?           @db.VarChar(1000)
+  subjectCategories SubjectCategory[]
+
+  @@map("subject_area")
+}
+
+model SubjectCategory {
+  id                       String                   @id @default(uuid()) @map("subject_category_id") @db.Uuid
+  subjectAreaId            String?                  @map("subject_area_id") @db.Uuid
+  displayName              String?                  @map("display_name") @db.VarChar(255)
+  description              String?                  @db.VarChar(1000)
+  subjectArea              SubjectArea?             @relation(fields: [subjectAreaId], references: [id])
+  journalRankings          JournalRanking[]
+  journalSubjectCategories JournalSubjectCategory[]
+
+  @@index([subjectAreaId])
+  @@map("subject_category")
+}
+
+model JournalSubjectCategory {
+  journalId         String          @map("journal_id") @db.Uuid
+  subjectCategoryId String          @map("subject_category_id") @db.Uuid
+  journal           Journal         @relation(fields: [journalId], references: [id])
+  subjectCategory   SubjectCategory @relation(fields: [subjectCategoryId], references: [id])
+
+  @@id([journalId, subjectCategoryId])
+  @@index([subjectCategoryId])
+  @@map("journal_subject_category")
+}
+
+model RankingMetric {
+  id          String            @id @default(uuid()) @map("metric_id") @db.Uuid
+  code        String?           @unique @db.VarChar(100)
+  displayName String?           @map("display_name") @db.VarChar(255)
+  metricType  RankingMetricType @map("metric_type")
+  description String?           @db.VarChar(1000)
+  rankings    JournalRanking[]
+
+  @@map("ranking_metric")
+}
+
+model JournalRanking {
+  id                String           @id @default(uuid()) @map("journal_ranking_id") @db.Uuid
+  journalId         String           @map("journal_id") @db.Uuid
+  subjectCategoryId String?          @map("subject_category_id") @db.Uuid
+  source            RankingSource
+  metricId          String           @map("metric_id") @db.Uuid
+  year              Int
+  valueText         String?          @map("value_txt") @db.VarChar(255)
+  valueInt          Int?             @map("value_int")
+  valueFloat        Float?           @map("value_float")
+  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamp(6)
+  journal           Journal          @relation(fields: [journalId], references: [id])
+  subjectCategory   SubjectCategory? @relation(fields: [subjectCategoryId], references: [id])
+  metric            RankingMetric    @relation(fields: [metricId], references: [id])
+
+  @@unique([journalId, subjectCategoryId, source, metricId, year])
+  @@index([metricId])
+  @@index([subjectCategoryId])
+  @@map("journal_ranking")
+}
+
+model Volume {
+  id              String   @id @default(uuid()) @map("volume_id") @db.Uuid
+  journalId       String?  @map("journal_id") @db.Uuid
+  volumeNumber    Int?     @map("volume_number")
+  publicationYear Int?     @map("publication_year")
+  journal         Journal? @relation(fields: [journalId], references: [id])
+  issues          Issue[]
+
+  @@unique([journalId, volumeNumber, publicationYear])
+  @@index([journalId])
+  @@map("volume")
+}
+
+model Issue {
+  id              String    @id @default(uuid()) @map("issue_id") @db.Uuid
+  volumeId        String?   @map("volume_id") @db.Uuid
+  issueNumber     String?   @map("issue_number") @db.VarChar(100)
+  publicationYear Int?      @map("publication_year")
+  volume          Volume?   @relation(fields: [volumeId], references: [id])
+  articles        Article[]
+
+  @@unique([volumeId, issueNumber, publicationYear])
+  @@index([volumeId])
+  @@map("issue")
+}
+
+model Article {
+  id              String           @id @default(uuid()) @map("article_id") @db.Uuid
+  version         String?          @db.VarChar(100)
+  issueId         String?          @map("issue_id") @db.Uuid
+  title           String           @db.VarChar(1000)
+  abstract        String?          @db.Text
+  publicationYear Int?             @map("publication_year")
+  doi             String?          @db.VarChar(255)
+  primaryTopicId  String?          @map("primary_topic") @db.Uuid
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamp(6)
+  issue           Issue?           @relation(fields: [issueId], references: [id])
+  primaryTopic    Topic?           @relation("ArticlePrimaryTopic", fields: [primaryTopicId], references: [id])
+  authorArticles  AuthorArticle[]
+  keywordArticles KeywordArticle[]
+  subTopics       SubTopic[]
+
+  @@index([doi])
+  @@index([issueId])
+  @@index([primaryTopicId])
+  @@map("article")
+}
+
+model Author {
+  id             String          @id @default(uuid()) @map("author_id") @db.Uuid
+  orcid          String?         @unique @db.VarChar(50)
+  displayName    String?         @map("display_name") @db.VarChar(255)
+  imageUrl       String?         @map("url_image") @db.VarChar(2048)
+  authorArticles AuthorArticle[]
+
+  @@map("author")
+}
+
+model AuthorArticle {
+  authorId  String  @map("author_id") @db.Uuid
+  articleId String  @map("article_id") @db.Uuid
+  author    Author  @relation(fields: [authorId], references: [id])
+  article   Article @relation(fields: [articleId], references: [id])
+
+  @@id([authorId, articleId])
+  @@index([articleId])
+  @@map("author_article")
+}
+
+model Keyword {
+  id              String           @id @default(uuid()) @map("keyword_id") @db.Uuid
+  displayName     String?          @map("display_name") @db.VarChar(255)
+  keywordArticles KeywordArticle[]
+
+  @@unique([displayName])
+  @@map("keyword")
+}
+
+model KeywordArticle {
+  keywordId String  @map("keyword_id") @db.Uuid
+  articleId String  @map("article_id") @db.Uuid
+  score     Float?
+  keyword   Keyword @relation(fields: [keywordId], references: [id])
+  article   Article @relation(fields: [articleId], references: [id])
+
+  @@id([keywordId, articleId])
+  @@index([articleId])
+  @@map("keyword_article")
+}
+
+model Topic {
+  id              String     @id @default(uuid()) @map("topic_id") @db.Uuid
+  displayName     String?    @map("display_name") @db.VarChar(255)
+  score           Float?
+  primaryArticles Article[]  @relation("ArticlePrimaryTopic")
+  subTopics       SubTopic[]
+
+  @@map("topic")
+}
+
+model SubTopic {
+  articleId String  @map("article_id") @db.Uuid
+  topicId   String  @map("topic_id") @db.Uuid
+  article   Article @relation(fields: [articleId], references: [id])
+  topic     Topic   @relation(fields: [topicId], references: [id])
+
+  @@id([articleId, topicId])
+  @@index([topicId])
+  @@map("sub_topic")
+}
