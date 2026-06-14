@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
-import { join } from "node:path";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const monorepoRoot = join(process.cwd(), "../..");
+const appDir = path.dirname(fileURLToPath(import.meta.url));
+const monorepoRoot = path.resolve(appDir, "../..");
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: monorepoRoot,
