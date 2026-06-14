@@ -1,0 +1,471 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Scilab API",
+    "version": "1.1.0",
+    "description": "API documentation for the Scilab backend."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "API availability checks."
+    },
+    {
+      "name": "Auth",
+      "description": "JWT-backed authentication sessions."
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Check API availability",
+        "operationId": "getHealth",
+        "tags": ["Health"],
+        "responses": {
+          "200": {
+            "description": "The API is running.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponseEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Sign in with credentials",
+        "operationId": "login",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sign-in succeeded and an authenticated session was issued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPairResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "summary": "Refresh access and refresh tokens",
+        "operationId": "refreshTokens",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Refresh succeeded and a new token pair was issued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPairResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "summary": "Return the authenticated user",
+        "operationId": "getCurrentUser",
+        "tags": ["Auth"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current authenticated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSummaryResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "summary": "Revoke the current authenticated session",
+        "operationId": "logout",
+        "tags": ["Auth"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current session was revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "The request body is missing required fields or is malformed.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "missingCredentials": {
+                "value": {
+                  "success": false,
+                  "message": "Email and password are required",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Authentication failed or the session is not valid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "authenticationFailed": {
+                "value": {
+                  "success": false,
+                  "message": "Authentication failed",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Account exists but is not allowed to sign in.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "inactiveAccount": {
+                "value": {
+                  "success": false,
+                  "message": "Account is not allowed to sign in",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ApiResponseBase": {
+        "type": "object",
+        "required": ["success", "message", "data"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "nullable": true
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255,
+            "example": "user@example.com"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "format": "password",
+            "example": "Password123!"
+          }
+        }
+      },
+      "RefreshRequest": {
+        "type": "object",
+        "required": ["refreshToken"],
+        "additionalProperties": false,
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "Refresh token issued by login or refresh."
+          }
+        }
+      },
+      "HealthResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": ["success", "message", "data"],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [true]
+              },
+              "message": {
+                "type": "string",
+                "example": "OK"
+              },
+              "data": {
+                "type": "string",
+                "example": "Hello World!"
+              }
+            }
+          }
+        ]
+      },
+      "TokenPairResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": ["success", "message", "data"],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [true]
+              },
+              "message": {
+                "type": "string",
+                "example": "Authentication successful"
+              },
+              "data": {
+                "$ref": "#/components/schemas/TokenPairData"
+              }
+            }
+          }
+        ]
+      },
+      "UserSummaryResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": ["success", "message", "data"],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [true]
+              },
+              "message": {
+                "type": "string",
+                "example": "Current user retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/UserSummary"
+              }
+            }
+          }
+        ]
+      },
+      "EmptyResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": ["success", "message", "data"],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [true]
+              },
+              "message": {
+                "type": "string",
+                "example": "Logout successful"
+              },
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "example": {}
+              }
+            }
+          }
+        ]
+      },
+      "ErrorResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": ["success", "message", "data"],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [false]
+              },
+              "message": {
+                "type": "string",
+                "example": "Authentication failed"
+              },
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "example": {}
+              }
+            }
+          }
+        ]
+      },
+      "TokenPairData": {
+        "type": "object",
+        "required": ["accessToken", "refreshToken"],
+        "additionalProperties": false,
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "JWT access token for bearer authentication. Expires 30 minutes after issue."
+          },
+          "refreshToken": {
+            "type": "string",
+            "description": "Refresh token for obtaining a new token pair. Expires 30 days after issue."
+          }
+        }
+      },
+      "UserSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "status",
+          "role",
+          "firstName",
+          "lastName",
+          "imageUrl"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["ACTIVE", "INACTIVE", "BANNED"]
+          },
+          "role": {
+            "type": "string",
+            "enum": ["USER", "ADMIN"]
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      }
+    }
+  }
+}

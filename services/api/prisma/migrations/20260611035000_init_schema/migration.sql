@@ -40,6 +40,23 @@ CREATE TABLE "user" (
 );
 
 -- CreateTable
+CREATE TABLE "auth_session" (
+    "auth_session_id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "access_token_id_hash" VARCHAR(128) NOT NULL,
+    "refresh_token_hash" VARCHAR(128) NOT NULL,
+    "issued_at" TIMESTAMP(6) NOT NULL,
+    "access_token_expires_at" TIMESTAMP(6) NOT NULL,
+    "refresh_token_expires_at" TIMESTAMP(6) NOT NULL,
+    "revoked_at" TIMESTAMP(6),
+    "created_at" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "last_used_at" TIMESTAMP(6),
+    "rotated_at" TIMESTAMP(6),
+
+    CONSTRAINT "auth_session_pkey" PRIMARY KEY ("auth_session_id")
+);
+
+-- CreateTable
 CREATE TABLE "publisher" (
     "publisher_id" UUID NOT NULL,
     "display_name" VARCHAR(255),
@@ -232,6 +249,21 @@ CREATE TABLE "sub_topic" (
 CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "auth_session_access_token_id_hash_key" ON "auth_session"("access_token_id_hash");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "auth_session_refresh_token_hash_key" ON "auth_session"("refresh_token_hash");
+
+-- CreateIndex
+CREATE INDEX "auth_session_user_id_idx" ON "auth_session"("user_id");
+
+-- CreateIndex
+CREATE INDEX "auth_session_access_token_expires_at_idx" ON "auth_session"("access_token_expires_at");
+
+-- CreateIndex
+CREATE INDEX "auth_session_refresh_token_expires_at_idx" ON "auth_session"("refresh_token_expires_at");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "zone_code_type_source_key" ON "zone"("code", "type", "source");
 
 -- CreateIndex
@@ -305,6 +337,9 @@ CREATE INDEX "keyword_article_article_id_idx" ON "keyword_article"("article_id")
 
 -- CreateIndex
 CREATE INDEX "sub_topic_topic_id_idx" ON "sub_topic"("topic_id");
+
+-- AddForeignKey
+ALTER TABLE "auth_session" ADD CONSTRAINT "auth_session_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("user_id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "journal" ADD CONSTRAINT "journal_publisher_id_fkey" FOREIGN KEY ("publisher_id") REFERENCES "publisher"("publisher_id") ON DELETE SET NULL ON UPDATE CASCADE;

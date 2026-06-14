@@ -1,0 +1,255 @@
+openapi: 3.0.3
+info:
+  title: Scilab Auth API
+  version: 1.1.0
+  description: Contract for JWT-backed authentication sessions.
+servers:
+  - url: http://localhost:3000
+paths:
+  /auth/login:
+    post:
+      summary: Sign in with credentials
+      operationId: login
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Sign-in succeeded and an authenticated session was issued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPairResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /auth/logout:
+    post:
+      summary: Revoke the current authenticated session
+      operationId: logout
+      tags:
+        - Auth
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current session was revoked or was already inactive.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptyResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth/refresh:
+    post:
+      summary: Refresh access and refresh tokens
+      operationId: refreshTokens
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Refresh succeeded and a new token pair was issued.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPairResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /auth/me:
+    get:
+      summary: Return the authenticated user's safe profile
+      operationId: getCurrentUser
+      tags:
+        - Auth
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSummaryResponseEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    Unauthorized:
+      description: Authentication failed or the session is not valid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponseEnvelope'
+    Forbidden:
+      description: Account exists but is not allowed to sign in.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponseEnvelope'
+    TooManyRequests:
+      description: Too many failed sign-in attempts.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponseEnvelope'
+  schemas:
+    ApiResponseBase:
+      type: object
+      required:
+        - success
+        - message
+        - data
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          nullable: true
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          minLength: 1
+          maxLength: 1024
+    RefreshRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: Refresh token issued by login or refresh.
+    TokenPairResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            success:
+              type: boolean
+              enum:
+                - true
+            message:
+              type: string
+              example: Authentication successful
+            data:
+              $ref: '#/components/schemas/TokenPairData'
+    UserSummaryResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            success:
+              type: boolean
+              enum:
+                - true
+            message:
+              type: string
+              example: Current user retrieved
+            data:
+              $ref: '#/components/schemas/UserSummary'
+    EmptyResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            success:
+              type: boolean
+              enum:
+                - true
+            message:
+              type: string
+              example: Logout successful
+            data:
+              type: object
+              additionalProperties: false
+    ErrorResponseEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            success:
+              type: boolean
+              enum:
+                - false
+            message:
+              type: string
+              example: Authentication failed
+            data:
+              type: object
+              additionalProperties: false
+    TokenPairData:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+      additionalProperties: false
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token for bearer authentication. Expires 30 minutes after issue.
+        refreshToken:
+          type: string
+          description: Refresh token for obtaining a new token pair. Expires 30 days after issue.
+    UserSummary:
+      type: object
+      required:
+        - id
+        - email
+        - status
+        - role
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - BANNED
+        role:
+          type: string
+          enum:
+            - USER
+            - ADMIN
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+        imageUrl:
+          type: string
+          nullable: true
