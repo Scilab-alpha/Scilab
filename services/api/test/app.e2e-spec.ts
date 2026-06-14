@@ -3,9 +3,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { PrismaModule } from '../src/prisma/prisma.module';
+import { PrismaService } from '../src/prisma/prisma.service';
 import { AppModule } from './../src/app.module';
 
-@Module({})
+@Module({
+  providers: [{ provide: PrismaService, useValue: {} }],
+  exports: [PrismaService],
+})
 class PrismaTestingModule {}
 
 describe('AppController (e2e)', () => {
@@ -31,6 +35,8 @@ describe('AppController (e2e)', () => {
   });
 
   afterEach(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 });
