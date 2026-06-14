@@ -26,8 +26,7 @@ FROM base AS runtime
 
 WORKDIR /app/services/api
 
-ENV NODE_ENV="production"
-ENV PORT="80"
+ENV PORT="6011"
 
 COPY --from=build /app/node_modules /app/node_modules
 COPY --from=build /app/services/api/node_modules ./node_modules
@@ -35,6 +34,6 @@ COPY --from=build /app/services/api/package.json ./package.json
 COPY --from=build /app/services/api/dist ./dist
 COPY --from=build /app/services/api/prisma ./prisma
 
-EXPOSE 80
+EXPOSE 6011
 
 CMD ["node", "dist/main.js"]
