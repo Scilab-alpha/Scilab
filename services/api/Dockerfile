@@ -35,6 +35,7 @@ COPY --from=build /app/pnpm-workspace.yaml /app/pnpm-workspace.yaml
 COPY --from=build /app/node_modules /app/node_modules
 COPY --from=build /app/services/api/node_modules ./node_modules
 COPY --from=build /app/services/api/package.json ./package.json
+COPY --from=build /app/services/api/prisma.config.ts ./prisma.config.ts
 COPY --from=build /app/services/api/dist ./dist
 COPY --from=build /app/services/api/prisma ./prisma
 
