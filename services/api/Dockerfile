@@ -28,6 +28,9 @@ WORKDIR /app/services/api
 
 ENV PORT="6011"
 
+COPY --from=build /app/package.json /app/package.json
+COPY --from=build /app/pnpm-lock.yaml /app/pnpm-lock.yaml
+COPY --from=build /app/pnpm-workspace.yaml /app/pnpm-workspace.yaml
 COPY --from=build /app/node_modules /app/node_modules
 COPY --from=build /app/services/api/node_modules ./node_modules
 COPY --from=build /app/services/api/package.json ./package.json
