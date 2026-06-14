@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Atom } from "lucide-react";
+import { Loader2, Atom, TrendingUp, BookOpen, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -11,8 +11,25 @@ import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Card, CardContent, CardHeader } from "@/shared/components/ui/card";
 import RegisterScreen from "@/features/auth/components/RegisterScreen";
 import { routes } from "@/shared/constants/routes";
-import { DEMO_CREDENTIAL_HINTS } from "@/shared/constants/demo-credentials";
 import { useAuth } from "@/providers/auth-provider";
+
+const PLATFORM_FEATURES = [
+  {
+    icon: TrendingUp,
+    title: "Trend Intelligence",
+    description: "Monitor emerging keywords and research momentum in your field.",
+  },
+  {
+    icon: BookOpen,
+    title: "Journal Discovery",
+    description: "Explore journals and articles with curated, up-to-date insights.",
+  },
+  {
+    icon: BarChart3,
+    title: "Role-Based Analytics",
+    description: "Students, researchers, and admins each get a tailored workspace.",
+  },
+] as const;
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -53,11 +70,6 @@ export default function LoginScreen() {
     }
   };
 
-  const fillDemoAccount = (demoEmail: string) => {
-    setEmail(demoEmail);
-    setPassword("123456");
-  };
-
   if (showRegister) {
     return (
       <RegisterScreen
@@ -94,24 +106,23 @@ export default function LoginScreen() {
               ahead in your field with calm, focused analytics.
             </p>
 
-            <div className="rounded-[var(--radius-card)] border border-border bg-card p-5 space-y-3">
-              <p className="text-sm font-medium text-foreground">Demo accounts</p>
-              {DEMO_CREDENTIAL_HINTS.map((item) => (
-                <button
-                  key={item.email}
-                  type="button"
-                  onClick={() => fillDemoAccount(item.email)}
-                  className="w-full text-left rounded-[var(--radius-button)] px-3 py-2 hover:bg-accent transition-colors"
-                >
-                  <p className="text-sm font-medium text-foreground">{item.role}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.email} / {item.password}
-                  </p>
-                </button>
-              ))}
-              <p className="text-xs text-muted-foreground pt-1">
-                Guest can browse journals & articles without signing in.
-              </p>
+            <div className="rounded-[var(--radius-card)] border border-border bg-card p-5 space-y-4">
+              {PLATFORM_FEATURES.map((feature) => {
+                const Icon = feature.icon;
+                return (
+                  <div key={feature.title} className="flex gap-3">
+                    <div className="w-9 h-9 shrink-0 rounded-[var(--radius-button)] bg-accent flex items-center justify-center">
+                      <Icon className="w-4 h-4 text-accent-foreground" strokeWidth={1.75} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{feature.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                        {feature.description}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -156,7 +167,7 @@ export default function LoginScreen() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="student@demo.com"
+                    placeholder="you@university.edu"
                     className="h-11"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -169,7 +180,7 @@ export default function LoginScreen() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="123456"
+                    placeholder="Enter your password"
                     className="h-11"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -238,7 +249,7 @@ export default function LoginScreen() {
                     Connecting...
                   </>
                 ) : (
-                  "Continue with Google (demo student)"
+                  "Continue with Google"
                 )}
               </Button>
 
