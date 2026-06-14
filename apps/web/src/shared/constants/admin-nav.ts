@@ -28,6 +28,4 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     href: "/admin/system-health",
     icon: Activity,
   },
-  { id: "content", label: "Content Moderation", href: "/admin/content", icon: FileText },
-  { id: "settings", label: "System Settings", href: "/admin/settings", icon: Settings },
 ];
