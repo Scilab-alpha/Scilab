@@ -1,5 +1,5 @@
 import { SignInUseCase } from '@/auth/application/use-cases/sign-in.use-case';
-import { AuthFailureReason, AuthUseCaseError } from '@/auth/domain/auth.errors';
+import { AuthFailureReason } from '@/auth/domain/auth.errors';
 import {
   fakeAudit,
   fakeHasher,
@@ -42,7 +42,7 @@ describe('SignInUseCase', () => {
 
     await expect(
       useCase.execute({ email: 'user@example.com', password: 'wrong' }),
-    ).rejects.toMatchObject<AuthUseCaseError>({
+    ).rejects.toMatchObject({
       reason: AuthFailureReason.InvalidCredentials,
     });
   });
@@ -58,7 +58,7 @@ describe('SignInUseCase', () => {
 
     await expect(
       useCase.execute({ email: 'user@example.com', password: 'Password123!' }),
-    ).rejects.toMatchObject<AuthUseCaseError>({
+    ).rejects.toMatchObject({
       reason: AuthFailureReason.AccountInactive,
     });
   });

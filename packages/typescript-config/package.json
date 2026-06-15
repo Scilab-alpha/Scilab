@@ -3,6 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
+  "scripts": {
+    "format:check": "prettier --check \"*.json\"",
+    "lint": "node -e \"const fs=require('node:fs'); for (const file of fs.readdirSync('.').filter((name)=>name.endsWith('.json'))) JSON.parse(fs.readFileSync(file,'utf8'));\"",
+    "check-types": "node -e \"const fs=require('node:fs'); for (const file of ['base.json','nextjs.json','react-library.json']) { const cfg=JSON.parse(fs.readFileSync(file,'utf8')); if (!cfg.compilerOptions) { console.error(file + ' is missing compilerOptions'); process.exit(1); } }\""
+  },
   "publishConfig": {
     "access": "public"
   }

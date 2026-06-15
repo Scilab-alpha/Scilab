@@ -1,5 +1,5 @@
 import { RefreshTokensUseCase } from '@/auth/application/use-cases/refresh-tokens.use-case';
-import { AuthFailureReason, AuthUseCaseError } from '@/auth/domain/auth.errors';
+import { AuthFailureReason } from '@/auth/domain/auth.errors';
 import { fakeAudit, fakeSessions, fakeTokens, fakeUsers } from './test-doubles';
 
 describe('RefreshTokensUseCase', () => {
@@ -27,9 +27,7 @@ describe('RefreshTokensUseCase', () => {
       fakeAudit(),
     );
 
-    await expect(
-      useCase.execute('bad'),
-    ).rejects.toMatchObject<AuthUseCaseError>({
+    await expect(useCase.execute('bad')).rejects.toMatchObject({
       reason: AuthFailureReason.TokenMalformed,
     });
   });

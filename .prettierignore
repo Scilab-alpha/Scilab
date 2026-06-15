@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+coverage/
+.next/
+.turbo/
+.expo/
+.agents/
+specs/
+AGENTS.md
+apps/mobile/expo-env.d.ts
+services/api/README.md
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

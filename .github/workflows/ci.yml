@@ -1,0 +1,309 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+      - dev
+      - develop
+  push:
+    branches:
+      - main
+      - master
+      - dev
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Change scope
+    runs-on: ubuntu-latest
+    outputs:
+      code_changed: ${{ steps.scope.outputs.code_changed }}
+    steps:
+      - name: Change scope checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Change scope classify changed files
+        id: scope
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch origin "${{ github.base_ref }}" --depth=1
+            changed_files="$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD)"
+          elif [[ "${{ github.event_name }}" == "push" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
+            changed_files="$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}")"
+          else
+            changed_files="$(git ls-files)"
+          fi
+
+          echo "Changed files:"
+          printf '%s\n' "${changed_files:-<none>}"
+
+          code_changed=false
+          while IFS= read -r file; do
+            [[ -z "$file" ]] && continue
+            case "$file" in
+              apps/*|services/*|packages/*|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|turbo.json|.github/workflows/ci.yml)
+                code_changed=true
+                ;;
+            esac
+          done <<< "$changed_files"
+
+          echo "code_changed=$code_changed" >> "$GITHUB_OUTPUT"
+
+  docs-metadata:
+    name: Docs and metadata status
+    needs: changes
+    if: needs.changes.outputs.code_changed != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Docs and metadata validation skipped
+        run: echo "Only documentation or metadata changed; code validation is not required for this run."
+
+  web:
+    name: apps/web validation
+    needs: changes
+    if: needs.changes.outputs.code_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: apps/web setup checkout
+        uses: actions/checkout@v6
+
+      - name: apps/web setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
+      - name: apps/web setup Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: apps/web setup install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: apps/web format check
+        run: pnpm --filter web format:check
+
+      - name: apps/web lint check
+        run: pnpm --filter web lint
+
+      - name: apps/web typecheck
+        run: pnpm --filter web check-types
+
+      - name: apps/web build
+        run: pnpm --filter web build
+
+      - name: apps/web test if declared
+        shell: bash
+        run: |
+          if node -e "const pkg=require('./apps/web/package.json'); process.exit(pkg.scripts?.test ? 0 : 1)"; then
+            pnpm --filter web test
+          else
+            echo "No apps/web test script declared; skipping optional tests."
+          fi
+
+  mobile:
+    name: apps/mobile validation
+    needs: changes
+    if: needs.changes.outputs.code_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: apps/mobile setup checkout
+        uses: actions/checkout@v6
+
+      - name: apps/mobile setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
+      - name: apps/mobile setup Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: apps/mobile setup install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: apps/mobile format check
+        run: pnpm --filter mobile format:check
+
+      - name: apps/mobile lint check
+        run: pnpm --filter mobile lint
+
+      - name: apps/mobile typecheck
+        run: pnpm --filter mobile check-types
+
+      - name: apps/mobile test if declared
+        shell: bash
+        run: |
+          if node -e "const pkg=require('./apps/mobile/package.json'); process.exit(pkg.scripts?.test ? 0 : 1)"; then
+            pnpm --filter mobile test
+          else
+            echo "No apps/mobile test script declared; skipping optional tests."
+          fi
+
+  api:
+    name: services/api validation
+    needs: changes
+    if: needs.changes.outputs.code_changed == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: scilab_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d scilab_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      CI_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/scilab_ci?schema=public
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/scilab_ci?schema=public
+      NODE_ENV: test
+    steps:
+      - name: services/api setup checkout
+        uses: actions/checkout@v6
+
+      - name: services/api setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
+      - name: services/api setup Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: services/api setup install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: services/api format check
+        run: pnpm --filter api format:check
+
+      - name: services/api lint check
+        run: pnpm --filter api lint:ci
+
+      - name: services/api typecheck
+        run: pnpm --filter api check-types
+
+      - name: services/api prisma generate
+        run: pnpm --filter api prisma:generate
+
+      - name: services/api build
+        run: pnpm --filter api build
+
+      - name: services/api unit tests
+        run: pnpm --filter api test
+
+      - name: services/api e2e tests
+        run: pnpm --filter api test:e2e
+
+      - name: services/api Prisma migrate deploy
+        run: pnpm --filter api prisma:deploy
+
+  packages:
+    name: packages/* validation
+    needs: changes
+    if: needs.changes.outputs.code_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: packages setup checkout
+        uses: actions/checkout@v6
+
+      - name: packages setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
+      - name: packages setup Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: packages setup install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: packages format check
+        run: pnpm --filter @repo/eslint-config --filter @repo/typescript-config format:check
+
+      - name: packages lint check
+        run: pnpm --filter @repo/eslint-config --filter @repo/typescript-config lint
+
+      - name: packages typecheck
+        run: pnpm --filter @repo/eslint-config --filter @repo/typescript-config check-types
+
+      - name: packages test if declared
+        shell: bash
+        run: |
+          packages_with_tests="$(node -e "const fs=require('node:fs'); const path=require('node:path'); for (const dir of fs.readdirSync('packages')) { const packagePath=path.join('packages', dir, 'package.json'); if (!fs.existsSync(packagePath)) continue; const pkg=JSON.parse(fs.readFileSync(packagePath, 'utf8')); if (pkg.scripts?.test) console.log(pkg.name); }")"
+
+          if [[ -z "$packages_with_tests" ]]; then
+            echo "No packages/* test scripts declared; skipping optional tests."
+          else
+            while IFS= read -r package_name; do
+              pnpm --filter "$package_name" test
+            done <<< "$packages_with_tests"
+          fi
+
+  ci-summary:
+    name: CI summary
+    needs:
+      - changes
+      - docs-metadata
+      - web
+      - mobile
+      - api
+      - packages
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: CI summary required result
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ needs.changes.result }}" != "success" ]]; then
+            echo "Change scope detection failed."
+            exit 1
+          fi
+
+          if [[ "${{ needs.changes.outputs.code_changed }}" != "true" ]]; then
+            echo "Code validation skipped for documentation-only or metadata-only changes."
+            exit 0
+          fi
+
+          for result in "${{ needs.web.result }}" "${{ needs.mobile.result }}" "${{ needs.api.result }}" "${{ needs.packages.result }}"; do
+            if [[ "$result" != "success" ]]; then
+              echo "One or more required validation jobs failed or were unavailable."
+              exit 1
+            fi
+          done
+
+          echo "All required validation jobs passed."
