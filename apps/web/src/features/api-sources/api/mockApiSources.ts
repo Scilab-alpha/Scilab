@@ -1,4 +1,4 @@
-import type { ApiSource } from "../types/api-source.types";
+import type { ApiSource } from "@/features/api-sources/types/api-source.types";
 
 export const mockApiSources: ApiSource[] = [
   {

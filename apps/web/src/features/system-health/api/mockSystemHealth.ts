@@ -1,4 +1,4 @@
-import type { SystemHealthSnapshot } from "../types/system-health.types";
+import type { SystemHealthSnapshot } from "@/features/system-health/types/system-health.types";
 
 export const mockSystemHealth: SystemHealthSnapshot = {
   overallStatus: "degraded",
