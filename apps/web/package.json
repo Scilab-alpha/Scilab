@@ -7,6 +7,7 @@
     "dev": "next dev --port 3000",
     "build": "next build",
     "start": "next dev --port 3000",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md}\"",
     "lint": "eslint --max-warnings 0",
     "check-types": "next typegen && tsc --noEmit"
   },

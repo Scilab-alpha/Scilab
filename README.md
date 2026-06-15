@@ -1,3 +1,27 @@
+# Scilab
+
+## Continuous Integration
+
+GitHub Actions CI runs on pull requests, protected branch pushes, and manual
+dispatches. Code-sensitive changes validate `apps/web`, `apps/mobile`,
+`services/api`, and `packages/*` with formatting, linting, type checks, builds
+where applicable, tests where declared, and API Prisma migration deploy against
+an isolated PostgreSQL service.
+
+Useful local commands:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm format:check
+pnpm lint
+pnpm check-types
+pnpm --filter api test
+pnpm --filter api test:e2e
+```
+
+Documentation-only or metadata-only changes keep a CI status but skip code
+validation when no code-sensitive paths changed.
+
 # Turborepo starter
 
 This Turborepo starter is maintained by the Turborepo core team.
