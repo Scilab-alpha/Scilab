@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Activity, Database, FileText, Settings, Users } from "lucide-react";
+import { Activity, Database, Users } from "lucide-react";
 
 export interface AdminNavItem {
   id: string;

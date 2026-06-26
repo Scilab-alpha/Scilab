@@ -59,7 +59,3 @@ export const recentPublications = [
     doi: "10.1371/journal.pcbi.1011190",
   },
 ];
-
-interface JournalDetailProps {
-  onNavigate?: (view: string) => void;
-}

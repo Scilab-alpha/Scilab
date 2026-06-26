@@ -7,7 +7,6 @@ import {
   FileText,
   ArrowLeft,
   LockOpen,
-  Lock,
   Award,
   Globe,
   Calendar,
@@ -108,7 +107,7 @@ export default function JournalDetail({ journalId }: JournalDetailProps) {
     <>
       <StudentTopHeader />
 
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto" data-journal-id={journalId}>
         <div className="bg-card border-b border-border">
           <PageContainer size="wide" className="py-8">
             <Button

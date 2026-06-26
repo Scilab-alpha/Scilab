@@ -656,7 +656,7 @@ export default function ProfileManagement() {
                       Notification Categories
                     </h3>
                     <p className="text-sm text-muted-foreground mb-3">
-                      You'll receive notifications for the following events
+                      You&apos;ll receive notifications for the following events
                       based on your selected preference:
                     </p>
                     <ul className="text-sm text-tag space-y-1 list-disc list-inside">

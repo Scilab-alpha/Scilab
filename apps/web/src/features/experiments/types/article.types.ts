@@ -121,7 +121,7 @@ export const mockArticles: Article[] = [
 
 export const yearOptions = ["2024", "2023", "2022", "2021", "2020", "2019"];
 
-interface ArticleSearchProps {
+export interface ArticleSearchProps {
   onNavigate?: (view: string) => void;
   onViewArticle?: (articleId: string) => void;
 }

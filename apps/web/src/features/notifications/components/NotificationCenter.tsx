@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  BookOpen,
   Bell,
   Check,
   ExternalLink,
@@ -18,9 +17,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
-import { Input } from "@/shared/components/ui/input";
 import { Card } from "@/shared/components/ui/card";
-import { Label } from "@/shared/components/ui/label";
 
 interface Notification {
   id: string;
@@ -290,7 +287,8 @@ export default function NotificationCenter() {
                         No notifications
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        You're all caught up! Check back later for new updates.
+                        You&apos;re all caught up! Check back later for new
+                        updates.
                       </p>
                     </div>
                   </Card>

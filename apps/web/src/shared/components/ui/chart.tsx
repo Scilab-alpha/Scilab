@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 
 import * as React from "react";
@@ -21,6 +20,14 @@ export type ChartConfig = {
 
 type ChartContextProps = {
   config: ChartConfig;
+};
+
+type ChartPayloadItem = Record<string, unknown> & {
+  color?: string;
+  dataKey?: React.Key;
+  name?: React.ReactNode;
+  payload?: Record<string, unknown>;
+  value?: number | string;
 };
 
 const ChartContext = React.createContext<ChartContextProps | null>(null);
@@ -121,7 +128,7 @@ function ChartTooltipContent({
   labelKey,
 }: {
   active?: boolean;
-  payload?: Array<Record<string, unknown>>;
+  payload?: ChartPayloadItem[];
   label?: string | number;
   className?: string;
   hideLabel?: boolean;
@@ -135,9 +142,9 @@ function ChartTooltipContent({
   formatter?: (
     value: unknown,
     name: unknown,
-    item: Record<string, unknown>,
+    item: ChartPayloadItem,
     index: number,
-    payload: Array<Record<string, unknown>>,
+    payload: unknown,
   ) => React.ReactNode;
   color?: string;
   nameKey?: string;
@@ -199,7 +206,11 @@ function ChartTooltipContent({
         {payload.map((item, index) => {
           const key = `${nameKey || item.name || item.dataKey || "value"}`;
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
-          const indicatorColor = color || item.payload.fill || item.color;
+          const payloadFill =
+            typeof item.payload?.fill === "string"
+              ? item.payload.fill
+              : undefined;
+          const indicatorColor = color || payloadFill || item.color;
 
           return (
             <div

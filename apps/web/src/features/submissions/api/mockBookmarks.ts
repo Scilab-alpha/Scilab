@@ -116,5 +116,3 @@ export const topicOptions = [
   "Genomics",
   "Medical Imaging",
 ];
-
-undefined;

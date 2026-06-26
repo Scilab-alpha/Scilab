@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -341,10 +341,6 @@ function SourceFormDialog({
 }: SourceFormDialogProps) {
   const [values, setValues] = useState(initialValues);
 
-  useEffect(() => {
-    if (open) setValues(initialValues);
-  }, [open, initialValues]);
-
   const handleProviderChange = (providerId: ApiProviderId) => {
     const preset = PROVIDER_PRESETS.find((item) => item.id === providerId);
 
@@ -679,6 +675,7 @@ export default function ApiSourceConfiguration() {
       </div>
 
       <SourceFormDialog
+        key={`${dialogMode}-${formValues.providerId}-${formValues.name}`}
         open={dialogOpen}
         mode={dialogMode}
         initialValues={formValues}

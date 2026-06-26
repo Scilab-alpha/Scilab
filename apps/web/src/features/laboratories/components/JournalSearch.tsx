@@ -188,7 +188,7 @@ export default function JournalSearch() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortBy, setSortBy] = useState("relevance");
+  const [sortBy] = useState("relevance");
 
   const [filters, setFilters] = useState({
     subjectAreas: [] as string[],

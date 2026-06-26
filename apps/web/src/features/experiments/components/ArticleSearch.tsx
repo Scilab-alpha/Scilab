@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Filter,
-  X,
   ChevronDown,
   Calendar,
   Quote,

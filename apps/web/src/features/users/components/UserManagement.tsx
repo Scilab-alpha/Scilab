@@ -17,20 +17,13 @@ import AdminShell from "@/shared/components/layout/AdminShell";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Card } from "@/shared/components/ui/card";
-import { Label } from "@/shared/components/ui/label";
 import { mockUsers } from "@/features/users/api/mockUsers";
-import type { User } from "@/features/users/types/user.types";
 
-interface UserManagementProps {
-  onNavigate?: (view: string) => void;
-}
-
-export default function UserManagement({ onNavigate }: UserManagementProps) {
+export default function UserManagement() {
   const [users, setUsers] = useState(mockUsers);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showActionMenu, setShowActionMenu] = useState<string | null>(null);
 
   const handleActivateUser = (userId: string) => {

@@ -37,8 +37,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setUser(getStoredUser());
-    setIsLoading(false);
+    const timeoutId = window.setTimeout(() => {
+      setUser(getStoredUser());
+      setIsLoading(false);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   const login = useCallback((email: string, password: string) => {

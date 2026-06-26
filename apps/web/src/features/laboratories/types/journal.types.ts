@@ -159,7 +159,7 @@ export const publishers = [
 
 export const rankingMetrics = ["Impact Factor", "CiteScore", "h-Index", "SJR"];
 
-interface JournalSearchProps {
+export interface JournalSearchProps {
   onNavigate?: (view: string) => void;
   onViewJournal?: (journalId: string) => void;
 }
