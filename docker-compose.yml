@@ -3,7 +3,7 @@ name: scilab
 services:
   api:
     build:
-      context: ../..
+      context: .
       dockerfile: services/api/Dockerfile
     container_name: scilab-api
     restart: unless-stopped

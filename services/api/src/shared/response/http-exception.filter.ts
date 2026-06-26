@@ -33,7 +33,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     if (payload && typeof payload === 'object' && 'message' in payload) {
-      const message = (payload as { message: unknown }).message;
+      const message = payload.message;
       if (Array.isArray(message)) {
         const firstString = message.find(
           (item): item is string => typeof item === 'string',
