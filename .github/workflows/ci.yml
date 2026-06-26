@@ -64,15 +64,6 @@ jobs:
 
           echo "code_changed=$code_changed" >> "$GITHUB_OUTPUT"
 
-  docs-metadata:
-    name: Docs and metadata status
-    needs: changes
-    if: needs.changes.outputs.code_changed != 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Docs and metadata validation skipped
-        run: echo "Only documentation or metadata changed; code validation is not required for this run."
-
   web:
     name: apps/web validation
     needs: changes
@@ -276,7 +267,6 @@ jobs:
     name: CI summary
     needs:
       - changes
-      - docs-metadata
       - web
       - mobile
       - api
