@@ -202,6 +202,9 @@ jobs:
       - name: services/api setup install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: services/api prisma generate
+        run: pnpm --filter api prisma:generate
+
       - name: services/api format check
         run: pnpm --filter api format:check
 
@@ -210,9 +213,6 @@ jobs:
 
       - name: services/api typecheck
         run: pnpm --filter api check-types
-
-      - name: services/api prisma generate
-        run: pnpm --filter api prisma:generate
 
       - name: services/api build
         run: pnpm --filter api build
