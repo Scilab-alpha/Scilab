@@ -16,7 +16,9 @@ export default function ForbiddenPage() {
           <ShieldX className="w-8 h-8 text-destructive" strokeWidth={1.75} />
         </div>
         <div className="space-y-2">
-          <h1 className="font-heading text-3xl text-foreground">403 — Access Denied</h1>
+          <h1 className="font-heading text-3xl text-foreground">
+            403 — Access Denied
+          </h1>
           <p className="text-muted-foreground">
             Your current role does not have permission to view this page.
           </p>

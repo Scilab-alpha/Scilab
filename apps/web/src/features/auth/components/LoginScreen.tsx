@@ -17,17 +17,20 @@ const PLATFORM_FEATURES = [
   {
     icon: TrendingUp,
     title: "Trend Intelligence",
-    description: "Monitor emerging keywords and research momentum in your field.",
+    description:
+      "Monitor emerging keywords and research momentum in your field.",
   },
   {
     icon: BookOpen,
     title: "Journal Discovery",
-    description: "Explore journals and articles with curated, up-to-date insights.",
+    description:
+      "Explore journals and articles with curated, up-to-date insights.",
   },
   {
     icon: BarChart3,
     title: "Role-Based Analytics",
-    description: "Students, researchers, and admins each get a tailored workspace.",
+    description:
+      "Students, researchers, and admins each get a tailored workspace.",
   },
 ] as const;
 
@@ -85,9 +88,14 @@ export default function LoginScreen() {
         <div className="flex flex-col justify-between py-12 px-16 xl:px-24 w-full">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-primary rounded-[var(--radius-card)] flex items-center justify-center">
-              <Atom className="w-6 h-6 text-primary-foreground" strokeWidth={1.75} />
+              <Atom
+                className="w-6 h-6 text-primary-foreground"
+                strokeWidth={1.75}
+              />
             </div>
-            <span className="font-heading text-2xl text-foreground">ScholarTrend</span>
+            <span className="font-heading text-2xl text-foreground">
+              ScholarTrend
+            </span>
           </div>
 
           <div className="space-y-8 max-w-lg">
@@ -102,8 +110,8 @@ export default function LoginScreen() {
             </h1>
 
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Track emerging research trends, discover breakthrough papers, and stay
-              ahead in your field with calm, focused analytics.
+              Track emerging research trends, discover breakthrough papers, and
+              stay ahead in your field with calm, focused analytics.
             </p>
 
             <div className="rounded-[var(--radius-card)] border border-border bg-card p-5 space-y-4">
@@ -112,10 +120,15 @@ export default function LoginScreen() {
                 return (
                   <div key={feature.title} className="flex gap-3">
                     <div className="w-9 h-9 shrink-0 rounded-[var(--radius-button)] bg-accent flex items-center justify-center">
-                      <Icon className="w-4 h-4 text-accent-foreground" strokeWidth={1.75} />
+                      <Icon
+                        className="w-4 h-4 text-accent-foreground"
+                        strokeWidth={1.75}
+                      />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-foreground">{feature.title}</p>
+                      <p className="text-sm font-medium text-foreground">
+                        {feature.title}
+                      </p>
                       <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                         {feature.description}
                       </p>
@@ -133,8 +146,12 @@ export default function LoginScreen() {
               { value: "500+", label: "Universities" },
             ].map((stat) => (
               <div key={stat.label}>
-                <div className="font-heading text-3xl text-foreground">{stat.value}</div>
-                <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
+                <div className="font-heading text-3xl text-foreground">
+                  {stat.value}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  {stat.label}
+                </div>
               </div>
             ))}
           </div>
@@ -146,16 +163,24 @@ export default function LoginScreen() {
           <div className="mb-10 flex flex-col items-center text-center lg:hidden">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-primary rounded-[var(--radius-card)] flex items-center justify-center">
-                <Atom className="w-5 h-5 text-primary-foreground" strokeWidth={1.75} />
+                <Atom
+                  className="w-5 h-5 text-primary-foreground"
+                  strokeWidth={1.75}
+                />
               </div>
-              <span className="font-heading text-2xl text-foreground">ScholarTrend</span>
+              <span className="font-heading text-2xl text-foreground">
+                ScholarTrend
+              </span>
             </div>
           </div>
 
           <div className="mb-8 space-y-2 text-center">
-            <h2 className="font-heading text-4xl text-foreground">Welcome Back</h2>
+            <h2 className="font-heading text-4xl text-foreground">
+              Welcome Back
+            </h2>
             <p className="text-muted-foreground">
-              Track scientific publication trends and discover research insights.
+              Track scientific publication trends and discover research
+              insights.
             </p>
           </div>
 
@@ -193,10 +218,15 @@ export default function LoginScreen() {
                     <Checkbox
                       id="remember"
                       checked={rememberMe}
-                      onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                      onCheckedChange={(checked) =>
+                        setRememberMe(checked as boolean)
+                      }
                       disabled={isLoading || isGoogleLoading}
                     />
-                    <Label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
+                    <Label
+                      htmlFor="remember"
+                      className="text-sm text-muted-foreground cursor-pointer"
+                    >
                       Remember me
                     </Label>
                   </div>
@@ -232,7 +262,9 @@ export default function LoginScreen() {
                   <div className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-card text-muted-foreground">Or continue with</span>
+                  <span className="px-4 bg-card text-muted-foreground">
+                    Or continue with
+                  </span>
                 </div>
               </div>
 
@@ -279,8 +311,13 @@ export default function LoginScreen() {
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
             By signing in, you agree to our{" "}
-            <a href="#" className="text-tag hover:underline">Terms of Service</a> and{" "}
-            <a href="#" className="text-tag hover:underline">Privacy Policy</a>
+            <a href="#" className="text-tag hover:underline">
+              Terms of Service
+            </a>{" "}
+            and{" "}
+            <a href="#" className="text-tag hover:underline">
+              Privacy Policy
+            </a>
           </p>
         </div>
       </div>

@@ -49,12 +49,20 @@ export default function AdvancedDashboard() {
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="w-5 h-5 text-primary" strokeWidth={1.75} />
-                <span className="text-sm font-medium text-tag">Researcher Analytics</span>
+                <TrendingUp
+                  className="w-5 h-5 text-primary"
+                  strokeWidth={1.75}
+                />
+                <span className="text-sm font-medium text-tag">
+                  Researcher Analytics
+                </span>
               </div>
-              <h1 className="font-heading text-3xl text-foreground">Advanced Dashboard</h1>
+              <h1 className="font-heading text-3xl text-foreground">
+                Advanced Dashboard
+              </h1>
               <p className="text-muted-foreground mt-1">
-                Compare multiple keywords, explore activity heatmaps, and track ranking progress.
+                Compare multiple keywords, explore activity heatmaps, and track
+                ranking progress.
               </p>
             </div>
 
@@ -74,14 +82,20 @@ export default function AdvancedDashboard() {
 
           <Card className="p-6">
             <div className="mb-6">
-              <h2 className="font-heading text-lg text-foreground">Multi-Keyword Comparison</h2>
+              <h2 className="font-heading text-lg text-foreground">
+                Multi-Keyword Comparison
+              </h2>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Publication volume trends across selected research keywords
               </p>
             </div>
             <ResponsiveContainer width="100%" height={320}>
               <LineChart data={keywordComparisonSeries}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="var(--border)"
+                  vertical={false}
+                />
                 <XAxis
                   dataKey="month"
                   axisLine={false}
@@ -113,7 +127,9 @@ export default function AdvancedDashboard() {
 
           <Card className="p-6">
             <div className="mb-6">
-              <h2 className="font-heading text-lg text-foreground">Research Activity Heatmap</h2>
+              <h2 className="font-heading text-lg text-foreground">
+                Research Activity Heatmap
+              </h2>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Relative publication intensity by field and month
               </p>
@@ -122,11 +138,16 @@ export default function AdvancedDashboard() {
               <div className="min-w-[640px]">
                 <div
                   className="grid gap-2"
-                  style={{ gridTemplateColumns: `180px repeat(${heatmapColumns.length}, minmax(72px, 1fr))` }}
+                  style={{
+                    gridTemplateColumns: `180px repeat(${heatmapColumns.length}, minmax(72px, 1fr))`,
+                  }}
                 >
                   <div />
                   {heatmapColumns.map((column) => (
-                    <div key={column} className="text-xs font-medium text-muted-foreground text-center py-1">
+                    <div
+                      key={column}
+                      className="text-xs font-medium text-muted-foreground text-center py-1"
+                    >
                       {column}
                     </div>
                   ))}
@@ -154,7 +175,9 @@ export default function AdvancedDashboard() {
 
           <Card className="p-6">
             <div className="mb-6">
-              <h2 className="font-heading text-lg text-foreground">Journal Ranking Progress</h2>
+              <h2 className="font-heading text-lg text-foreground">
+                Journal Ranking Progress
+              </h2>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Quartile movement for followed journals over time
               </p>
@@ -165,23 +188,34 @@ export default function AdvancedDashboard() {
                 const improved = item.currentRank < item.previousRank;
 
                 return (
-                  <div key={item.journal} className="rounded-[var(--radius-card)] border border-border p-5">
+                  <div
+                    key={item.journal}
+                    className="rounded-[var(--radius-card)] border border-border p-5"
+                  >
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                       <div>
-                        <h3 className="text-sm font-medium text-foreground">{item.journal}</h3>
+                        <h3 className="text-sm font-medium text-foreground">
+                          {item.journal}
+                        </h3>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          Current rank #{item.currentRank} · was #{item.previousRank}
+                          Current rank #{item.currentRank} · was #
+                          {item.previousRank}
                         </p>
                       </div>
                       <div
                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-[var(--radius-button)] text-xs font-medium ${
-                          improved ? "bg-teal/10 text-teal" : "bg-destructive/10 text-destructive"
+                          improved
+                            ? "bg-teal/10 text-teal"
+                            : "bg-destructive/10 text-destructive"
                         }`}
                       >
                         {improved ? (
                           <ArrowUp className="w-3.5 h-3.5" strokeWidth={1.75} />
                         ) : (
-                          <ArrowDown className="w-3.5 h-3.5" strokeWidth={1.75} />
+                          <ArrowDown
+                            className="w-3.5 h-3.5"
+                            strokeWidth={1.75}
+                          />
                         )}
                         {improved ? "Improved" : "Declined"}
                       </div>
@@ -189,15 +223,22 @@ export default function AdvancedDashboard() {
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {item.timeline.map((point) => (
-                        <div key={`${item.journal}-${point.period}`} className="space-y-2">
+                        <div
+                          key={`${item.journal}-${point.period}`}
+                          className="space-y-2"
+                        >
                           <div className="flex items-center justify-between text-xs text-muted-foreground">
                             <span>{point.period}</span>
-                            <span className="font-medium text-foreground">#{point.rank}</span>
+                            <span className="font-medium text-foreground">
+                              #{point.rank}
+                            </span>
                           </div>
                           <div className="h-2 bg-surface-raised rounded-full overflow-hidden">
                             <div
                               className="h-full bg-teal rounded-full transition-all"
-                              style={{ width: `${((6 - point.rank) / 5) * 100}%` }}
+                              style={{
+                                width: `${((6 - point.rank) / 5) * 100}%`,
+                              }}
                             />
                           </div>
                         </div>

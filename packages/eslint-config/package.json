@@ -6,7 +6,7 @@
   "scripts": {
     "format:check": "prettier --check \"*.js\" \"package.json\"",
     "lint": "eslint . --max-warnings 0",
-    "check-types": "tsc --allowJs --checkJs --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 base.js next.js react-internal.js eslint.config.js"
+    "check-types": "tsc --allowJs --checkJs --noEmit --skipLibCheck --module NodeNext --moduleResolution NodeNext --target ES2022 base.js next.js react-internal.js eslint.config.js"
   },
   "exports": {
     "./base": "./base.js",

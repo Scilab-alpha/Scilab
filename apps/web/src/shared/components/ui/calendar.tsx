@@ -33,7 +33,8 @@ function Calendar({
         ),
         month_grid: "w-full border-collapse space-y-1",
         weekdays: "flex",
-        weekday: "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
+        weekday:
+          "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
         week: "flex w-full mt-2",
         day: cn(
           buttonVariants({ variant: "ghost" }),

@@ -31,10 +31,15 @@ export default function StudentShell({ children }: StudentShellProps) {
       <aside className="w-64 bg-card border-r border-border flex flex-col shadow-ambient">
         <div className="h-16 px-6 flex items-center gap-3 border-b border-border">
           <div className="w-9 h-9 bg-primary rounded-[var(--radius-button)] flex items-center justify-center">
-            <Atom className="w-5 h-5 text-primary-foreground" strokeWidth={1.75} />
+            <Atom
+              className="w-5 h-5 text-primary-foreground"
+              strokeWidth={1.75}
+            />
           </div>
           <div className="min-w-0">
-            <span className="font-heading text-xl text-foreground">{APP_NAME}</span>
+            <span className="font-heading text-xl text-foreground">
+              {APP_NAME}
+            </span>
             <p className="text-xs text-muted-foreground truncate">
               {user ? ROLE_LABELS[user.role] : "Guest"}
             </p>
@@ -72,11 +77,17 @@ export default function StudentShell({ children }: StudentShellProps) {
                 className="flex items-center gap-3 px-3 py-2 rounded-[var(--radius-card)] hover:bg-accent transition-colors"
               >
                 <div className="w-9 h-9 bg-primary/20 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-medium text-tag">{user.initials}</span>
+                  <span className="text-sm font-medium text-tag">
+                    {user.initials}
+                  </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {user.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {user.email}
+                  </p>
                 </div>
               </Link>
               <button

@@ -95,8 +95,8 @@ command.
 Practical daily-work scenarios:
 
 - Documentation-only and metadata-only changes still run the workflow and pass
-  through `Docs and metadata status` plus `CI summary`; code validation jobs are
-  skipped when no code-sensitive paths changed.
+  through `CI summary`; code validation jobs are skipped when no code-sensitive
+  paths changed.
 - Code changes under `apps/*`, `services/*`, `packages/*`, root package
   metadata, Turbo config, pnpm workspace/lockfile, or CI workflow files run all
   required validation jobs.

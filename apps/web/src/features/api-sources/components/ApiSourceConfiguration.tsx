@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -37,7 +37,10 @@ import {
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
-import { mockApiSources, PROVIDER_PRESETS } from "@/features/api-sources/api/mockApiSources";
+import {
+  mockApiSources,
+  PROVIDER_PRESETS,
+} from "@/features/api-sources/api/mockApiSources";
 import type {
   ApiProviderId,
   ApiSource,
@@ -159,7 +162,6 @@ function ProviderCard({
 
   return (
     <Card className="group relative overflow-hidden border border-border bg-card hover:border-primary/30 transition-all">
-
       <div className="p-6 space-y-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-4 min-w-0">
@@ -170,7 +172,9 @@ function ProviderCard({
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-heading text-base text-foreground">{source.name}</h3>
+                <h3 className="font-heading text-base text-foreground">
+                  {source.name}
+                </h3>
                 <span
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium ${status.badge}`}
                 >
@@ -178,13 +182,19 @@ function ProviderCard({
                   {status.label}
                 </span>
               </div>
-              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{source.description}</p>
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                {source.description}
+              </p>
             </div>
           </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground"
+              >
                 <MoreHorizontal className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -193,7 +203,10 @@ function ProviderCard({
                 <Pencil className="w-4 h-4" />
                 Edit Source
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onTest(source.id)} disabled={isTesting}>
+              <DropdownMenuItem
+                onClick={() => onTest(source.id)}
+                disabled={isTesting}
+              >
                 <RefreshCw className="w-4 h-4" />
                 Test Connection
               </DropdownMenuItem>
@@ -220,7 +233,9 @@ function ProviderCard({
             </p>
             <div className="flex items-center gap-2 min-w-0">
               <Globe2 className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              <p className="text-sm font-mono text-foreground truncate">{source.endpoint}</p>
+              <p className="text-sm font-mono text-foreground truncate">
+                {source.endpoint}
+              </p>
             </div>
           </div>
 
@@ -239,10 +254,14 @@ function ProviderCard({
                 Connection Health
               </p>
               <div className="flex items-center gap-2">
-                <div className={`w-7 h-7 rounded-md flex items-center justify-center ${health.bg}`}>
+                <div
+                  className={`w-7 h-7 rounded-md flex items-center justify-center ${health.bg}`}
+                >
                   <HealthIcon className={`w-4 h-4 ${health.className}`} />
                 </div>
-                <span className="text-sm font-medium text-foreground">{health.label}</span>
+                <span className="text-sm font-medium text-foreground">
+                  {health.label}
+                </span>
               </div>
             </div>
           </div>
@@ -282,7 +301,9 @@ function ProviderCard({
             size="sm"
             className="flex-1"
             onClick={() =>
-              source.status === "disabled" ? onEnable(source.id) : onDisable(source.id)
+              source.status === "disabled"
+                ? onEnable(source.id)
+                : onDisable(source.id)
             }
           >
             {source.status === "disabled" ? (
@@ -320,10 +341,6 @@ function SourceFormDialog({
 }: SourceFormDialogProps) {
   const [values, setValues] = useState(initialValues);
 
-  useEffect(() => {
-    if (open) setValues(initialValues);
-  }, [open, initialValues]);
-
   const handleProviderChange = (providerId: ApiProviderId) => {
     const preset = PROVIDER_PRESETS.find((item) => item.id === providerId);
 
@@ -346,9 +363,12 @@ function SourceFormDialog({
     >
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{mode === "add" ? "Add Source" : "Edit Source"}</DialogTitle>
+          <DialogTitle>
+            {mode === "add" ? "Add Source" : "Edit Source"}
+          </DialogTitle>
           <DialogDescription>
-            Configure an external academic data provider for ScholarTrend ingestion pipelines.
+            Configure an external academic data provider for ScholarTrend
+            ingestion pipelines.
           </DialogDescription>
         </DialogHeader>
 
@@ -365,7 +385,9 @@ function SourceFormDialog({
               id="provider"
               className="w-full h-11 px-4 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               value={values.providerId}
-              onChange={(event) => handleProviderChange(event.target.value as ApiProviderId)}
+              onChange={(event) =>
+                handleProviderChange(event.target.value as ApiProviderId)
+              }
             >
               {PROVIDER_PRESETS.map((preset) => (
                 <option key={preset.id} value={preset.id}>
@@ -381,7 +403,9 @@ function SourceFormDialog({
             <Input
               id="name"
               value={values.name}
-              onChange={(event) => setValues({ ...values, name: event.target.value })}
+              onChange={(event) =>
+                setValues({ ...values, name: event.target.value })
+              }
               placeholder="OpenAlex"
               required
             />
@@ -392,7 +416,9 @@ function SourceFormDialog({
             <Input
               id="endpoint"
               value={values.endpoint}
-              onChange={(event) => setValues({ ...values, endpoint: event.target.value })}
+              onChange={(event) =>
+                setValues({ ...values, endpoint: event.target.value })
+              }
               placeholder="https://api.example.org"
               required
             />
@@ -403,7 +429,9 @@ function SourceFormDialog({
             <Textarea
               id="description"
               value={values.description}
-              onChange={(event) => setValues({ ...values, description: event.target.value })}
+              onChange={(event) =>
+                setValues({ ...values, description: event.target.value })
+              }
               placeholder="What this provider supplies to ScholarTrend..."
               rows={3}
             />
@@ -415,16 +443,24 @@ function SourceFormDialog({
               id="apiKey"
               type="password"
               value={values.apiKey}
-              onChange={(event) => setValues({ ...values, apiKey: event.target.value })}
+              onChange={(event) =>
+                setValues({ ...values, apiKey: event.target.value })
+              }
               placeholder="••••••••••••••••"
             />
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
-            <Button type="submit">{mode === "add" ? "Add Source" : "Save Changes"}</Button>
+            <Button type="submit">
+              {mode === "add" ? "Add Source" : "Save Changes"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -444,7 +480,8 @@ export default function ApiSourceConfiguration() {
     () => ({
       total: sources.length,
       active: sources.filter((source) => source.status === "active").length,
-      healthy: sources.filter((source) => source.connectionHealth === "healthy").length,
+      healthy: sources.filter((source) => source.connectionHealth === "healthy")
+        .length,
       disabled: sources.filter((source) => source.status === "disabled").length,
     }),
     [sources],
@@ -494,7 +531,9 @@ export default function ApiSourceConfiguration() {
                 name: values.name,
                 description: values.description,
                 endpoint: values.endpoint,
-                apiKeyConfigured: values.apiKey ? true : source.apiKeyConfigured,
+                apiKeyConfigured: values.apiKey
+                  ? true
+                  : source.apiKeyConfigured,
               }
             : source,
         ),
@@ -556,7 +595,12 @@ export default function ApiSourceConfiguration() {
     <AdminShell
       title="API Source Configuration"
       subtitle={`${stats.active} active · ${stats.healthy} healthy connections`}
-      icon={<Database className="w-5 h-5 text-primary-foreground" strokeWidth={1.75} />}
+      icon={
+        <Database
+          className="w-5 h-5 text-primary-foreground"
+          strokeWidth={1.75}
+        />
+      }
       headerAction={
         <Button onClick={openAddDialog}>
           <Plus className="w-4 h-4" />
@@ -568,11 +612,13 @@ export default function ApiSourceConfiguration() {
         <Card className="p-6 border-border bg-card">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h2 className="font-heading text-lg text-foreground">External Data Providers</h2>
+              <h2 className="font-heading text-lg text-foreground">
+                External Data Providers
+              </h2>
               <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-                Manage academic API integrations used for publication metadata, journal rankings,
-                and citation enrichment. Inspired by integration marketplaces like Vercel and
-                Supabase.
+                Manage academic API integrations used for publication metadata,
+                journal rankings, and citation enrichment. Inspired by
+                integration marketplaces like Vercel and Supabase.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -609,12 +655,18 @@ export default function ApiSourceConfiguration() {
               <Database className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-sm font-medium text-foreground">Need another provider?</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Add custom REST endpoints for institutional repositories, PubMed, or internal
-                research databases.
+              <p className="text-sm font-medium text-foreground">
+                Need another provider?
               </p>
-              <Button variant="link" className="px-0 h-auto mt-2" onClick={openAddDialog}>
+              <p className="text-sm text-muted-foreground mt-1">
+                Add custom REST endpoints for institutional repositories,
+                PubMed, or internal research databases.
+              </p>
+              <Button
+                variant="link"
+                className="px-0 h-auto mt-2"
+                onClick={openAddDialog}
+              >
                 Connect a new source
               </Button>
             </div>
@@ -623,6 +675,7 @@ export default function ApiSourceConfiguration() {
       </div>
 
       <SourceFormDialog
+        key={`${dialogMode}-${formValues.providerId}-${formValues.name}`}
         open={dialogOpen}
         mode={dialogMode}
         initialValues={formValues}

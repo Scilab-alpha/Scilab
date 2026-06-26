@@ -39,7 +39,11 @@ export const DEMO_ACCOUNTS: Record<
 };
 
 export const DEMO_CREDENTIAL_HINTS = [
-  { role: "Student / Lecturer", email: "student@demo.com", password: DEMO_PASSWORD },
+  {
+    role: "Student / Lecturer",
+    email: "student@demo.com",
+    password: DEMO_PASSWORD,
+  },
   { role: "Researcher", email: "researcher@demo.com", password: DEMO_PASSWORD },
   { role: "System Admin", email: "admin@demo.com", password: DEMO_PASSWORD },
 ] as const;

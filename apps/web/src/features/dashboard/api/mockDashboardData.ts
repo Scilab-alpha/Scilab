@@ -1,5 +1,3 @@
-
-
 export const publicationGrowthData = [
   { month: "Jan", publications: 4200 },
   { month: "Feb", publications: 4800 },

@@ -17,16 +17,16 @@ ScholarTrend visual language: calm, intelligent, minimal, premium, reading-focus
 
 ## Colors
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--primary-color` | `#D3AB9E` | Buttons, active nav, selected states |
-| `--secondary-color` | `#3AC9C1` | Progress, charts, success metrics only |
-| `--surface-color` | `#FFFFFF` | Cards, panels |
-| `--background-color` | `#F9F9FA` | Page background |
-| `--surface-raised-color` | `#F3F3F4` | Inputs, elevated areas |
-| `--surface-muted-color` | `#EDEEEF` | Subtle sections |
-| `--border-color` | `rgba(211,171,158,0.15)` | Soft borders |
-| `--tag-text-color` | `#5C3F35` | Tags, links, accents |
+| Token                    | Value                    | Usage                                  |
+| ------------------------ | ------------------------ | -------------------------------------- |
+| `--primary-color`        | `#D3AB9E`                | Buttons, active nav, selected states   |
+| `--secondary-color`      | `#3AC9C1`                | Progress, charts, success metrics only |
+| `--surface-color`        | `#FFFFFF`                | Cards, panels                          |
+| `--background-color`     | `#F9F9FA`                | Page background                        |
+| `--surface-raised-color` | `#F3F3F4`                | Inputs, elevated areas                 |
+| `--surface-muted-color`  | `#EDEEEF`                | Subtle sections                        |
+| `--border-color`         | `rgba(211,171,158,0.15)` | Soft borders                           |
+| `--tag-text-color`       | `#5C3F35`                | Tags, links, accents                   |
 
 Edit: `src/styles/color.css`
 
@@ -34,10 +34,10 @@ Edit: `src/styles/color.css`
 
 ## Typography
 
-| Role | Font | Weight |
-|------|------|--------|
+| Role     | Font              | Weight                 |
+| -------- | ----------------- | ---------------------- |
 | Headings | Libre Caslon Text | 400 (never bold-heavy) |
-| Body | Manrope | 400–500 |
+| Body     | Manrope           | 400–500                |
 
 - Use class `font-heading` for titles
 - Edit: `src/styles/fonts.css`
@@ -63,17 +63,17 @@ Edit: `src/styles/spacing.css`
 
 ## Radius
 
-| Element | Value |
-|---------|-------|
+| Element          | Value |
+| ---------------- | ----- |
 | Inputs / Buttons | `4px` |
-| Cards | `8px` |
+| Cards            | `8px` |
 
 ---
 
 ## Shadows
 
 ```css
---shadow-ambient: 0 4px 20px rgba(211,171,158,0.05);
+--shadow-ambient: 0 4px 20px rgba(211, 171, 158, 0.05);
 ```
 
 Use `shadow-ambient` class only. No `shadow-lg`.
@@ -82,16 +82,16 @@ Use `shadow-ambient` class only. No `shadow-lg`.
 
 ## Components
 
-| Component | Location |
-|-----------|----------|
-| Button | `shared/components/ui/button.tsx` |
-| Input | `shared/components/ui/input.tsx` |
-| Card | `shared/components/ui/card.tsx` |
-| Table | `shared/components/ui/table.tsx` |
-| Badge / Tags | `shared/components/ui/badge.tsx` |
-| Progress | `shared/components/ui/progress.tsx` (teal fill) |
-| Admin layout | `shared/components/layout/AdminShell.tsx` |
-| Page wrapper | `shared/components/layout/PageContainer.tsx` |
+| Component    | Location                                        |
+| ------------ | ----------------------------------------------- |
+| Button       | `shared/components/ui/button.tsx`               |
+| Input        | `shared/components/ui/input.tsx`                |
+| Card         | `shared/components/ui/card.tsx`                 |
+| Table        | `shared/components/ui/table.tsx`                |
+| Badge / Tags | `shared/components/ui/badge.tsx`                |
+| Progress     | `shared/components/ui/progress.tsx` (teal fill) |
+| Admin layout | `shared/components/layout/AdminShell.tsx`       |
+| Page wrapper | `shared/components/layout/PageContainer.tsx`    |
 
 ---
 

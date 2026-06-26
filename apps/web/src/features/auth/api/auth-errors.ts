@@ -28,5 +28,5 @@ export function getAuthErrorMessage(error: unknown) {
 }
 
 export function getAuthFieldErrors(error: unknown) {
-  return error instanceof AuthApiError ? error.fieldErrors ?? {} : {};
+  return error instanceof AuthApiError ? (error.fieldErrors ?? {}) : {};
 }

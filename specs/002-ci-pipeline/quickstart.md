@@ -105,7 +105,7 @@ message.
 - `mobile`: format, lint, typecheck, test if declared.
 - `api`: format, lint, typecheck, build, test, e2e test, Prisma migrate deploy.
 - `packages`: format, lint, typecheck, test if declared.
-- `docs-metadata`: final status for documentation-only or metadata-only
+- `ci-summary`: final status, including documentation-only or metadata-only
   changes.
 
 ## Intentional Failing-Change Checks

@@ -22,7 +22,8 @@ const buttonVariants = cva(
         link: "text-[var(--font-color-link)] underline-offset-4 hover:underline shadow-none hover:shadow-none hover:translate-y-0",
       },
       size: {
-        default: "h-9 px-[var(--button-padding-x)] py-[var(--button-padding-y)]",
+        default:
+          "h-9 px-[var(--button-padding-x)] py-[var(--button-padding-y)]",
         sm: "h-8 px-[var(--button-padding-x-sm)] py-[var(--button-padding-y-sm)] text-xs",
         lg: "h-10 px-[var(--button-padding-x-lg)] py-[var(--button-padding-y-lg)]",
         icon: "size-9",
