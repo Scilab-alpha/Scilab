@@ -37,10 +37,15 @@ export default function AdminShell({
       <aside className="w-64 bg-card border-r border-border flex flex-col shadow-ambient">
         <div className="h-16 px-6 flex items-center gap-3 border-b border-border">
           <div className="w-9 h-9 bg-primary rounded-[var(--radius-button)] flex items-center justify-center">
-            <Shield className="w-5 h-5 text-primary-foreground" strokeWidth={1.75} />
+            <Shield
+              className="w-5 h-5 text-primary-foreground"
+              strokeWidth={1.75}
+            />
           </div>
           <div>
-            <span className="font-heading text-lg text-foreground">ScholarTrend</span>
+            <span className="font-heading text-lg text-foreground">
+              ScholarTrend
+            </span>
             <p className="text-xs text-muted-foreground">
               {user ? ROLE_LABELS[user.role] : "Admin Panel"}
             </p>
@@ -73,11 +78,17 @@ export default function AdminShell({
         <div className="p-4 border-t border-border">
           <div className="flex items-center gap-3 px-3 py-2 rounded-[var(--radius-card)] bg-surface-raised">
             <div className="w-9 h-9 bg-primary/20 rounded-full flex items-center justify-center">
-              <span className="text-sm font-medium text-tag">{user?.initials ?? "AD"}</span>
+              <span className="text-sm font-medium text-tag">
+                {user?.initials ?? "AD"}
+              </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{user?.name ?? "Admin User"}</p>
-              <p className="text-xs text-muted-foreground truncate">{user?.email ?? "admin@demo.com"}</p>
+              <p className="text-sm font-medium text-foreground truncate">
+                {user?.name ?? "Admin User"}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {user?.email ?? "admin@demo.com"}
+              </p>
             </div>
           </div>
           <button
@@ -98,13 +109,19 @@ export default function AdminShell({
               {icon}
             </div>
             <div className="min-w-0">
-              <h1 className="font-heading text-lg text-foreground truncate">{title}</h1>
+              <h1 className="font-heading text-lg text-foreground truncate">
+                {title}
+              </h1>
               {subtitle ? (
-                <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {subtitle}
+                </p>
               ) : null}
             </div>
           </div>
-          {headerAction ? <div className="flex-shrink-0">{headerAction}</div> : null}
+          {headerAction ? (
+            <div className="flex-shrink-0">{headerAction}</div>
+          ) : null}
         </header>
 
         <main className="flex-1 overflow-auto py-8">

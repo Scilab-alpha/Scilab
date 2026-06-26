@@ -46,7 +46,11 @@ const mockJournals: Journal[] = [
     name: "Nature Machine Intelligence",
     issn: "2522-5839",
     publisher: "Nature Publishing Group",
-    subjects: ["Artificial Intelligence", "Machine Learning", "Computer Science"],
+    subjects: [
+      "Artificial Intelligence",
+      "Machine Learning",
+      "Computer Science",
+    ],
     ranking: { metric: "Impact Factor", value: "25.898", quartile: "Q1" },
     openAccess: false,
     oaDiamond: false,
@@ -158,7 +162,14 @@ const subjectAreas = [
   "Materials Science",
 ];
 
-const countries = ["United States", "United Kingdom", "Netherlands", "Germany", "China", "Japan"];
+const countries = [
+  "United States",
+  "United Kingdom",
+  "Netherlands",
+  "Germany",
+  "China",
+  "Japan",
+];
 
 const publishers = [
   "Nature Publishing Group",
@@ -236,158 +247,203 @@ export default function JournalSearch() {
       />
 
       <main className="flex-1 overflow-auto py-8">
-          <PageContainer size="wide" className="space-y-6">
-            {/* Page Header */}
-            <div>
-              <h1 className="font-heading text-3xl text-foreground">Journal Search</h1>
-              <p className="text-muted-foreground mt-1">Discover academic journals across all disciplines</p>
-            </div>
+        <PageContainer size="wide" className="space-y-6">
+          {/* Page Header */}
+          <div>
+            <h1 className="font-heading text-3xl text-foreground">
+              Journal Search
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Discover academic journals across all disciplines
+            </p>
+          </div>
 
-            <div className="flex gap-8">
+          <div className="flex gap-8">
             {/* Filters Sidebar */}
             {showFilters && (
               <aside className="w-72 flex-shrink-0">
                 <Card className="p-6 border-border sticky top-0">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-2">
-                    <Filter className="w-5 h-5 text-muted-foreground" />
-                    <h2 className="font-heading text-lg text-foreground">Filters</h2>
-                    {activeFilterCount > 0 && (
-                      <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full">
-                        {activeFilterCount}
-                      </span>
-                    )}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearAllFilters}
-                    className="h-8 px-3 text-xs text-muted-foreground"
-                  >
-                    Clear all
-                  </Button>
-                </div>
-
-                <div className="space-y-6 max-h-[calc(100vh-280px)] overflow-y-auto pr-2">
-                  {/* Subject Area */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground mb-3">Subject Area</h3>
-                    <div className="space-y-2">
-                      {subjectAreas.slice(0, 5).map((subject) => (
-                        <div key={subject} className="flex items-center gap-2">
-                          <Checkbox
-                            id={`subject-${subject}`}
-                            checked={filters.subjectAreas.includes(subject)}
-                            onCheckedChange={() => handleFilterChange("subjectAreas", subject)}
-                          />
-                          <Label
-                            htmlFor={`subject-${subject}`}
-                            className="text-sm text-muted-foreground cursor-pointer"
-                          >
-                            {subject}
-                          </Label>
-                        </div>
-                      ))}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2">
+                      <Filter className="w-5 h-5 text-muted-foreground" />
+                      <h2 className="font-heading text-lg text-foreground">
+                        Filters
+                      </h2>
+                      {activeFilterCount > 0 && (
+                        <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full">
+                          {activeFilterCount}
+                        </span>
+                      )}
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearAllFilters}
+                      className="h-8 px-3 text-xs text-muted-foreground"
+                    >
+                      Clear all
+                    </Button>
                   </div>
 
-                  {/* Country */}
-                  <div className="pt-6 border-t border-border">
-                    <h3 className="text-sm font-semibold text-foreground mb-3">Country</h3>
-                    <div className="space-y-2">
-                      {countries.slice(0, 5).map((country) => (
-                        <div key={country} className="flex items-center gap-2">
-                          <Checkbox
-                            id={`country-${country}`}
-                            checked={filters.countries.includes(country)}
-                            onCheckedChange={() => handleFilterChange("countries", country)}
-                          />
-                          <Label
-                            htmlFor={`country-${country}`}
-                            className="text-sm text-muted-foreground cursor-pointer"
+                  <div className="space-y-6 max-h-[calc(100vh-280px)] overflow-y-auto pr-2">
+                    {/* Subject Area */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground mb-3">
+                        Subject Area
+                      </h3>
+                      <div className="space-y-2">
+                        {subjectAreas.slice(0, 5).map((subject) => (
+                          <div
+                            key={subject}
+                            className="flex items-center gap-2"
                           >
-                            {country}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Publisher */}
-                  <div className="pt-6 border-t border-border">
-                    <h3 className="text-sm font-semibold text-foreground mb-3">Publisher</h3>
-                    <div className="space-y-2">
-                      {publishers.slice(0, 5).map((publisher) => (
-                        <div key={publisher} className="flex items-center gap-2">
-                          <Checkbox
-                            id={`publisher-${publisher}`}
-                            checked={filters.publishers.includes(publisher)}
-                            onCheckedChange={() => handleFilterChange("publishers", publisher)}
-                          />
-                          <Label
-                            htmlFor={`publisher-${publisher}`}
-                            className="text-sm text-muted-foreground cursor-pointer"
-                          >
-                            {publisher}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Ranking Metric */}
-                  <div className="pt-6 border-t border-border">
-                    <h3 className="text-sm font-semibold text-foreground mb-3">Ranking Metric</h3>
-                    <div className="space-y-2">
-                      {rankingMetrics.map((metric) => (
-                        <div key={metric} className="flex items-center gap-2">
-                          <Checkbox
-                            id={`metric-${metric}`}
-                            checked={filters.rankingMetrics.includes(metric)}
-                            onCheckedChange={() => handleFilterChange("rankingMetrics", metric)}
-                          />
-                          <Label
-                            htmlFor={`metric-${metric}`}
-                            className="text-sm text-muted-foreground cursor-pointer"
-                          >
-                            {metric}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Open Access */}
-                  <div className="pt-6 border-t border-border">
-                    <h3 className="text-sm font-semibold text-foreground mb-3">Access Type</h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id="open-access"
-                          checked={filters.openAccess}
-                          onCheckedChange={(checked) =>
-                            setFilters({ ...filters, openAccess: checked as boolean })
-                          }
-                        />
-                        <Label htmlFor="open-access" className="text-sm text-muted-foreground cursor-pointer">
-                          Open Access
-                        </Label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id="oa-diamond"
-                          checked={filters.oaDiamond}
-                          onCheckedChange={(checked) =>
-                            setFilters({ ...filters, oaDiamond: checked as boolean })
-                          }
-                        />
-                        <Label htmlFor="oa-diamond" className="text-sm text-muted-foreground cursor-pointer">
-                          OA Diamond
-                        </Label>
+                            <Checkbox
+                              id={`subject-${subject}`}
+                              checked={filters.subjectAreas.includes(subject)}
+                              onCheckedChange={() =>
+                                handleFilterChange("subjectAreas", subject)
+                              }
+                            />
+                            <Label
+                              htmlFor={`subject-${subject}`}
+                              className="text-sm text-muted-foreground cursor-pointer"
+                            >
+                              {subject}
+                            </Label>
+                          </div>
+                        ))}
                       </div>
                     </div>
+
+                    {/* Country */}
+                    <div className="pt-6 border-t border-border">
+                      <h3 className="text-sm font-semibold text-foreground mb-3">
+                        Country
+                      </h3>
+                      <div className="space-y-2">
+                        {countries.slice(0, 5).map((country) => (
+                          <div
+                            key={country}
+                            className="flex items-center gap-2"
+                          >
+                            <Checkbox
+                              id={`country-${country}`}
+                              checked={filters.countries.includes(country)}
+                              onCheckedChange={() =>
+                                handleFilterChange("countries", country)
+                              }
+                            />
+                            <Label
+                              htmlFor={`country-${country}`}
+                              className="text-sm text-muted-foreground cursor-pointer"
+                            >
+                              {country}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Publisher */}
+                    <div className="pt-6 border-t border-border">
+                      <h3 className="text-sm font-semibold text-foreground mb-3">
+                        Publisher
+                      </h3>
+                      <div className="space-y-2">
+                        {publishers.slice(0, 5).map((publisher) => (
+                          <div
+                            key={publisher}
+                            className="flex items-center gap-2"
+                          >
+                            <Checkbox
+                              id={`publisher-${publisher}`}
+                              checked={filters.publishers.includes(publisher)}
+                              onCheckedChange={() =>
+                                handleFilterChange("publishers", publisher)
+                              }
+                            />
+                            <Label
+                              htmlFor={`publisher-${publisher}`}
+                              className="text-sm text-muted-foreground cursor-pointer"
+                            >
+                              {publisher}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Ranking Metric */}
+                    <div className="pt-6 border-t border-border">
+                      <h3 className="text-sm font-semibold text-foreground mb-3">
+                        Ranking Metric
+                      </h3>
+                      <div className="space-y-2">
+                        {rankingMetrics.map((metric) => (
+                          <div key={metric} className="flex items-center gap-2">
+                            <Checkbox
+                              id={`metric-${metric}`}
+                              checked={filters.rankingMetrics.includes(metric)}
+                              onCheckedChange={() =>
+                                handleFilterChange("rankingMetrics", metric)
+                              }
+                            />
+                            <Label
+                              htmlFor={`metric-${metric}`}
+                              className="text-sm text-muted-foreground cursor-pointer"
+                            >
+                              {metric}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Open Access */}
+                    <div className="pt-6 border-t border-border">
+                      <h3 className="text-sm font-semibold text-foreground mb-3">
+                        Access Type
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="open-access"
+                            checked={filters.openAccess}
+                            onCheckedChange={(checked) =>
+                              setFilters({
+                                ...filters,
+                                openAccess: checked as boolean,
+                              })
+                            }
+                          />
+                          <Label
+                            htmlFor="open-access"
+                            className="text-sm text-muted-foreground cursor-pointer"
+                          >
+                            Open Access
+                          </Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="oa-diamond"
+                            checked={filters.oaDiamond}
+                            onCheckedChange={(checked) =>
+                              setFilters({
+                                ...filters,
+                                oaDiamond: checked as boolean,
+                              })
+                            }
+                          />
+                          <Label
+                            htmlFor="oa-diamond"
+                            className="text-sm text-muted-foreground cursor-pointer"
+                          >
+                            OA Diamond
+                          </Label>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
                 </Card>
               </aside>
             )}
@@ -407,13 +463,22 @@ export default function JournalSearch() {
                     {showFilters ? "Hide Filters" : "Show Filters"}
                   </Button>
                   <p className="text-sm text-muted-foreground">
-                    Showing <span className="font-medium text-foreground">{startIndex + 1}-{Math.min(endIndex, mockJournals.length)}</span> of{" "}
-                    <span className="font-medium text-foreground">{mockJournals.length}</span> journals
+                    Showing{" "}
+                    <span className="font-medium text-foreground">
+                      {startIndex + 1}-{Math.min(endIndex, mockJournals.length)}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-medium text-foreground">
+                      {mockJournals.length}
+                    </span>{" "}
+                    journals
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Sort by:</span>
+                  <span className="text-sm text-muted-foreground">
+                    Sort by:
+                  </span>
                   <Button variant="outline" size="sm" className="h-9">
                     <ArrowUpDown className="w-3.5 h-3.5 mr-2" />
                     {sortBy === "relevance" ? "Relevance" : sortBy}
@@ -427,7 +492,9 @@ export default function JournalSearch() {
                 {currentJournals.map((journal) => (
                   <Card
                     key={journal.id}
-                    onClick={() => router.push(`/student/journals/${journal.id}`)}
+                    onClick={() =>
+                      router.push(`/student/journals/${journal.id}`)
+                    }
                     className="p-6 border-border  hover:border-border transition-all cursor-pointer"
                   >
                     <div className="flex gap-6">
@@ -443,10 +510,18 @@ export default function JournalSearch() {
                               {journal.name}
                             </h3>
                             <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
-                              <span className="flex-shrink-0">ISSN: {journal.issn}</span>
-                              <span className="text-border flex-shrink-0">•</span>
-                              <span className="truncate max-w-[200px]">{journal.publisher}</span>
-                              <span className="text-border flex-shrink-0">•</span>
+                              <span className="flex-shrink-0">
+                                ISSN: {journal.issn}
+                              </span>
+                              <span className="text-border flex-shrink-0">
+                                •
+                              </span>
+                              <span className="truncate max-w-[200px]">
+                                {journal.publisher}
+                              </span>
+                              <span className="text-border flex-shrink-0">
+                                •
+                              </span>
                               <div className="flex items-center gap-1 flex-shrink-0">
                                 <Globe className="w-3.5 h-3.5" />
                                 <span>{journal.country}</span>
@@ -458,19 +533,25 @@ export default function JournalSearch() {
                             {journal.openAccess && (
                               <div className="px-2.5 py-1 bg-teal/10 text-teal rounded-md flex items-center gap-1">
                                 <LockOpen className="w-3.5 h-3.5" />
-                                <span className="text-xs font-medium">Open Access</span>
+                                <span className="text-xs font-medium">
+                                  Open Access
+                                </span>
                               </div>
                             )}
                             {journal.oaDiamond && (
                               <div className="px-2.5 py-1 bg-accent text-tag rounded-md flex items-center gap-1">
                                 <Award className="w-3.5 h-3.5" />
-                                <span className="text-xs font-medium">OA Diamond</span>
+                                <span className="text-xs font-medium">
+                                  OA Diamond
+                                </span>
                               </div>
                             )}
                             {!journal.openAccess && (
                               <div className="px-2.5 py-1 bg-surface-raised text-muted-foreground rounded-md flex items-center gap-1">
                                 <Lock className="w-3.5 h-3.5" />
-                                <span className="text-xs font-medium">Subscription</span>
+                                <span className="text-xs font-medium">
+                                  Subscription
+                                </span>
                               </div>
                             )}
                           </div>
@@ -501,17 +582,21 @@ export default function JournalSearch() {
                                 journal.ranking.quartile === "Q1"
                                   ? "bg-teal/10 text-teal"
                                   : journal.ranking.quartile === "Q2"
-                                  ? "bg-accent text-blue-800"
-                                  : journal.ranking.quartile === "Q3"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-surface-raised text-foreground"
+                                    ? "bg-accent text-blue-800"
+                                    : journal.ranking.quartile === "Q3"
+                                      ? "bg-yellow-100 text-yellow-800"
+                                      : "bg-surface-raised text-foreground"
                               }`}
                             >
                               {journal.ranking.quartile}
                             </div>
                             <div>
-                              <p className="text-xs text-muted-foreground">{journal.ranking.metric}</p>
-                              <p className="text-sm font-semibold text-foreground">{journal.ranking.value}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {journal.ranking.metric}
+                              </p>
+                              <p className="text-sm font-semibold text-foreground">
+                                {journal.ranking.value}
+                              </p>
                             </div>
                           </div>
 
@@ -520,7 +605,9 @@ export default function JournalSearch() {
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <TrendingUp className="w-4 h-4" />
                             <span className="text-sm">
-                              <span className="font-semibold text-foreground">{journal.citations.toLocaleString()}</span>{" "}
+                              <span className="font-semibold text-foreground">
+                                {journal.citations.toLocaleString()}
+                              </span>{" "}
                               citations
                             </span>
                           </div>
@@ -530,7 +617,9 @@ export default function JournalSearch() {
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <BookOpen className="w-4 h-4" />
                             <span className="text-sm">
-                              <span className="font-semibold text-foreground">{journal.articles.toLocaleString()}</span>{" "}
+                              <span className="font-semibold text-foreground">
+                                {journal.articles.toLocaleString()}
+                              </span>{" "}
                               articles
                             </span>
                           </div>
@@ -547,7 +636,9 @@ export default function JournalSearch() {
                   variant="outline"
                   size="sm"
                   disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(1, prev - 1))
+                  }
                   className="h-9"
                 >
                   <ChevronLeft className="w-4 h-4 mr-1" />
@@ -555,26 +646,30 @@ export default function JournalSearch() {
                 </Button>
 
                 <div className="flex items-center gap-2">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
-                        currentPage === page
-                          ? "bg-primary text-white"
-                          : "bg-card border border-border text-muted-foreground hover:bg-accent"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                          currentPage === page
+                            ? "bg-primary text-white"
+                            : "bg-card border border-border text-muted-foreground hover:bg-accent"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ),
+                  )}
                 </div>
 
                 <Button
                   variant="outline"
                   size="sm"
                   disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                  }
                   className="h-9"
                 >
                   Next
@@ -583,7 +678,7 @@ export default function JournalSearch() {
               </div>
             </div>
           </div>
-          </PageContainer>
+        </PageContainer>
       </main>
     </>
   );

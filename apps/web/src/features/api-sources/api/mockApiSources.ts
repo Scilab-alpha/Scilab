@@ -5,7 +5,8 @@ export const mockApiSources: ApiSource[] = [
     id: "src-openalex",
     providerId: "openalex",
     name: "OpenAlex",
-    description: "Open catalog of scholarly papers, authors, institutions, and concepts.",
+    description:
+      "Open catalog of scholarly papers, authors, institutions, and concepts.",
     endpoint: "https://api.openalex.org",
     status: "active",
     connectionHealth: "healthy",
@@ -16,7 +17,8 @@ export const mockApiSources: ApiSource[] = [
     id: "src-semantic-scholar",
     providerId: "semantic-scholar",
     name: "Semantic Scholar",
-    description: "AI-powered scientific literature graph and citation metadata.",
+    description:
+      "AI-powered scientific literature graph and citation metadata.",
     endpoint: "https://api.semanticscholar.org/graph/v1",
     status: "active",
     connectionHealth: "healthy",
@@ -27,7 +29,8 @@ export const mockApiSources: ApiSource[] = [
     id: "src-crossref",
     providerId: "crossref",
     name: "Crossref",
-    description: "DOI registration agency metadata for journals and publications.",
+    description:
+      "DOI registration agency metadata for journals and publications.",
     endpoint: "https://api.crossref.org",
     status: "active",
     connectionHealth: "degraded",
@@ -52,19 +55,22 @@ export const PROVIDER_PRESETS = [
     id: "openalex" as const,
     name: "OpenAlex",
     endpoint: "https://api.openalex.org",
-    description: "Open catalog of scholarly papers, authors, institutions, and concepts.",
+    description:
+      "Open catalog of scholarly papers, authors, institutions, and concepts.",
   },
   {
     id: "semantic-scholar" as const,
     name: "Semantic Scholar",
     endpoint: "https://api.semanticscholar.org/graph/v1",
-    description: "AI-powered scientific literature graph and citation metadata.",
+    description:
+      "AI-powered scientific literature graph and citation metadata.",
   },
   {
     id: "crossref" as const,
     name: "Crossref",
     endpoint: "https://api.crossref.org",
-    description: "DOI registration agency metadata for journals and publications.",
+    description:
+      "DOI registration agency metadata for journals and publications.",
   },
   {
     id: "scimago" as const,

@@ -9,7 +9,11 @@ interface CanProps {
   fallback?: React.ReactNode;
 }
 
-export default function Can({ permission, children, fallback = null }: CanProps) {
+export default function Can({
+  permission,
+  children,
+  fallback = null,
+}: CanProps) {
   const { can } = useAuth();
   return can(permission) ? <>{children}</> : <>{fallback}</>;
 }

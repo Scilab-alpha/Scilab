@@ -22,7 +22,8 @@ export const mockNotifications: Notification[] = [
     id: "3",
     category: "topic",
     title: "Trending: AI Safety & Alignment",
-    description: "This topic has seen a 156% increase in publications this month",
+    description:
+      "This topic has seen a 156% increase in publications this month",
     timestamp: "2024-06-08T08:00:00",
     isRead: false,
   },
@@ -39,7 +40,8 @@ export const mockNotifications: Notification[] = [
     id: "5",
     category: "journal",
     title: "Science - Special Issue Alert",
-    description: "Special issue on Climate Science and Machine Learning is now available",
+    description:
+      "Special issue on Climate Science and Machine Learning is now available",
     timestamp: "2024-06-07T14:20:00",
     isRead: true,
   },
@@ -55,7 +57,8 @@ export const mockNotifications: Notification[] = [
     id: "7",
     category: "system",
     title: "Weekly Digest Ready",
-    description: "Your personalized weekly research digest for June 1-7 is ready to view",
+    description:
+      "Your personalized weekly research digest for June 1-7 is ready to view",
     timestamp: "2024-06-07T09:00:00",
     isRead: true,
   },
@@ -63,7 +66,8 @@ export const mockNotifications: Notification[] = [
     id: "8",
     category: "publication",
     title: "Recommended for You",
-    description: "Based on your interests: 'Quantum Computing Applications in Drug Discovery'",
+    description:
+      "Based on your interests: 'Quantum Computing Applications in Drug Discovery'",
     timestamp: "2024-06-06T15:10:00",
     isRead: true,
   },

@@ -167,9 +167,14 @@ export default function RegisterScreen({
         <div className="flex flex-col justify-between py-12 px-16 xl:px-24 w-full">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-primary rounded-[var(--radius-card)] flex items-center justify-center">
-              <Atom className="w-6 h-6 text-primary-foreground" strokeWidth={1.75} />
+              <Atom
+                className="w-6 h-6 text-primary-foreground"
+                strokeWidth={1.75}
+              />
             </div>
-            <span className="font-heading text-2xl text-foreground">ScholarTrend</span>
+            <span className="font-heading text-2xl text-foreground">
+              ScholarTrend
+            </span>
           </div>
 
           <div className="space-y-8 max-w-lg">
@@ -201,14 +206,24 @@ export default function RegisterScreen({
                 <div key={item.title} className="flex items-start gap-4">
                   <div className="w-10 h-10 rounded-[var(--radius-card)] bg-accent flex items-center justify-center flex-shrink-0">
                     {i === 0 ? (
-                      <BarChart3 className="h-5 w-5 text-primary" strokeWidth={1.75} />
+                      <BarChart3
+                        className="h-5 w-5 text-primary"
+                        strokeWidth={1.75}
+                      />
                     ) : (
-                      <Sparkles className="h-5 w-5 text-primary" strokeWidth={1.75} />
+                      <Sparkles
+                        className="h-5 w-5 text-primary"
+                        strokeWidth={1.75}
+                      />
                     )}
                   </div>
                   <div>
-                    <h3 className="font-heading text-lg text-foreground">{item.title}</h3>
-                    <p className="text-muted-foreground mt-1 text-sm">{item.desc}</p>
+                    <h3 className="font-heading text-lg text-foreground">
+                      {item.title}
+                    </h3>
+                    <p className="text-muted-foreground mt-1 text-sm">
+                      {item.desc}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -216,11 +231,13 @@ export default function RegisterScreen({
           </div>
 
           <div className="grid grid-cols-3 gap-8 pt-8 border-t border-border">
-            {["Journal search", "Article bookmarks", "Role-aware access"].map((label) => (
-              <div key={label} className="text-sm text-muted-foreground">
-                {label}
-              </div>
-            ))}
+            {["Journal search", "Article bookmarks", "Role-aware access"].map(
+              (label) => (
+                <div key={label} className="text-sm text-muted-foreground">
+                  {label}
+                </div>
+              ),
+            )}
           </div>
         </div>
       </div>
@@ -231,12 +248,19 @@ export default function RegisterScreen({
           <div className="mb-8 text-center">
             <div className="mb-6 inline-flex items-center gap-3 lg:hidden">
               <div className="w-10 h-10 bg-primary rounded-[var(--radius-card)] flex items-center justify-center">
-                <Atom className="w-5 h-5 text-primary-foreground" strokeWidth={1.75} />
+                <Atom
+                  className="w-5 h-5 text-primary-foreground"
+                  strokeWidth={1.75}
+                />
               </div>
-              <span className="font-heading text-2xl text-foreground">ScholarTrend</span>
+              <span className="font-heading text-2xl text-foreground">
+                ScholarTrend
+              </span>
             </div>
 
-            <h2 className="font-heading text-4xl text-foreground">Create your account</h2>
+            <h2 className="font-heading text-4xl text-foreground">
+              Create your account
+            </h2>
             <p className="mx-auto mt-3 max-w-sm text-muted-foreground">
               Start tracking publication metadata and research trends.
             </p>
@@ -245,7 +269,11 @@ export default function RegisterScreen({
           <Card>
             <CardHeader className="border-b border-border/60 pb-8 pt-8 px-8">
               {globalError ? (
-                <Alert variant="destructive" className="mb-5" aria-live="polite">
+                <Alert
+                  variant="destructive"
+                  className="mb-5"
+                  aria-live="polite"
+                >
                   <AlertCircle className="h-4 w-4" strokeWidth={1.75} />
                   <AlertTitle>Registration issue</AlertTitle>
                   <AlertDescription>{globalError}</AlertDescription>
@@ -272,7 +300,10 @@ export default function RegisterScreen({
                     })}
                   />
                   {errors.email ? (
-                    <p id="email-error" className="flex items-center gap-1 text-sm text-destructive">
+                    <p
+                      id="email-error"
+                      className="flex items-center gap-1 text-sm text-destructive"
+                    >
                       <X className="h-4 w-4" strokeWidth={1.75} />
                       {errors.email.message}
                     </p>
@@ -288,7 +319,9 @@ export default function RegisterScreen({
                     placeholder="Jane Smith"
                     className="h-11"
                     aria-invalid={!!errors.displayName}
-                    aria-describedby={errors.displayName ? "displayName-error" : undefined}
+                    aria-describedby={
+                      errors.displayName ? "displayName-error" : undefined
+                    }
                     disabled={isBusy}
                     {...register("displayName", {
                       onChange: () => {
@@ -298,7 +331,10 @@ export default function RegisterScreen({
                     })}
                   />
                   {errors.displayName ? (
-                    <p id="displayName-error" className="flex items-center gap-1 text-sm text-destructive">
+                    <p
+                      id="displayName-error"
+                      className="flex items-center gap-1 text-sm text-destructive"
+                    >
                       <X className="h-4 w-4" strokeWidth={1.75} />
                       {errors.displayName.message}
                     </p>
@@ -314,7 +350,9 @@ export default function RegisterScreen({
                     placeholder="Create a strong password"
                     className="h-11"
                     aria-invalid={!!errors.password}
-                    aria-describedby={errors.password ? "password-error" : "password-status"}
+                    aria-describedby={
+                      errors.password ? "password-error" : "password-status"
+                    }
                     disabled={isBusy}
                     {...register("password", {
                       onChange: () => {
@@ -324,7 +362,10 @@ export default function RegisterScreen({
                     })}
                   />
                   {errors.password ? (
-                    <p id="password-error" className="flex items-center gap-1 text-sm text-destructive">
+                    <p
+                      id="password-error"
+                      className="flex items-center gap-1 text-sm text-destructive"
+                    >
                       <X className="h-4 w-4" strokeWidth={1.75} />
                       {errors.password.message}
                     </p>
@@ -344,9 +385,15 @@ export default function RegisterScreen({
                           />
                         ))}
                       </div>
-                      <p id="password-status" className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <p
+                        id="password-status"
+                        className="flex items-center gap-1 text-sm text-muted-foreground"
+                      >
                         {passwordStrength >= 4 ? (
-                          <Check className="h-4 w-4 text-teal" strokeWidth={1.75} />
+                          <Check
+                            className="h-4 w-4 text-teal"
+                            strokeWidth={1.75}
+                          />
                         ) : null}
                         {passwordStatus}
                       </p>
@@ -364,7 +411,9 @@ export default function RegisterScreen({
                     className="h-11"
                     aria-invalid={!!errors.confirmPassword}
                     aria-describedby={
-                      errors.confirmPassword ? "confirmPassword-error" : "confirmPassword-status"
+                      errors.confirmPassword
+                        ? "confirmPassword-error"
+                        : "confirmPassword-status"
                     }
                     disabled={isBusy}
                     {...register("confirmPassword", {
@@ -375,13 +424,21 @@ export default function RegisterScreen({
                     })}
                   />
                   {errors.confirmPassword ? (
-                    <p id="confirmPassword-error" className="flex items-center gap-1 text-sm text-destructive">
+                    <p
+                      id="confirmPassword-error"
+                      className="flex items-center gap-1 text-sm text-destructive"
+                    >
                       <X className="h-4 w-4" strokeWidth={1.75} />
                       {errors.confirmPassword.message}
                     </p>
                   ) : null}
-                  {confirmPassword && !errors.confirmPassword && password === confirmPassword ? (
-                    <p id="confirmPassword-status" className="flex items-center gap-1 text-sm text-teal">
+                  {confirmPassword &&
+                  !errors.confirmPassword &&
+                  password === confirmPassword ? (
+                    <p
+                      id="confirmPassword-status"
+                      className="flex items-center gap-1 text-sm text-teal"
+                    >
                       <Check className="h-4 w-4" strokeWidth={1.75} />
                       Passwords match.
                     </p>
@@ -411,7 +468,9 @@ export default function RegisterScreen({
                   <div className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-card text-muted-foreground">Or continue with</span>
+                  <span className="px-4 bg-card text-muted-foreground">
+                    Or continue with
+                  </span>
                 </div>
               </div>
 
@@ -447,8 +506,8 @@ export default function RegisterScreen({
           </Card>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            By creating an account, you agree to ScholarTrend access policies for
-            research metadata and dashboard features.
+            By creating an account, you agree to ScholarTrend access policies
+            for research metadata and dashboard features.
           </p>
         </div>
       </div>

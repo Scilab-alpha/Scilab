@@ -11,14 +11,10 @@ const badgeVariants = cva(
       variant: {
         default:
           "border-0 bg-[var(--tag-background)] text-[var(--tag-text-color)]",
-        secondary:
-          "border-0 bg-surface-raised text-muted-foreground",
-        destructive:
-          "border-0 bg-destructive/10 text-destructive",
-        outline:
-          "border border-border text-foreground bg-transparent",
-        teal:
-          "border-0 bg-teal/10 text-teal",
+        secondary: "border-0 bg-surface-raised text-muted-foreground",
+        destructive: "border-0 bg-destructive/10 text-destructive",
+        outline: "border border-border text-foreground bg-transparent",
+        teal: "border-0 bg-teal/10 text-teal",
       },
     },
     defaultVariants: {

@@ -22,7 +22,11 @@ export const mockJournals: Journal[] = [
     name: "Nature Machine Intelligence",
     issn: "2522-5839",
     publisher: "Nature Publishing Group",
-    subjects: ["Artificial Intelligence", "Machine Learning", "Computer Science"],
+    subjects: [
+      "Artificial Intelligence",
+      "Machine Learning",
+      "Computer Science",
+    ],
     ranking: { metric: "Impact Factor", value: "25.898", quartile: "Q1" },
     openAccess: false,
     oaDiamond: false,
@@ -134,7 +138,14 @@ export const subjectAreas = [
   "Materials Science",
 ];
 
-export const countries = ["United States", "United Kingdom", "Netherlands", "Germany", "China", "Japan"];
+export const countries = [
+  "United States",
+  "United Kingdom",
+  "Netherlands",
+  "Germany",
+  "China",
+  "Japan",
+];
 
 export const publishers = [
   "Nature Publishing Group",

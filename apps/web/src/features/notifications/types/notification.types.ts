@@ -1,4 +1,8 @@
-export type NotificationCategory = "journal" | "topic" | "publication" | "system";
+export type NotificationCategory =
+  | "journal"
+  | "topic"
+  | "publication"
+  | "system";
 
 export interface Notification {
   id: string;

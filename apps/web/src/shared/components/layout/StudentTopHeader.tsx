@@ -34,7 +34,9 @@ export default function StudentTopHeader({
             className="pl-10 h-10 bg-background"
             value={searchValue}
             onChange={
-              onSearchChange ? (event) => onSearchChange(event.target.value) : undefined
+              onSearchChange
+                ? (event) => onSearchChange(event.target.value)
+                : undefined
             }
           />
         </div>
@@ -50,7 +52,10 @@ export default function StudentTopHeader({
             href="/student/notifications"
             className="relative p-2 hover:bg-accent rounded-[var(--radius-button)] transition-colors"
           >
-            <Bell className="w-5 h-5 text-muted-foreground" strokeWidth={1.75} />
+            <Bell
+              className="w-5 h-5 text-muted-foreground"
+              strokeWidth={1.75}
+            />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
           </Link>
         </Can>
@@ -61,7 +66,9 @@ export default function StudentTopHeader({
               href="/student/profile"
               className="w-9 h-9 bg-primary/20 rounded-full flex items-center justify-center"
             >
-              <span className="text-sm font-medium text-tag">{user.initials}</span>
+              <span className="text-sm font-medium text-tag">
+                {user.initials}
+              </span>
             </Link>
           </Can>
         ) : (

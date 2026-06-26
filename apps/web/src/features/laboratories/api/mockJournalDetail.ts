@@ -1,5 +1,3 @@
-
-
 export const publicationTrendData = [
   { year: "2019", publications: 420 },
   { year: "2020", publications: 480 },
@@ -21,7 +19,8 @@ export const rankingHistoryData = [
 export const recentPublications = [
   {
     id: "1",
-    title: "Machine Learning Applications in Genomic Data Analysis: A Comprehensive Review",
+    title:
+      "Machine Learning Applications in Genomic Data Analysis: A Comprehensive Review",
     authors: ["Zhang, L.", "Kumar, R.", "Smith, J."],
     date: "2024-05-15",
     citations: 23,
