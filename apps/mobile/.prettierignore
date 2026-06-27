@@ -1,0 +1,6 @@
+.claude/
+.expo/
+.vscode/
+node_modules/
+AGENTS.md
+CLAUDE.md

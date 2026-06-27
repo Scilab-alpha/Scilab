@@ -3,6 +3,9 @@ packages:
   - "services/*"
   - "packages/*"
 
+overrides:
+  "@radix-ui/react-slot": "1.3.0-rc.1781217402884"
+
 allowBuilds:
   "@prisma/engines": true
   "@scarf/scarf": false
