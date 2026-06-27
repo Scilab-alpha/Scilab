@@ -1,50 +1,34 @@
-# Welcome to your Expo app 👋
+# Scilab Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo SDK 54 foundation for the Scilab mobile frontend. No product UI or auth
+feature has been implemented on this branch.
 
-## Get started
+## Local setup
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```powershell
+corepack pnpm install --frozen-lockfile
+Copy-Item apps/mobile/.env.example apps/mobile/.env.local
+corepack pnpm --filter mobile start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Set `EXPO_PUBLIC_API_URL` to an address reachable from the target device. For an
+Android emulator, `localhost` usually needs to be replaced with `10.0.2.2`.
 
-## Learn more
+## Structure
 
-To learn more about developing your project with Expo, look at the following resources:
+```text
+app/                    Expo Router routes and layouts only
+src/features/           Feature-owned code added by later feature branches
+src/providers/          Application-level providers
+src/shared/             Axios client, API types and environment config
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+The app calls only the Scilab API. Provider-specific APIs, database credentials
+and ingestion logic must not be placed in the mobile bundle.
 
-## Join the community
+## Networking foundation
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- Axios owns base URL, timeout and API error normalization.
+- TanStack Query owns server-state cache, mutations and retry policy.
+- Future feature adapters use `apiRequest`; screens must not call Axios directly.
+- Auth belongs to a separate feature branch.
