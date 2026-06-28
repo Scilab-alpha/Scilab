@@ -1,0 +1,65 @@
+export type AcademicNodeType =
+  | 'ARTICLE'
+  | 'AUTHOR'
+  | 'JOURNAL'
+  | 'KEYWORD'
+  | 'TOPIC';
+
+export interface ArticleNode {
+  id: string;
+  title: string;
+  abstract?: string | null;
+  doi?: string | null;
+  publicationYear?: number | null;
+  version?: string | null;
+  volumeNumber?: number | string | null;
+  issueNumber?: string | null;
+  createdAt?: string | Date | null;
+  updatedAt?: string | Date | null;
+}
+
+export interface AuthorNode {
+  id: string;
+  orcid?: string | null;
+  displayName?: string | null;
+  imageUrl?: string | null;
+  authorPosition?: number | null;
+}
+
+export interface JournalNode {
+  id: string;
+  sourceId?: string | null;
+  displayName?: string | null;
+  type?: string | null;
+  isOpenAccess?: boolean | null;
+  isOaDiamond?: boolean | null;
+  coverage?: string | null;
+  country?: string | null;
+  region?: string | null;
+  issnList?: string[] | null;
+  publisherName?: string | null;
+  publisherImageUrl?: string | null;
+  subjectCategories?: string[] | null;
+}
+
+export interface KeywordNode {
+  id: string;
+  displayName?: string | null;
+  score?: number | null;
+}
+
+export interface TopicNode {
+  id: string;
+  displayName?: string | null;
+  score?: number | null;
+  isPrimary?: boolean | null;
+}
+
+export interface ArticleGraph {
+  article: ArticleNode;
+  journal?: JournalNode | null;
+  authors?: AuthorNode[];
+  keywords?: KeywordNode[];
+  topics?: TopicNode[];
+  citedArticleIds?: string[];
+}
