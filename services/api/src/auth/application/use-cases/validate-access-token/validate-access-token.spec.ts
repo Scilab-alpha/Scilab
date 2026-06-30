@@ -1,6 +1,11 @@
-import { ValidateAccessTokenUseCase } from '@/auth/application/use-cases/validate-access-token.use-case';
+import { ValidateAccessTokenUseCase } from './validate-access-token.use-case';
 import { AuthFailureReason } from '@/auth/domain/auth.errors';
-import { fakeAudit, fakeSessions, fakeTokens, fakeUsers } from './test-doubles';
+import {
+  fakeAudit,
+  fakeSessions,
+  fakeTokens,
+  fakeUsers,
+} from '@/auth/application/testing/test-doubles';
 
 describe('ValidateAccessTokenUseCase', () => {
   it('returns authenticated identity for valid active sessions', async () => {

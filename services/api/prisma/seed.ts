@@ -31,7 +31,6 @@ const prisma = new PrismaClient({
 
 const ids = {
   users: {
-    admin: '11111111-1111-4111-8111-111111111111',
     student: '11111111-1111-4111-8111-111111111112',
     researcher: '11111111-1111-4111-8111-111111111113',
   },
@@ -104,28 +103,6 @@ async function seedUsers() {
   const passwordHash = await hash('Password123!');
 
   await Promise.all([
-    prisma.user.upsert({
-      where: { email: 'admin@scilab.local' },
-      update: {
-        password: passwordHash,
-        firstName: 'SciLab',
-        lastName: 'Admin',
-        status: StatusAccount.ACTIVE,
-        role: RoleAccount.ADMIN,
-      },
-      create: {
-        id: ids.users.admin,
-        email: 'admin@scilab.local',
-        password: passwordHash,
-        type: AuthProvider.EMAIL,
-        status: StatusAccount.ACTIVE,
-        role: RoleAccount.ADMIN,
-        firstName: 'SciLab',
-        lastName: 'Admin',
-        dateOfBirth: new Date('1994-04-12'),
-        gender: Gender.MALE,
-      },
-    }),
     prisma.user.upsert({
       where: { email: 'student@scilab.local' },
       update: {

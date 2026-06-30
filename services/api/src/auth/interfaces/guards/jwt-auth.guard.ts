@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthenticatedUser } from '@/auth/application/ports/auth.ports';
-import { ValidateAccessTokenUseCase } from '@/auth/application/use-cases/validate-access-token.use-case';
+import { ValidateAccessTokenUseCase } from '@/auth/application/use-cases/validate-access-token/validate-access-token.use-case';
 
 type AuthRequest = Request & { user?: AuthenticatedUser };
 

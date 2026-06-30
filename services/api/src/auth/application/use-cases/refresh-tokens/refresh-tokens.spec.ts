@@ -1,6 +1,11 @@
-import { RefreshTokensUseCase } from '@/auth/application/use-cases/refresh-tokens.use-case';
+import { RefreshTokensUseCase } from './refresh-tokens.use-case';
 import { AuthFailureReason } from '@/auth/domain/auth.errors';
-import { fakeAudit, fakeSessions, fakeTokens, fakeUsers } from './test-doubles';
+import {
+  fakeAudit,
+  fakeSessions,
+  fakeTokens,
+  fakeUsers,
+} from '@/auth/application/testing/test-doubles';
 
 describe('RefreshTokensUseCase', () => {
   it('rotates a valid refresh token into a new token pair', async () => {

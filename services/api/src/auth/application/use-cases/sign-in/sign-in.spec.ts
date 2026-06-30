@@ -1,4 +1,4 @@
-import { SignInUseCase } from '@/auth/application/use-cases/sign-in.use-case';
+import { SignInUseCase } from './sign-in.use-case';
 import { AuthFailureReason } from '@/auth/domain/auth.errors';
 import {
   fakeAudit,
@@ -6,7 +6,7 @@ import {
   fakeSessions,
   fakeTokens,
   fakeUsers,
-} from './test-doubles';
+} from '@/auth/application/testing/test-doubles';
 
 describe('SignInUseCase', () => {
   it('creates a token pair and persisted session for valid active users', async () => {

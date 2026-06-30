@@ -2,6 +2,7 @@ import {
   AuthEventLogger,
   AuthSessionRecord,
   CreateSessionInput,
+  CreateUserInput,
   PasswordHasher,
   RotateSessionInput,
   SessionRepository,
@@ -11,23 +12,38 @@ import {
 } from '@/auth/application/ports/auth.ports';
 
 export function fakeUsers(
-  override: Partial<UserAuthRecord> = {},
-): UserRepository {
+  override: Partial<UserAuthRecord> | null = {},
+): UserRepository & { created: CreateUserInput[] } {
   const user: UserAuthRecord = {
     id: 'user-1',
     email: 'user@example.com',
     password: 'hash',
     status: 'ACTIVE',
-    role: 'USER',
+    role: 'STUDENT',
     firstName: 'Test',
     lastName: 'User',
     imageUrl: null,
-    ...override,
+    ...(override ?? {}),
   };
+  const created: CreateUserInput[] = [];
 
   return {
-    findByEmail: jest.fn(() => Promise.resolve(user)),
-    findById: jest.fn(() => Promise.resolve(user)),
+    created,
+    findByEmail: jest.fn(() =>
+      Promise.resolve(override === null ? null : user),
+    ),
+    findById: jest.fn(() => Promise.resolve(override === null ? null : user)),
+    create: jest.fn((input: CreateUserInput) => {
+      created.push(input);
+      return Promise.resolve({
+        ...user,
+        ...input,
+        id: 'created-user-1',
+        firstName: input.firstName ?? null,
+        lastName: input.lastName ?? null,
+        imageUrl: null,
+      });
+    }),
   };
 }
 
@@ -45,7 +61,7 @@ export function fakeTokens(): TokenService {
       Promise.resolve({
         sub: 'user-1',
         jti: 'access-jti',
-        role: 'USER',
+        role: 'STUDENT',
       }),
     ),
     createRefreshToken: jest.fn(() => 'refresh-token-value'),

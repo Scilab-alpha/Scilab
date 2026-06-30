@@ -15,6 +15,7 @@ import {
   createTokenPair,
 } from '@/auth/domain/value-objects/token-pair.value-object';
 import { randomUUID } from 'crypto';
+import { RefreshTokensInput } from './refresh-tokens.input';
 
 export class RefreshTokensUseCase {
   constructor(
@@ -24,7 +25,7 @@ export class RefreshTokensUseCase {
     private readonly audit: AuthEventLogger,
   ) {}
 
-  async execute(refreshToken: string): Promise<TokenPair> {
+  async execute(refreshToken: RefreshTokensInput): Promise<TokenPair> {
     const now = new Date();
     if (!refreshToken || refreshToken.trim().length < 16) {
       await this.auditRefreshFailure(AuthFailureReason.TokenMalformed);

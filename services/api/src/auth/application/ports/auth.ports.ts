@@ -11,6 +11,18 @@ export interface UserAuthRecord {
   imageUrl: string | null;
 }
 
+export interface CreateUserInput {
+  email: string;
+  password: string;
+  type: string;
+  status: string;
+  role: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  dateOfBirth?: Date | null;
+  gender?: string | null;
+}
+
 export interface AuthSessionRecord {
   id: string;
   userId: string;
@@ -69,6 +81,7 @@ export interface IssuedAccessToken {
 export interface UserRepository {
   findByEmail(email: string): Promise<UserAuthRecord | null>;
   findById(id: string): Promise<UserAuthRecord | null>;
+  create(input: CreateUserInput): Promise<UserAuthRecord>;
 }
 
 export interface SessionRepository {

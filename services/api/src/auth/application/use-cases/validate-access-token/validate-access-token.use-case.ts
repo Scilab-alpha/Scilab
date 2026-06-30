@@ -7,6 +7,7 @@ import {
 } from '@/auth/application/ports/auth.ports';
 import { AuthEventType } from '@/auth/domain/auth-event';
 import { AuthFailureReason, AuthUseCaseError } from '@/auth/domain/auth.errors';
+import { ValidateAccessTokenInput } from './validate-access-token.input';
 
 export class ValidateAccessTokenUseCase {
   constructor(
@@ -16,7 +17,9 @@ export class ValidateAccessTokenUseCase {
     private readonly audit: AuthEventLogger,
   ) {}
 
-  async execute(accessToken: string): Promise<AuthenticatedUser> {
+  async execute(
+    accessToken: ValidateAccessTokenInput,
+  ): Promise<AuthenticatedUser> {
     const now = new Date();
     const claims = await this.tokens.verifyAccessToken(accessToken);
     const session = await this.sessions.findByAccessTokenIdHash(

@@ -8,7 +8,7 @@ CREATE TYPE "auth_provider" AS ENUM ('EMAIL', 'GOOGLE');
 CREATE TYPE "status_account" AS ENUM ('ACTIVE', 'INACTIVE', 'BANNED');
 
 -- CreateEnum
-CREATE TYPE "role_account" AS ENUM ('STUDENT', 'LECTURER', 'RESEARCHER', 'ADMIN');
+CREATE TYPE "role_account" AS ENUM ('STUDENT', 'RESEARCHER', 'ADMIN');
 
 -- CreateEnum
 CREATE TYPE "gender" AS ENUM ('MALE', 'FEMALE', 'OTHER');

@@ -16,11 +16,7 @@ import {
   createTokenPair,
 } from '@/auth/domain/value-objects/token-pair.value-object';
 import { randomUUID } from 'crypto';
-
-export interface SignInInput {
-  email: string;
-  password: string;
-}
+import { SignInInput } from './sign-in.input';
 
 export class SignInUseCase {
   constructor(
