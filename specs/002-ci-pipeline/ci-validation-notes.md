@@ -32,7 +32,7 @@ Workflow contract checklist:
 - [x] Push trigger targets protected integration branches.
 - [x] Manual `workflow_dispatch` trigger is available.
 - [x] Checkout runs before validation in each job.
-- [x] pnpm 9.0.0 and Node.js 22 are installed in each validation job.
+- [x] pnpm 11.7.0 and Node.js 22 are installed in each validation job.
 - [x] Dependencies install with `pnpm install --frozen-lockfile`.
 - [x] pnpm cache uses `pnpm-lock.yaml`.
 - [x] `apps/web` runs format, lint, typecheck, build, and test-if-declared.

@@ -76,7 +76,7 @@ jobs:
       - name: apps/web setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9.0.0
+          version: 11.7.0
 
       - name: apps/web setup Node.js 22
         uses: actions/setup-node@v6
@@ -121,7 +121,7 @@ jobs:
       - name: apps/mobile setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9.0.0
+          version: 11.7.0
 
       - name: apps/mobile setup Node.js 22
         uses: actions/setup-node@v6
@@ -181,7 +181,7 @@ jobs:
       - name: services/api setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9.0.0
+          version: 11.7.0
 
       - name: services/api setup Node.js 22
         uses: actions/setup-node@v6
@@ -229,7 +229,7 @@ jobs:
       - name: packages setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9.0.0
+          version: 11.7.0
 
       - name: packages setup Node.js 22
         uses: actions/setup-node@v6
