@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Scilab API",
-    "version": "1.2.0",
+    "version": "1.1.0",
     "description": "API documentation for the Scilab backend."
   },
   "servers": [
@@ -19,47 +19,24 @@
     {
       "name": "Auth",
       "description": "JWT-backed authentication sessions."
-    },
-    {
-      "name": "Users",
-      "description": "User profile and admin user management."
     }
   ],
   "paths": {
-    "/auth/register": {
-      "post": {
-        "summary": "Register a student account",
-        "operationId": "register",
-        "tags": ["Auth"],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterRequest"
-              }
-            }
-          }
-        },
+    "/": {
+      "get": {
+        "summary": "Check API availability",
+        "operationId": "getHealth",
+        "tags": ["Health"],
         "responses": {
-          "201": {
-            "description": "Registration succeeded and no authenticated session was issued.",
+          "200": {
+            "description": "The API is running.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RegistrationResponseEnvelope"
+                  "$ref": "#/components/schemas/HealthResponseEnvelope"
                 }
               }
             }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
           }
         }
       }
@@ -137,6 +114,33 @@
         }
       }
     },
+    "/auth/me": {
+      "get": {
+        "summary": "Return the authenticated user",
+        "operationId": "getCurrentUser",
+        "tags": ["Auth"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current authenticated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSummaryResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
     "/auth/logout": {
       "post": {
         "summary": "Revoke the current authenticated session",
@@ -163,287 +167,6 @@
           }
         }
       }
-    },
-    "/users/me": {
-      "get": {
-        "summary": "Return the authenticated user",
-        "operationId": "getCurrentUser",
-        "tags": ["Users"],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Current authenticated user.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserResponseEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
-        }
-      }
-    },
-    "/users": {
-      "get": {
-        "summary": "List users",
-        "operationId": "listUsers",
-        "tags": ["Users"],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Users retrieved for admin management.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserListResponseEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          }
-        }
-      },
-      "post": {
-        "summary": "Create a user",
-        "operationId": "createUser",
-        "tags": ["Users"],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserMutationRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "User was created.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserResponseEnvelope"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          }
-        }
-      }
-    },
-    "/users/{id}": {
-      "get": {
-        "summary": "Get a user by id",
-        "operationId": "getUser",
-        "tags": ["Users"],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/UserId"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "User was retrieved.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserResponseEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
-        }
-      },
-      "patch": {
-        "summary": "Update a user",
-        "operationId": "updateUser",
-        "tags": ["Users"],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/UserId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserUpdateRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "User was updated.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserResponseEnvelope"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          }
-        }
-      },
-      "delete": {
-        "summary": "Delete a user",
-        "operationId": "deleteUser",
-        "tags": ["Users"],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/UserId"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "User was deleted.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EmptyResponseEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
-        }
-      }
-    },
-    "/users/{id}/role": {
-      "patch": {
-        "summary": "Update a user role",
-        "operationId": "updateUserRole",
-        "tags": ["Users"],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/UserId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserRoleUpdateRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "User role was updated.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserResponseEnvelope"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
-        }
-      }
     }
   },
   "components": {
@@ -452,17 +175,6 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT"
-      }
-    },
-    "parameters": {
-      "UserId": {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "format": "uuid"
-        }
       }
     },
     "responses": {
@@ -505,7 +217,7 @@
         }
       },
       "Forbidden": {
-        "description": "Request is not allowed for the current account or reserved identity.",
+        "description": "Account exists but is not allowed to sign in.",
         "content": {
           "application/json": {
             "schema": {
@@ -516,51 +228,6 @@
                 "value": {
                   "success": false,
                   "message": "Account is not allowed to sign in",
-                  "data": {}
-                }
-              },
-              "reservedAdminEmail": {
-                "value": {
-                  "success": false,
-                  "message": "Admin account cannot be registered",
-                  "data": {}
-                }
-              }
-            }
-          }
-        }
-      },
-      "Conflict": {
-        "description": "A unique account value already exists.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponseEnvelope"
-            },
-            "examples": {
-              "emailAlreadyRegistered": {
-                "value": {
-                  "success": false,
-                  "message": "Email is already registered",
-                  "data": {}
-                }
-              }
-            }
-          }
-        }
-      },
-      "NotFound": {
-        "description": "The requested resource was not found.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponseEnvelope"
-            },
-            "examples": {
-              "userMissing": {
-                "value": {
-                  "success": false,
-                  "message": "User was not found",
                   "data": {}
                 }
               }
@@ -605,55 +272,6 @@
           }
         }
       },
-      "RegisterRequest": {
-        "type": "object",
-        "required": [
-          "email",
-          "password",
-          "firstName",
-          "lastName",
-          "dateOfBirth",
-          "gender"
-        ],
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "maxLength": 255,
-            "example": "student@example.com"
-          },
-          "password": {
-            "type": "string",
-            "minLength": 8,
-            "maxLength": 1024,
-            "format": "password",
-            "example": "12345678"
-          },
-          "firstName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 255,
-            "example": "Student"
-          },
-          "lastName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 255,
-            "example": "User"
-          },
-          "dateOfBirth": {
-            "type": "string",
-            "format": "date",
-            "example": "2000-01-02"
-          },
-          "gender": {
-            "type": "string",
-            "enum": ["MALE", "FEMALE", "OTHER"],
-            "example": "FEMALE"
-          }
-        }
-      },
       "RefreshRequest": {
         "type": "object",
         "required": ["refreshToken"],
@@ -662,115 +280,6 @@
           "refreshToken": {
             "type": "string",
             "description": "Refresh token issued by login or refresh."
-          }
-        }
-      },
-      "UserMutationRequest": {
-        "type": "object",
-        "required": ["email", "password", "type", "status", "role"],
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "maxLength": 255,
-            "example": "researcher@example.com"
-          },
-          "password": {
-            "type": "string",
-            "minLength": 8,
-            "maxLength": 1024,
-            "format": "password",
-            "example": "Password123!"
-          },
-          "type": {
-            "type": "string",
-            "enum": ["EMAIL", "GOOGLE"],
-            "example": "EMAIL"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["ACTIVE", "INACTIVE", "BANNED"],
-            "example": "ACTIVE"
-          },
-          "role": {
-            "type": "string",
-            "enum": ["STUDENT", "RESEARCHER", "ADMIN"],
-            "example": "RESEARCHER"
-          },
-          "firstName": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 255
-          },
-          "lastName": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 255
-          },
-          "imageUrl": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 2048
-          },
-          "dateOfBirth": {
-            "type": "string",
-            "format": "date",
-            "nullable": true
-          },
-          "gender": {
-            "type": "string",
-            "nullable": true,
-            "enum": ["MALE", "FEMALE", "OTHER"]
-          }
-        }
-      },
-      "UserUpdateRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "maxLength": 255,
-            "example": "researcher@example.com"
-          },
-          "firstName": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 255
-          },
-          "lastName": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 255
-          },
-          "imgUrl": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 2048
-          },
-          "dateOfBirth": {
-            "type": "string",
-            "format": "date",
-            "nullable": true
-          },
-          "gender": {
-            "type": "string",
-            "nullable": true,
-            "enum": ["MALE", "FEMALE", "OTHER"]
-          }
-        }
-      },
-      "UserRoleUpdateRequest": {
-        "type": "object",
-        "required": ["role"],
-        "additionalProperties": false,
-        "properties": {
-          "role": {
-            "type": "string",
-            "enum": ["STUDENT", "RESEARCHER"],
-            "example": "RESEARCHER"
           }
         }
       },
@@ -823,7 +332,7 @@
           }
         ]
       },
-      "RegistrationResponseEnvelope": {
+      "UserSummaryResponseEnvelope": {
         "allOf": [
           {
             "$ref": "#/components/schemas/ApiResponseBase"
@@ -838,70 +347,10 @@
               },
               "message": {
                 "type": "string",
-                "example": "Registration successful"
+                "example": "Current user retrieved"
               },
               "data": {
-                "type": "object",
-                "additionalProperties": false,
-                "example": {}
-              }
-            }
-          }
-        ]
-      },
-      "UserResponseEnvelope": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/ApiResponseBase"
-          },
-          {
-            "type": "object",
-            "required": ["success", "message", "data"],
-            "properties": {
-              "success": {
-                "type": "boolean",
-                "enum": [true]
-              },
-              "message": {
-                "type": "string",
-              "example": "Current user retrieved"
-            },
-            "data": {
-                "$ref": "#/components/schemas/User"
-              }
-            }
-          }
-        ]
-      },
-      "UserListResponseEnvelope": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/ApiResponseBase"
-          },
-          {
-            "type": "object",
-            "required": ["success", "message", "data"],
-            "properties": {
-              "success": {
-                "type": "boolean",
-                "enum": [true]
-              },
-              "message": {
-                "type": "string",
-                "example": "Users retrieved"
-              },
-              "data": {
-                "type": "object",
-                "required": ["users"],
-                "additionalProperties": false,
-                "properties": {
-                  "users": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "#/components/schemas/User"
-                    }
-                  }
-                }
+                "$ref": "#/components/schemas/UserSummary"
               }
             }
           }
@@ -974,21 +423,16 @@
           }
         }
       },
-      "User": {
+      "UserSummary": {
         "type": "object",
         "required": [
           "id",
           "email",
-          "type",
           "status",
           "role",
           "firstName",
           "lastName",
-          "imageUrl",
-          "dateOfBirth",
-          "gender",
-          "createdAt",
-          "updatedAt"
+          "imageUrl"
         ],
         "additionalProperties": false,
         "properties": {
@@ -1000,17 +444,13 @@
             "type": "string",
             "format": "email"
           },
-          "type": {
-            "type": "string",
-            "enum": ["EMAIL", "GOOGLE"]
-          },
           "status": {
             "type": "string",
             "enum": ["ACTIVE", "INACTIVE", "BANNED"]
           },
           "role": {
             "type": "string",
-            "enum": ["STUDENT", "RESEARCHER", "ADMIN"]
+            "enum": ["USER", "ADMIN"]
           },
           "firstName": {
             "type": "string",
@@ -1023,24 +463,6 @@
           "imageUrl": {
             "type": "string",
             "nullable": true
-          },
-          "dateOfBirth": {
-            "type": "string",
-            "format": "date",
-            "nullable": true
-          },
-          "gender": {
-            "type": "string",
-            "nullable": true,
-            "enum": ["MALE", "FEMALE", "OTHER"]
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
           }
         }
       }

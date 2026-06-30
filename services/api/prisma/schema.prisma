@@ -23,6 +23,7 @@ enum StatusAccount {
 
 enum RoleAccount {
   STUDENT
+  LECTURER
   RESEARCHER
   ADMIN
 

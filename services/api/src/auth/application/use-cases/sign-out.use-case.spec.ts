@@ -1,8 +1,5 @@
-import { SignOutUseCase } from './sign-out.use-case';
-import {
-  fakeAudit,
-  fakeSessions,
-} from '@/auth/application/testing/test-doubles';
+import { SignOutUseCase } from '@/auth/application/use-cases/sign-out.use-case';
+import { fakeAudit, fakeSessions } from './test-doubles';
 
 describe('SignOutUseCase', () => {
   it('revokes the current session idempotently and records an audit event', async () => {

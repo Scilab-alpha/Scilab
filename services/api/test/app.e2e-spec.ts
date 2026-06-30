@@ -6,16 +6,8 @@ import { PrismaModule } from '../src/prisma/prisma.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { AppModule } from './../src/app.module';
 
-const prismaMock = {
-  user: {
-    findFirst: jest.fn(() => Promise.resolve(null)),
-    create: jest.fn(() => Promise.resolve({})),
-    update: jest.fn(() => Promise.resolve({})),
-  },
-};
-
 @Module({
-  providers: [{ provide: PrismaService, useValue: prismaMock }],
+  providers: [{ provide: PrismaService, useValue: {} }],
   exports: [PrismaService],
 })
 class PrismaTestingModule {}
@@ -24,8 +16,6 @@ describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
-    jest.clearAllMocks();
-
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })

@@ -238,7 +238,7 @@ Lưu thông tin tài khoản, hồ sơ và phân quyền người dùng.
 | `password_hash` | `varchar(255)` | NN với provider `EMAIL` | Mật khẩu đã hash. Theo SRS dùng bcrypt work factor >= 12; code hiện tại có thể dùng Argon2. |
 | `type` | `auth_provider` | NN | `EMAIL` hoặc `GOOGLE`. |
 | `status` | `account_status` | NN | Trạng thái tài khoản. |
-| `role` | `account_role` | NN | Vai trò truy cập: `STUDENT`, `RESEARCHER`, `ADMIN`. |
+| `role` | `account_role` | NN | Vai trò truy cập. SRS cần `STUDENT`, `LECTURER`, `RESEARCHER`, `ADMIN`; schema hiện tại đang có `USER`, `ADMIN`. |
 | `last_name` | `varchar(255)` | nullable | Họ. |
 | `first_name` | `varchar(255)` | nullable | Tên. |
 | `url_image` | `varchar(2048)` | nullable | URL ảnh đại diện. |
@@ -256,7 +256,7 @@ Quy tắc nghiệp vụ:
 
 - Email phải đúng định dạng và duy nhất.
 - Mật khẩu tối thiểu 8 ký tự, gồm chữ và số.
-- User đăng ký mới mặc định là `STUDENT`.
+- User mới mặc định là Student/Lecturer theo quyết định sản phẩm.
 - Admin mới được đổi vai trò hoặc vô hiệu hóa tài khoản.
 
 ### 4.2 `AuthSession`
@@ -672,7 +672,7 @@ Relationship tự tham chiếu dùng cho:
 |---|---|---|
 | `auth_provider` | `EMAIL`, `GOOGLE` | Nguồn xác thực. |
 | `account_status` | `ACTIVE`, `INACTIVE`, `BANNED` | Trạng thái tài khoản. |
-| `account_role` | `STUDENT`, `RESEARCHER`, `ADMIN` | User tự đăng ký luôn là `STUDENT`; `ADMIN` không được tạo qua register. |
+| `account_role` | `STUDENT`, `LECTURER`, `RESEARCHER`, `ADMIN` | Theo SRS. Nếu giữ schema hiện tại, `USER` cần được tách chi tiết hơn. |
 | `gender` | `MALE`, `FEMALE`, `OTHER` | Giới tính trong `User_Account.gender`. |
 | `follow_object_type` | `JOURNAL`, `KEYWORD`, `TOPIC` | Enum riêng của `UserFollow.object_type`. |
 | `notify_mode` | `IN_APP`, `DAILY_EMAIL`, `WEEKLY_EMAIL`, `OFF` | Cấu hình thông báo trong `UserFollow.notify_mode`. |
@@ -791,7 +791,7 @@ sequenceDiagram
 - [ ] Thêm bảng `sync_log`.
 - [ ] Thêm bảng `system_config`.
 - [ ] Thêm FK `sync_log.config_id -> system_config.config_id`.
-- [ ] Điều chỉnh `role_account` để hỗ trợ `STUDENT`, `RESEARCHER`, `ADMIN` cho MVP.
+- [ ] Điều chỉnh `role_account` để hỗ trợ `STUDENT`, `LECTURER`, `RESEARCHER`, `ADMIN` nếu bám sát SRS.
 - [ ] Chuyển `journal_ranking.journal_id` thành Reference ID, không FK tới bảng `journal`.
 - [ ] Loại bỏ hoặc ngừng dùng các bảng học thuật cũ trong PostgreSQL sau khi ETL sang Neo4j hoàn tất.
 

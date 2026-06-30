@@ -6,8 +6,6 @@ export enum AuthEventType {
   TokenRefreshSuccess = 'TOKEN_REFRESH_SUCCESS',
   TokenRefreshFailure = 'TOKEN_REFRESH_FAILURE',
   TokenDenied = 'TOKEN_DENIED',
-  RegisterSuccess = 'REGISTER_SUCCESS',
-  RegisterFailure = 'REGISTER_FAILURE',
   SignOut = 'SIGN_OUT',
 }
 

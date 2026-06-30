@@ -3,7 +3,6 @@ import {
   SessionRepository,
 } from '@/auth/application/ports/auth.ports';
 import { AuthEventType } from '@/auth/domain/auth-event';
-import { SignOutInput } from './sign-out.input';
 
 export class SignOutUseCase {
   constructor(
@@ -11,7 +10,7 @@ export class SignOutUseCase {
     private readonly audit: AuthEventLogger,
   ) {}
 
-  async execute(input: SignOutInput) {
+  async execute(input: { sessionId: string; userId: string }) {
     await this.sessions.revokeById(input.sessionId, new Date());
     await this.audit.record({
       type: AuthEventType.SignOut,
