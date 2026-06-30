@@ -39,6 +39,7 @@ generated/
 
 # Caches
 .cache/
+.pnpm-store/
 .eslintcache
 
 # Debug
