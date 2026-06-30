@@ -1,8 +1,14 @@
-import 'dotenv/config';
-
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { loadEnvFile } from 'node:process';
 import neo4j from 'neo4j-driver';
+
+const envFile = resolve('.env');
+
+if (existsSync(envFile)) {
+  loadEnvFile(envFile);
+}
 
 function requiredEnv(name) {
   const value = process.env[name];

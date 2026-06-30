@@ -17,7 +17,14 @@ import { AppModule } from './../src/app.module';
 class PrismaTestingModule {}
 
 @Module({
-  providers: [{ provide: Neo4jService, useValue: {} }],
+  providers: [
+    {
+      provide: Neo4jService,
+      useValue: {
+        isConfigured: jest.fn(() => false),
+      },
+    },
+  ],
   exports: [Neo4jService],
 })
 class Neo4jTestingModule {}
