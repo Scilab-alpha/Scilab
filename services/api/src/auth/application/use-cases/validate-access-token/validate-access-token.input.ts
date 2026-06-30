@@ -1,0 +1,1 @@
+export type ValidateAccessTokenInput = string;

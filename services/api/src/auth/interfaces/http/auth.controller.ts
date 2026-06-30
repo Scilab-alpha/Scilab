@@ -1,20 +1,20 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   ForbiddenException,
-  Get,
   HttpCode,
   Post,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { ApiProperty, ApiTags } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import type { AuthenticatedUser } from '@/auth/application/ports/auth.ports';
-import { GetCurrentUserUseCase } from '@/auth/application/use-cases/get-current-user.use-case';
-import { RefreshTokensUseCase } from '@/auth/application/use-cases/refresh-tokens.use-case';
-import { SignInUseCase } from '@/auth/application/use-cases/sign-in.use-case';
-import { SignOutUseCase } from '@/auth/application/use-cases/sign-out.use-case';
+import { RefreshTokensUseCase } from '@/auth/application/use-cases/refresh-tokens/refresh-tokens.use-case';
+import { RegisterUseCase } from '@/auth/application/use-cases/register/register.use-case';
+import { SignInUseCase } from '@/auth/application/use-cases/sign-in/sign-in.use-case';
+import { SignOutUseCase } from '@/auth/application/use-cases/sign-out/sign-out.use-case';
 import { AuthFailureReason, AuthUseCaseError } from '@/auth/domain/auth.errors';
 import { CurrentUser } from '@/auth/interfaces/decorators/current-user.decorator';
 import { JwtAuthGuard } from '@/auth/interfaces/guards/jwt-auth.guard';
@@ -22,31 +22,45 @@ import {
   ApiLogin,
   ApiProtected,
   ApiRefresh,
+  ApiRegister,
 } from '@/auth/interfaces/http/auth.swagger';
+import { LoginDto } from '@/auth/interfaces/http/dto/login.dto';
+import { RefreshDto } from '@/auth/interfaces/http/dto/refresh.dto';
+import { RegisterDto } from '@/auth/interfaces/http/dto/register.dto';
 import { createSuccessResponse } from '@/shared/response/response.factory';
-
-export class LoginDto {
-  @ApiProperty({ format: 'email' })
-  email!: string;
-
-  @ApiProperty({ minLength: 1 })
-  password!: string;
-}
-
-export class RefreshDto {
-  @ApiProperty()
-  refreshToken!: string;
-}
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
+    private readonly registerUseCase: RegisterUseCase,
     private readonly signInUseCase: SignInUseCase,
     private readonly refreshTokensUseCase: RefreshTokensUseCase,
-    private readonly validateAccessTokenUseCase: GetCurrentUserUseCase,
     private readonly signOutUseCase: SignOutUseCase,
   ) {}
+
+  @Post('register')
+  @HttpCode(201)
+  @ApiRegister()
+  async register(@Body() body: RegisterDto) {
+    if (
+      !body?.email ||
+      !body?.password ||
+      !body?.firstName ||
+      !body?.lastName ||
+      !body?.dateOfBirth ||
+      !body?.gender
+    ) {
+      throw new BadRequestException('Registration fields are required');
+    }
+
+    try {
+      await this.registerUseCase.execute(body);
+      return createSuccessResponse({}, 'Registration successful');
+    } catch (error) {
+      throw this.toRegisterHttpException(error);
+    }
+  }
 
   @Post('login')
   @HttpCode(200)
@@ -80,25 +94,6 @@ export class AuthController {
     }
   }
 
-  @Get('me')
-  @UseGuards(JwtAuthGuard)
-  @ApiProtected('Return the authenticated user')
-  async me(@CurrentUser() currentUser: AuthenticatedUser) {
-    const user = await this.validateAccessTokenUseCase.execute(currentUser);
-    return createSuccessResponse(
-      {
-        id: user.userId,
-        email: user.email,
-        status: user.status,
-        role: user.role,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        imageUrl: user.imageUrl,
-      },
-      'Current user retrieved',
-    );
-  }
-
   @Post('logout')
   @HttpCode(200)
   @UseGuards(JwtAuthGuard)
@@ -120,5 +115,25 @@ export class AuthController {
     }
 
     return new UnauthorizedException('Authentication failed');
+  }
+
+  private toRegisterHttpException(error: unknown) {
+    if (!(error instanceof AuthUseCaseError)) {
+      return new BadRequestException('Registration failed');
+    }
+
+    if (error.reason === AuthFailureReason.EmailAlreadyExists) {
+      return new ConflictException(error.message);
+    }
+
+    if (error.reason === AuthFailureReason.ReservedAdminEmail) {
+      return new ForbiddenException(error.message);
+    }
+
+    if (error.reason === AuthFailureReason.InvalidRegistration) {
+      return new BadRequestException(error.message);
+    }
+
+    return new BadRequestException('Registration failed');
   }
 }

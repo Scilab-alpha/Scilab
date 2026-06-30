@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { GetCurrentUserUseCase } from '@/auth/application/use-cases/get-current-user.use-case';
-import { RefreshTokensUseCase } from '@/auth/application/use-cases/refresh-tokens.use-case';
-import { SignInUseCase } from '@/auth/application/use-cases/sign-in.use-case';
-import { SignOutUseCase } from '@/auth/application/use-cases/sign-out.use-case';
-import { ValidateAccessTokenUseCase } from '@/auth/application/use-cases/validate-access-token.use-case';
+import { RefreshTokensUseCase } from '@/auth/application/use-cases/refresh-tokens/refresh-tokens.use-case';
+import { RegisterUseCase } from '@/auth/application/use-cases/register/register.use-case';
+import { SignInUseCase } from '@/auth/application/use-cases/sign-in/sign-in.use-case';
+import { SignOutUseCase } from '@/auth/application/use-cases/sign-out/sign-out.use-case';
+import { ValidateAccessTokenUseCase } from '@/auth/application/use-cases/validate-access-token/validate-access-token.use-case';
 import { Argon2PasswordHasher } from '@/auth/infrastructure/crypto/argon2-password-hasher';
 import { StructuredAuthEventLogger } from '@/auth/infrastructure/audit/structured-auth-event-logger';
+import { AdminAccountBootstrapper } from '@/auth/infrastructure/bootstrap/admin-account.bootstrapper';
 import { JwtTokenService } from '@/auth/infrastructure/jwt/jwt-token.service';
 import { PrismaSessionRepository } from '@/auth/infrastructure/persistence/prisma-session.repository';
 import { PrismaUserRepository } from '@/auth/infrastructure/persistence/prisma-user.repository';
@@ -26,9 +27,29 @@ import { PrismaModule } from '@/prisma/prisma.module';
     PrismaUserRepository,
     PrismaSessionRepository,
     Argon2PasswordHasher,
+    AdminAccountBootstrapper,
     JwtTokenService,
     StructuredAuthEventLogger,
     JwtAuthGuard,
+    {
+      provide: RegisterUseCase,
+      useFactory: (
+        users: PrismaUserRepository,
+        passwordHasher: Argon2PasswordHasher,
+        audit: StructuredAuthEventLogger,
+      ) =>
+        new RegisterUseCase(
+          users,
+          passwordHasher,
+          audit,
+          process.env.ADMIN_EMAIL,
+        ),
+      inject: [
+        PrismaUserRepository,
+        Argon2PasswordHasher,
+        StructuredAuthEventLogger,
+      ],
+    },
     {
       provide: SignInUseCase,
       useFactory: (
@@ -77,12 +98,6 @@ import { PrismaModule } from '@/prisma/prisma.module';
       ],
     },
     {
-      provide: GetCurrentUserUseCase,
-      useFactory: (users: PrismaUserRepository) =>
-        new GetCurrentUserUseCase(users),
-      inject: [PrismaUserRepository],
-    },
-    {
       provide: SignOutUseCase,
       useFactory: (
         sessions: PrismaSessionRepository,
@@ -91,5 +106,6 @@ import { PrismaModule } from '@/prisma/prisma.module';
       inject: [PrismaSessionRepository, StructuredAuthEventLogger],
     },
   ],
+  exports: [JwtAuthGuard, ValidateAccessTokenUseCase],
 })
 export class AuthModule {}
