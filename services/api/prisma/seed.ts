@@ -7,12 +7,14 @@ import {
   FollowObjectType,
   Gender,
   NotifyMode,
+  NotificationObjectType,
   PrismaClient,
   RankingMetricType,
   RankingSource,
   RoleAccount,
   StatusAccount,
   SyncFrequency,
+  SyncJobType,
   SyncSource,
   SyncStatus,
 } from '@prisma/client';
@@ -23,69 +25,78 @@ if (!connectionString) {
   throw new Error('DATABASE_URL is not set');
 }
 
-const DEFAULT_DATABASE_SCHEMA = 'scilab_api';
-
-function resolveDatabaseConfig(connectionString: string) {
-  const url = new URL(connectionString);
-  const schema = url.searchParams.get('schema') ?? DEFAULT_DATABASE_SCHEMA;
-
-  url.searchParams.delete('schema');
-
-  return {
-    connectionString: url.toString(),
-    schema,
-  };
-}
-
-const database = resolveDatabaseConfig(connectionString);
-const adapter = new PrismaPg(
-  { connectionString: database.connectionString },
-  { schema: database.schema },
-);
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString }),
+});
 
 const ids = {
   users: {
     admin: '11111111-1111-4111-8111-111111111111',
-    researcher: '11111111-1111-4111-8111-111111111112',
-    student: '11111111-1111-4111-8111-111111111113',
+    student: '11111111-1111-4111-8111-111111111112',
+    researcher: '11111111-1111-4111-8111-111111111113',
   },
-  subjects: {
+  subjectAreas: {
     computerScience: '44444444-4444-4444-8444-444444444441',
-    artificialIntelligence: '55555555-5555-4555-8555-555555555551',
-    softwareEngineering: '55555555-5555-4555-8555-555555555552',
+    medicine: '44444444-4444-4444-8444-444444444442',
+    environmentalScience: '44444444-4444-4444-8444-444444444443',
+  },
+  subjectCategories: {
+    ai: '55555555-5555-4555-8555-555555555551',
+    software: '55555555-5555-4555-8555-555555555552',
+    publicHealth: '55555555-5555-4555-8555-555555555553',
+    sustainability: '55555555-5555-4555-8555-555555555554',
   },
   metrics: {
-    worksCount: '66666666-6666-4666-8666-666666666661',
-    citedByCount: '66666666-6666-4666-8666-666666666662',
-    hIndex: '66666666-6666-4666-8666-666666666663',
+    quartile: '66666666-6666-4666-8666-666666666661',
+    rank: '66666666-6666-4666-8666-666666666662',
+    sjr: '66666666-6666-4666-8666-666666666663',
+    citeScore: '66666666-6666-4666-8666-666666666664',
   },
-  graphRefs: {
-    journal: '77777777-7777-4777-8777-777777777771',
-    article: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1',
-    keyword: 'dddddddd-dddd-4ddd-8ddd-ddddddddddd1',
-    topic: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
+  journals: {
+    aiReview: '77777777-7777-4777-8777-777777777771',
+    softwareSystems: '77777777-7777-4777-8777-777777777772',
+    digitalHealth: '77777777-7777-4777-8777-777777777773',
+    climateData: '77777777-7777-4777-8777-777777777774',
+  },
+  articles: {
+    retrievalBenchmarks: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1',
+    testAutomation: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2',
+    mobileHealth: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb3',
+    regionalClimate: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb4',
+  },
+  keywords: {
+    machineLearning: 'dddddddd-dddd-4ddd-8ddd-ddddddddddd1',
+    openScience: 'dddddddd-dddd-4ddd-8ddd-ddddddddddd2',
+  },
+  topics: {
+    neuralRetrieval: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
+    reproducibility: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2',
   },
   rankings: {
-    worksCount: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1',
-    citedByCount: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2',
-    hIndex: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee3',
+    aiQuartile: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1',
+    aiSjr: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2',
+    softwareQuartile: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee3',
+    healthCiteScore: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee4',
+    climateRank: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee5',
+  },
+  configs: {
+    openAlex: '12121212-1212-4121-8121-121212121211',
+    neo4j: '12121212-1212-4121-8121-121212121212',
   },
   bookmarks: {
-    studentArticle: 'ffffffff-ffff-4fff-8fff-fffffffffff1',
+    retrieval: '13131313-1313-4131-8131-131313131311',
+    automation: '13131313-1313-4131-8131-131313131312',
   },
   follows: {
-    studentJournal: 'ffffffff-ffff-4fff-8fff-fffffffffff2',
-    researcherTopic: 'ffffffff-ffff-4fff-8fff-fffffffffff3',
+    journal: '14141414-1414-4141-8141-141414141411',
+    keyword: '14141414-1414-4141-8141-141414141412',
+    topic: '14141414-1414-4141-8141-141414141413',
   },
-  systemConfig: {
-    openAlex: '99999999-9999-4999-8999-999999999991',
+  notifications: {
+    newArticle: '15151515-1515-4151-8151-151515151511',
   },
-  notification: {
-    welcome: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeee1',
-  },
-  syncLog: {
-    openAlex: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeee2',
+  syncLogs: {
+    openAlex: '16161616-1616-4161-8161-161616161611',
   },
 };
 
@@ -97,14 +108,10 @@ async function seedUsers() {
       where: { email: 'admin@scilab.local' },
       update: {
         password: passwordHash,
-        type: AuthProvider.EMAIL,
         firstName: 'SciLab',
         lastName: 'Admin',
-        imageUrl: null,
         status: StatusAccount.ACTIVE,
         role: RoleAccount.ADMIN,
-        dateOfBirth: new Date('1994-04-12'),
-        gender: Gender.MALE,
       },
       create: {
         id: ids.users.admin,
@@ -120,25 +127,21 @@ async function seedUsers() {
       },
     }),
     prisma.user.upsert({
-      where: { email: 'researcher@scilab.local' },
+      where: { email: 'student@scilab.local' },
       update: {
         password: passwordHash,
-        type: AuthProvider.EMAIL,
         firstName: 'An',
         lastName: 'Nguyen',
-        imageUrl: null,
         status: StatusAccount.ACTIVE,
-        role: RoleAccount.RESEARCHER,
-        dateOfBirth: new Date('1998-09-21'),
-        gender: Gender.FEMALE,
+        role: RoleAccount.STUDENT,
       },
       create: {
-        id: ids.users.researcher,
-        email: 'researcher@scilab.local',
+        id: ids.users.student,
+        email: 'student@scilab.local',
         password: passwordHash,
         type: AuthProvider.EMAIL,
         status: StatusAccount.ACTIVE,
-        role: RoleAccount.RESEARCHER,
+        role: RoleAccount.STUDENT,
         firstName: 'An',
         lastName: 'Nguyen',
         dateOfBirth: new Date('1998-09-21'),
@@ -146,336 +149,426 @@ async function seedUsers() {
       },
     }),
     prisma.user.upsert({
-      where: { email: 'student@scilab.local' },
+      where: { email: 'researcher@scilab.local' },
       update: {
         password: passwordHash,
-        type: AuthProvider.GOOGLE,
         firstName: 'Maya',
         lastName: 'Chen',
-        imageUrl:
-          'https://images.unsplash.com/photo-1494790108377-be9c29b29330',
         status: StatusAccount.ACTIVE,
-        role: RoleAccount.STUDENT,
-        dateOfBirth: new Date('1991-01-05'),
-        gender: Gender.OTHER,
+        role: RoleAccount.RESEARCHER,
       },
       create: {
-        id: ids.users.student,
-        email: 'student@scilab.local',
+        id: ids.users.researcher,
+        email: 'researcher@scilab.local',
         password: passwordHash,
         type: AuthProvider.GOOGLE,
         status: StatusAccount.ACTIVE,
-        role: RoleAccount.STUDENT,
+        role: RoleAccount.RESEARCHER,
         firstName: 'Maya',
         lastName: 'Chen',
         imageUrl:
           'https://images.unsplash.com/photo-1494790108377-be9c29b29330',
         dateOfBirth: new Date('1991-01-05'),
-        gender: Gender.OTHER,
+        gender: Gender.FEMALE,
       },
     }),
   ]);
-}
-
-async function seedSystemConfig() {
-  await prisma.systemConfig.upsert({
-    where: { apiName: 'OpenAlex' },
-    update: {
-      apiEndpoint: 'https://api.openalex.org',
-      syncFrequency: SyncFrequency.DAILY,
-      isActive: true,
-      lastTestedAt: null,
-    },
-    create: {
-      id: ids.systemConfig.openAlex,
-      apiName: 'OpenAlex',
-      apiEndpoint: 'https://api.openalex.org',
-      syncFrequency: SyncFrequency.DAILY,
-      isActive: true,
-    },
-  });
 }
 
 async function seedSubjectsAndMetrics() {
-  await prisma.subjectArea.upsert({
-    where: { id: ids.subjects.computerScience },
-    update: {
-      displayName: 'Computer Science',
-      description: 'Computing, information systems, and software research.',
-    },
-    create: {
-      id: ids.subjects.computerScience,
-      displayName: 'Computer Science',
-      description: 'Computing, information systems, and software research.',
-    },
-  });
+  await Promise.all([
+    prisma.subjectArea.upsert({
+      where: { displayName: 'Computer Science' },
+      update: {
+        description: 'Computing, information systems, and software research.',
+      },
+      create: {
+        id: ids.subjectAreas.computerScience,
+        displayName: 'Computer Science',
+        description: 'Computing, information systems, and software research.',
+      },
+    }),
+    prisma.subjectArea.upsert({
+      where: { displayName: 'Medicine' },
+      update: {
+        description: 'Clinical, public health, and biomedical research.',
+      },
+      create: {
+        id: ids.subjectAreas.medicine,
+        displayName: 'Medicine',
+        description: 'Clinical, public health, and biomedical research.',
+      },
+    }),
+    prisma.subjectArea.upsert({
+      where: { displayName: 'Environmental Science' },
+      update: {
+        description: 'Climate, ecology, and sustainability research.',
+      },
+      create: {
+        id: ids.subjectAreas.environmentalScience,
+        displayName: 'Environmental Science',
+        description: 'Climate, ecology, and sustainability research.',
+      },
+    }),
+  ]);
 
   await Promise.all([
     prisma.subjectCategory.upsert({
-      where: { id: ids.subjects.artificialIntelligence },
+      where: { id: ids.subjectCategories.ai },
       update: {
-        subjectAreaId: ids.subjects.computerScience,
+        subjectAreaId: ids.subjectAreas.computerScience,
         displayName: 'Artificial Intelligence',
         description: 'Machine learning, reasoning, and intelligent systems.',
       },
       create: {
-        id: ids.subjects.artificialIntelligence,
-        subjectAreaId: ids.subjects.computerScience,
+        id: ids.subjectCategories.ai,
+        subjectAreaId: ids.subjectAreas.computerScience,
         displayName: 'Artificial Intelligence',
         description: 'Machine learning, reasoning, and intelligent systems.',
       },
     }),
     prisma.subjectCategory.upsert({
-      where: { id: ids.subjects.softwareEngineering },
+      where: { id: ids.subjectCategories.software },
       update: {
-        subjectAreaId: ids.subjects.computerScience,
+        subjectAreaId: ids.subjectAreas.computerScience,
         displayName: 'Software Engineering',
         description: 'Software process, quality, testing, and maintainability.',
       },
       create: {
-        id: ids.subjects.softwareEngineering,
-        subjectAreaId: ids.subjects.computerScience,
+        id: ids.subjectCategories.software,
+        subjectAreaId: ids.subjectAreas.computerScience,
         displayName: 'Software Engineering',
         description: 'Software process, quality, testing, and maintainability.',
+      },
+    }),
+    prisma.subjectCategory.upsert({
+      where: { id: ids.subjectCategories.publicHealth },
+      update: {
+        subjectAreaId: ids.subjectAreas.medicine,
+        displayName: 'Public Health',
+        description: 'Population health and health informatics.',
+      },
+      create: {
+        id: ids.subjectCategories.publicHealth,
+        subjectAreaId: ids.subjectAreas.medicine,
+        displayName: 'Public Health',
+        description: 'Population health and health informatics.',
+      },
+    }),
+    prisma.subjectCategory.upsert({
+      where: { id: ids.subjectCategories.sustainability },
+      update: {
+        subjectAreaId: ids.subjectAreas.environmentalScience,
+        displayName: 'Sustainability',
+        description: 'Sustainable systems and climate adaptation.',
+      },
+      create: {
+        id: ids.subjectCategories.sustainability,
+        subjectAreaId: ids.subjectAreas.environmentalScience,
+        displayName: 'Sustainability',
+        description: 'Sustainable systems and climate adaptation.',
       },
     }),
   ]);
 
   await Promise.all([
     prisma.rankingMetric.upsert({
-      where: { code: 'WORKS_COUNT' },
+      where: { code: 'SCIMAGO_QUARTILE' },
       update: {
-        displayName: 'Works Count',
-        metricType: RankingMetricType.SCORE,
+        displayName: 'SCImago Quartile',
+        metricType: RankingMetricType.QUARTILE,
       },
       create: {
-        id: ids.metrics.worksCount,
-        code: 'WORKS_COUNT',
-        displayName: 'Works Count',
-        metricType: RankingMetricType.SCORE,
-        description: 'OpenAlex works_count metric for a source.',
+        id: ids.metrics.quartile,
+        code: 'SCIMAGO_QUARTILE',
+        displayName: 'SCImago Quartile',
+        metricType: RankingMetricType.QUARTILE,
+        description: 'Quartile ranking by subject category.',
       },
     }),
     prisma.rankingMetric.upsert({
-      where: { code: 'CITED_BY_COUNT' },
+      where: { code: 'SUBJECT_RANK' },
       update: {
-        displayName: 'Cited By Count',
-        metricType: RankingMetricType.SCORE,
+        displayName: 'Subject Rank',
+        metricType: RankingMetricType.RANK,
       },
       create: {
-        id: ids.metrics.citedByCount,
-        code: 'CITED_BY_COUNT',
-        displayName: 'Cited By Count',
-        metricType: RankingMetricType.SCORE,
-        description: 'OpenAlex cited_by_count metric for a source.',
+        id: ids.metrics.rank,
+        code: 'SUBJECT_RANK',
+        displayName: 'Subject Rank',
+        metricType: RankingMetricType.RANK,
+        description: 'Ordinal rank within a subject category.',
       },
     }),
     prisma.rankingMetric.upsert({
-      where: { code: 'H_INDEX' },
+      where: { code: 'SJR' },
       update: {
-        displayName: 'H-Index',
+        displayName: 'SJR',
         metricType: RankingMetricType.SCORE,
       },
       create: {
-        id: ids.metrics.hIndex,
-        code: 'H_INDEX',
-        displayName: 'H-Index',
+        id: ids.metrics.sjr,
+        code: 'SJR',
+        displayName: 'SJR',
         metricType: RankingMetricType.SCORE,
-        description: 'OpenAlex h_index metric for a source.',
+        description: 'SCImago Journal Rank score.',
+      },
+    }),
+    prisma.rankingMetric.upsert({
+      where: { code: 'CITESCORE' },
+      update: {
+        displayName: 'CiteScore',
+        metricType: RankingMetricType.SCORE,
+      },
+      create: {
+        id: ids.metrics.citeScore,
+        code: 'CITESCORE',
+        displayName: 'CiteScore',
+        metricType: RankingMetricType.SCORE,
+        description: 'Citation impact score for a journal.',
       },
     }),
   ]);
 }
 
-async function seedJournalRankings() {
+async function seedRankings() {
   await Promise.all([
     prisma.journalRanking.upsert({
-      where: {
-        journalId_subjectCategoryId_source_metricId_year: {
-          journalId: ids.graphRefs.journal,
-          subjectCategoryId: ids.subjects.artificialIntelligence,
-          source: RankingSource.OPENALEX,
-          metricId: ids.metrics.worksCount,
-          year: 2026,
-        },
-      },
+      where: { id: ids.rankings.aiQuartile },
       update: {
-        valueInt: 15420,
-        valueText: '15420',
+        valueText: 'Q1',
+        valueInt: 1,
         valueFloat: null,
       },
       create: {
-        id: ids.rankings.worksCount,
-        journalId: ids.graphRefs.journal,
-        subjectCategoryId: ids.subjects.artificialIntelligence,
-        source: RankingSource.OPENALEX,
-        metricId: ids.metrics.worksCount,
-        year: 2026,
-        valueText: '15420',
-        valueInt: 15420,
+        id: ids.rankings.aiQuartile,
+        journalId: ids.journals.aiReview,
+        subjectCategoryId: ids.subjectCategories.ai,
+        source: RankingSource.SCIMAGO,
+        metricId: ids.metrics.quartile,
+        year: 2025,
+        valueText: 'Q1',
+        valueInt: 1,
       },
     }),
     prisma.journalRanking.upsert({
-      where: {
-        journalId_subjectCategoryId_source_metricId_year: {
-          journalId: ids.graphRefs.journal,
-          subjectCategoryId: ids.subjects.artificialIntelligence,
-          source: RankingSource.OPENALEX,
-          metricId: ids.metrics.citedByCount,
-          year: 2026,
-        },
-      },
+      where: { id: ids.rankings.aiSjr },
       update: {
-        valueInt: 87340,
-        valueText: '87340',
-        valueFloat: null,
+        valueText: '1.842',
+        valueFloat: 1.842,
       },
       create: {
-        id: ids.rankings.citedByCount,
-        journalId: ids.graphRefs.journal,
-        subjectCategoryId: ids.subjects.artificialIntelligence,
-        source: RankingSource.OPENALEX,
-        metricId: ids.metrics.citedByCount,
-        year: 2026,
-        valueText: '87340',
-        valueInt: 87340,
+        id: ids.rankings.aiSjr,
+        journalId: ids.journals.aiReview,
+        subjectCategoryId: ids.subjectCategories.ai,
+        source: RankingSource.SCIMAGO,
+        metricId: ids.metrics.sjr,
+        year: 2025,
+        valueText: '1.842',
+        valueFloat: 1.842,
       },
     }),
     prisma.journalRanking.upsert({
-      where: {
-        journalId_subjectCategoryId_source_metricId_year: {
-          journalId: ids.graphRefs.journal,
-          subjectCategoryId: ids.subjects.artificialIntelligence,
-          source: RankingSource.OPENALEX,
-          metricId: ids.metrics.hIndex,
-          year: 2026,
-        },
-      },
+      where: { id: ids.rankings.softwareQuartile },
       update: {
-        valueInt: 112,
-        valueText: '112',
-        valueFloat: null,
+        valueText: 'Q2',
+        valueInt: 2,
       },
       create: {
-        id: ids.rankings.hIndex,
-        journalId: ids.graphRefs.journal,
-        subjectCategoryId: ids.subjects.artificialIntelligence,
-        source: RankingSource.OPENALEX,
-        metricId: ids.metrics.hIndex,
-        year: 2026,
-        valueText: '112',
-        valueInt: 112,
+        id: ids.rankings.softwareQuartile,
+        journalId: ids.journals.softwareSystems,
+        subjectCategoryId: ids.subjectCategories.software,
+        source: RankingSource.SCOPUS,
+        metricId: ids.metrics.quartile,
+        year: 2025,
+        valueText: 'Q2',
+        valueInt: 2,
+      },
+    }),
+    prisma.journalRanking.upsert({
+      where: { id: ids.rankings.healthCiteScore },
+      update: {
+        valueText: '8.6',
+        valueFloat: 8.6,
+      },
+      create: {
+        id: ids.rankings.healthCiteScore,
+        journalId: ids.journals.digitalHealth,
+        subjectCategoryId: ids.subjectCategories.publicHealth,
+        source: RankingSource.SCOPUS,
+        metricId: ids.metrics.citeScore,
+        year: 2024,
+        valueText: '8.6',
+        valueFloat: 8.6,
+      },
+    }),
+    prisma.journalRanking.upsert({
+      where: { id: ids.rankings.climateRank },
+      update: {
+        valueText: '#18',
+        valueInt: 18,
+      },
+      create: {
+        id: ids.rankings.climateRank,
+        journalId: ids.journals.climateData,
+        subjectCategoryId: ids.subjectCategories.sustainability,
+        source: RankingSource.WOS,
+        metricId: ids.metrics.rank,
+        year: 2024,
+        valueText: '#18',
+        valueInt: 18,
       },
     }),
   ]);
+}
+
+async function seedOperations() {
+  await Promise.all([
+    prisma.systemConfig.upsert({
+      where: { apiName: 'OpenAlex' },
+      update: {
+        apiEndpoint: 'https://api.openalex.org',
+        syncFrequency: SyncFrequency.DAILY,
+        isActive: true,
+      },
+      create: {
+        id: ids.configs.openAlex,
+        apiName: 'OpenAlex',
+        apiEndpoint: 'https://api.openalex.org',
+        syncFrequency: SyncFrequency.DAILY,
+        isActive: true,
+      },
+    }),
+    prisma.systemConfig.upsert({
+      where: { apiName: 'Neo4j Orphan Reconciliation' },
+      update: {
+        apiEndpoint: 'neo4j://graph',
+        syncFrequency: SyncFrequency.WEEKLY,
+        isActive: true,
+      },
+      create: {
+        id: ids.configs.neo4j,
+        apiName: 'Neo4j Orphan Reconciliation',
+        apiEndpoint: 'neo4j://graph',
+        syncFrequency: SyncFrequency.WEEKLY,
+        isActive: true,
+      },
+    }),
+  ]);
+
+  await prisma.syncLog.upsert({
+    where: { id: ids.syncLogs.openAlex },
+    update: {
+      totalFetched: 4,
+      totalInserted: 4,
+      totalUpdated: 0,
+      totalErrors: 0,
+      status: SyncStatus.SUCCESS,
+    },
+    create: {
+      id: ids.syncLogs.openAlex,
+      configId: ids.configs.openAlex,
+      source: SyncSource.OPENALEX,
+      jobType: SyncJobType.SCHEDULED_SYNC,
+      startedAt: new Date('2026-06-01T02:00:00.000Z'),
+      finishedAt: new Date('2026-06-01T02:03:00.000Z'),
+      totalFetched: 4,
+      totalInserted: 4,
+      status: SyncStatus.SUCCESS,
+    },
+  });
 }
 
 async function seedUserActivity() {
-  await prisma.userBookmark.upsert({
-    where: {
-      userId_articleId: {
-        userId: ids.users.student,
-        articleId: ids.graphRefs.article,
-      },
-    },
-    update: {},
-    create: {
-      id: ids.bookmarks.studentArticle,
-      userId: ids.users.student,
-      articleId: ids.graphRefs.article,
-    },
-  });
-
   await Promise.all([
-    prisma.userFollow.upsert({
-      where: {
-        userId_objectType_objectId: {
-          userId: ids.users.student,
-          objectType: FollowObjectType.JOURNAL,
-          objectId: ids.graphRefs.journal,
-        },
+    prisma.userBookmark.upsert({
+      where: { id: ids.bookmarks.retrieval },
+      update: {
+        articleId: ids.articles.retrievalBenchmarks,
       },
-      update: { notifyMode: NotifyMode.DAILY },
       create: {
-        id: ids.follows.studentJournal,
+        id: ids.bookmarks.retrieval,
         userId: ids.users.student,
-        objectType: FollowObjectType.JOURNAL,
-        objectId: ids.graphRefs.journal,
-        notifyMode: NotifyMode.DAILY,
+        articleId: ids.articles.retrievalBenchmarks,
+      },
+    }),
+    prisma.userBookmark.upsert({
+      where: { id: ids.bookmarks.automation },
+      update: {
+        articleId: ids.articles.testAutomation,
+      },
+      create: {
+        id: ids.bookmarks.automation,
+        userId: ids.users.researcher,
+        articleId: ids.articles.testAutomation,
       },
     }),
     prisma.userFollow.upsert({
-      where: {
-        userId_objectType_objectId: {
-          userId: ids.users.researcher,
-          objectType: FollowObjectType.TOPIC,
-          objectId: ids.graphRefs.topic,
-        },
+      where: { id: ids.follows.journal },
+      update: {
+        notifyMode: NotifyMode.IN_APP,
       },
-      update: { notifyMode: NotifyMode.IN_APP },
       create: {
-        id: ids.follows.researcherTopic,
-        userId: ids.users.researcher,
-        objectType: FollowObjectType.TOPIC,
-        objectId: ids.graphRefs.topic,
+        id: ids.follows.journal,
+        userId: ids.users.student,
+        objectType: FollowObjectType.JOURNAL,
+        objectId: ids.journals.aiReview,
         notifyMode: NotifyMode.IN_APP,
       },
     }),
+    prisma.userFollow.upsert({
+      where: { id: ids.follows.keyword },
+      update: {
+        notifyMode: NotifyMode.DAILY_EMAIL,
+      },
+      create: {
+        id: ids.follows.keyword,
+        userId: ids.users.student,
+        objectType: FollowObjectType.KEYWORD,
+        objectId: ids.keywords.machineLearning,
+        notifyMode: NotifyMode.DAILY_EMAIL,
+      },
+    }),
+    prisma.userFollow.upsert({
+      where: { id: ids.follows.topic },
+      update: {
+        notifyMode: NotifyMode.WEEKLY_EMAIL,
+      },
+      create: {
+        id: ids.follows.topic,
+        userId: ids.users.researcher,
+        objectType: FollowObjectType.TOPIC,
+        objectId: ids.topics.reproducibility,
+        notifyMode: NotifyMode.WEEKLY_EMAIL,
+      },
+    }),
+    prisma.notification.upsert({
+      where: { id: ids.notifications.newArticle },
+      update: {
+        title: 'New article in followed journal',
+        message:
+          'A new article was synchronized for Journal of Applied AI Review.',
+        isRead: false,
+      },
+      create: {
+        id: ids.notifications.newArticle,
+        userId: ids.users.student,
+        title: 'New article in followed journal',
+        message:
+          'A new article was synchronized for Journal of Applied AI Review.',
+        relatedObjectType: NotificationObjectType.ARTICLE,
+        relatedObjectId: ids.articles.retrievalBenchmarks,
+      },
+    }),
   ]);
-
-  await prisma.notification.upsert({
-    where: { id: ids.notification.welcome },
-    update: {
-      title: 'Welcome to SciLab',
-      message: 'Your OpenAlex-powered research workspace is ready.',
-      relatedObjectType: 'ARTICLE',
-      relatedObjectId: ids.graphRefs.article,
-      isRead: false,
-    },
-    create: {
-      id: ids.notification.welcome,
-      userId: ids.users.student,
-      title: 'Welcome to SciLab',
-      message: 'Your OpenAlex-powered research workspace is ready.',
-      relatedObjectType: 'ARTICLE',
-      relatedObjectId: ids.graphRefs.article,
-    },
-  });
-}
-
-async function seedSyncLogs() {
-  await prisma.syncLog.upsert({
-    where: { id: ids.syncLog.openAlex },
-    update: {
-      totalFetched: 500,
-      totalInserted: 450,
-      totalUpdated: 50,
-      totalErrors: 0,
-      status: SyncStatus.SUCCESS,
-      errorDetail: null,
-      finishedAt: new Date('2026-06-30T01:15:00.000Z'),
-    },
-    create: {
-      id: ids.syncLog.openAlex,
-      source: SyncSource.OPENALEX,
-      startedAt: new Date('2026-06-30T01:00:00.000Z'),
-      finishedAt: new Date('2026-06-30T01:15:00.000Z'),
-      totalFetched: 500,
-      totalInserted: 450,
-      totalUpdated: 50,
-      totalErrors: 0,
-      status: SyncStatus.SUCCESS,
-    },
-  });
 }
 
 async function main() {
   await seedUsers();
-  await seedSystemConfig();
   await seedSubjectsAndMetrics();
-  await seedJournalRankings();
+  await seedRankings();
+  await seedOperations();
   await seedUserActivity();
-  await seedSyncLogs();
 
   console.info('Seed completed successfully.');
 }

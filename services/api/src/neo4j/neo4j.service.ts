@@ -1,150 +1,125 @@
-import 'dotenv/config';
-
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import neo4j, {
-  AuthToken,
-  Driver,
-  QueryResult,
-  RecordShape,
-  Session,
-  SessionMode,
+  type Driver,
+  type ManagedTransaction,
+  type Record as Neo4jRecord,
+  type ResultSummary,
 } from 'neo4j-driver';
+import {
+  isNeo4jConfigured,
+  loadNeo4jConfig,
+  type Neo4jConfig,
+} from '@/neo4j/neo4j.config';
 
-type Neo4jConfig = {
-  uri: string;
-  username: string;
-  password: string;
-  database?: string;
-  maxConnectionPoolSize?: number;
-  connectionAcquisitionTimeout?: number;
-  connectionTimeout?: number;
-  maxTransactionRetryTime?: number;
-};
+export type CypherParameters = Record<string, unknown>;
+export type CypherRow = Record<string, unknown>;
+export type CypherRecordMapper<Row> = (record: Neo4jRecord) => Row;
 
-type SessionOptions = {
-  database?: string;
-  defaultAccessMode?: SessionMode;
-};
-
-function parseOptionalNumber(value: string | undefined) {
-  if (!value) {
-    return undefined;
-  }
-
-  const parsed = Number(value);
-
-  if (!Number.isFinite(parsed)) {
-    throw new Error(`Invalid Neo4j numeric configuration value: ${value}`);
-  }
-
-  return parsed;
-}
-
-function readNeo4jConfig(): Neo4jConfig {
-  const uri = process.env.NEO4J_URI;
-  const username = process.env.NEO4J_USERNAME;
-  const password = process.env.NEO4J_PASSWORD;
-
-  if (!uri) {
-    throw new Error('NEO4J_URI is not set');
-  }
-
-  if (!username) {
-    throw new Error('NEO4J_USERNAME is not set');
-  }
-
-  if (!password) {
-    throw new Error('NEO4J_PASSWORD is not set');
-  }
-
-  return {
-    uri,
-    username,
-    password,
-    database: process.env.NEO4J_DATABASE,
-    maxConnectionPoolSize: parseOptionalNumber(
-      process.env.NEO4J_MAX_CONNECTION_POOL_SIZE,
-    ),
-    connectionAcquisitionTimeout: parseOptionalNumber(
-      process.env.NEO4J_CONNECTION_ACQUISITION_TIMEOUT,
-    ),
-    connectionTimeout: parseOptionalNumber(
-      process.env.NEO4J_CONNECTION_TIMEOUT,
-    ),
-    maxTransactionRetryTime: parseOptionalNumber(
-      process.env.NEO4J_MAX_TRANSACTION_RETRY_TIME,
-    ),
-  };
+export interface CypherResult<Row = CypherRow> {
+  records: Row[];
+  summary: ResultSummary;
 }
 
 @Injectable()
 export class Neo4jService implements OnModuleInit, OnModuleDestroy {
-  private readonly config = readNeo4jConfig();
-  private readonly auth: AuthToken = neo4j.auth.basic(
-    this.config.username,
-    this.config.password,
-  );
-  private readonly driver: Driver = neo4j.driver(this.config.uri, this.auth, {
-    maxConnectionPoolSize: this.config.maxConnectionPoolSize,
-    connectionAcquisitionTimeout: this.config.connectionAcquisitionTimeout,
-    connectionTimeout: this.config.connectionTimeout,
-    maxTransactionRetryTime: this.config.maxTransactionRetryTime,
-  });
+  private readonly config: Neo4jConfig = loadNeo4jConfig();
+  private driver?: Driver;
 
   async onModuleInit() {
-    await this.driver.verifyConnectivity();
+    if (isNeo4jConfigured(this.config)) {
+      await this.getDriver().verifyConnectivity({
+        database: this.config.database,
+      });
+    }
   }
 
   async onModuleDestroy() {
-    await this.driver.close();
+    if (this.driver) {
+      await this.driver.close();
+    }
   }
 
-  getDriver() {
+  async executeRead<Row = CypherRow>(
+    cypher: string,
+    parameters: CypherParameters = {},
+    mapRecord?: CypherRecordMapper<Row>,
+  ): Promise<CypherResult<Row>> {
+    const session = this.getDriver().session({
+      database: this.config.database,
+    });
+
+    try {
+      return await session.executeRead((tx) =>
+        this.runQuery(tx, cypher, parameters, mapRecord),
+      );
+    } finally {
+      await session.close();
+    }
+  }
+
+  async executeWrite<Row = CypherRow>(
+    cypher: string,
+    parameters: CypherParameters = {},
+    mapRecord?: CypherRecordMapper<Row>,
+  ): Promise<CypherResult<Row>> {
+    const session = this.getDriver().session({
+      database: this.config.database,
+    });
+
+    try {
+      return await session.executeWrite((tx) =>
+        this.runQuery(tx, cypher, parameters, mapRecord),
+      );
+    } finally {
+      await session.close();
+    }
+  }
+
+  async verifyConnectivity(): Promise<void> {
+    await this.getDriver().verifyConnectivity({
+      database: this.config.database,
+    });
+  }
+
+  isConfigured(): boolean {
+    return isNeo4jConfigured(this.config);
+  }
+
+  private getDriver(): Driver {
+    const { uri, username, password } = this.config;
+
+    if (!uri || !username || !password) {
+      throw new Error(
+        'Neo4j is not configured. Set NEO4J_URI, NEO4J_USERNAME, and NEO4J_PASSWORD.',
+      );
+    }
+
+    if (!this.driver) {
+      this.driver = neo4j.driver(uri, neo4j.auth.basic(username, password), {
+        maxConnectionPoolSize: this.config.maxConnectionPoolSize,
+        connectionAcquisitionTimeout: this.config.connectionAcquisitionTimeout,
+        connectionTimeout: this.config.connectionTimeout,
+        maxTransactionRetryTime: this.config.maxTransactionRetryTime,
+      });
+    }
+
     return this.driver;
   }
 
-  getDatabase() {
-    return this.config.database;
-  }
-
-  getSession(options: SessionOptions = {}): Session {
-    return this.driver.session({
-      database: options.database ?? this.config.database,
-      defaultAccessMode: options.defaultAccessMode,
-    });
-  }
-
-  async executeRead<T extends RecordShape = RecordShape>(
+  private async runQuery<Row>(
+    tx: ManagedTransaction,
     cypher: string,
-    parameters: Record<string, unknown> = {},
-    options: Omit<SessionOptions, 'defaultAccessMode'> = {},
-  ): Promise<QueryResult<T>> {
-    const session = this.getSession({
-      ...options,
-      defaultAccessMode: neo4j.session.READ,
-    });
+    parameters: CypherParameters,
+    mapRecord?: CypherRecordMapper<Row>,
+  ): Promise<CypherResult<Row>> {
+    const result = await tx.run(cypher, parameters);
+    const records = result.records.map((record) =>
+      mapRecord ? mapRecord(record) : (record.toObject() as Row),
+    );
 
-    try {
-      return await session.executeRead((tx) => tx.run<T>(cypher, parameters));
-    } finally {
-      await session.close();
-    }
-  }
-
-  async executeWrite<T extends RecordShape = RecordShape>(
-    cypher: string,
-    parameters: Record<string, unknown> = {},
-    options: Omit<SessionOptions, 'defaultAccessMode'> = {},
-  ): Promise<QueryResult<T>> {
-    const session = this.getSession({
-      ...options,
-      defaultAccessMode: neo4j.session.WRITE,
-    });
-
-    try {
-      return await session.executeWrite((tx) => tx.run<T>(cypher, parameters));
-    } finally {
-      await session.close();
-    }
+    return {
+      records,
+      summary: result.summary,
+    };
   }
 }

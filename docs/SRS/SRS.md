@@ -1,4 +1,4 @@
-# FPT UNIVERSITY
+# PT UNIVERSITY
 ### Faculty of Software Engineering
 ### SOFTWARE REQUIREMENTS SPECIFICATION
 ## SciLab – Scientific Journal Publication Trend Tracking System
@@ -17,7 +17,7 @@ So với phiên bản 1.0, tài liệu phiên bản 2.0 cập nhật một thay 
 
 ### 1. Introduction
 
-SciLab – Journal Finder (Project Code: SU26SWP06) là nền tảng web học thuật, giải quyết bài toán thực tiễn: giảng viên, sinh viên và nhà nghiên cứu gặp khó khăn trong việc theo dõi xu hướng công bố khoa học do số lượng tạp chí và bài báo học thuật ngày càng gia tăng. SciLab thu thập metadata và metric học thuật từ **OpenAlex API** làm nguồn dữ liệu học thuật duy nhất để cung cấp:
+SciLab – Journal Finder (Project Code: SU26SWP06) là nền tảng web học thuật, giải quyết bài toán thực tiễn: giảng viên, sinh viên và nhà nghiên cứu gặp khó khăn trong việc theo dõi xu hướng công bố khoa học do số lượng tạp chí và bài báo học thuật ngày càng gia tăng. SciLab thu thập metadata từ các API học thuật công khai (OpenAlex, Semantic Scholar, Crossref) và dữ liệu xếp hạng từ SCImago để cung cấp:
 
 - Công cụ tìm kiếm và lọc tạp chí học thuật theo nhiều tiêu chí.
 - Phân tích xu hướng công bố theo thời gian dựa trên từ khóa và chủ đề.
@@ -36,14 +36,17 @@ Về mặt lưu trữ, SciLab áp dụng kiến trúc **Polyglot Persistence**: 
 - Giới hạn lĩnh vực ban đầu: Computer Science và Artificial Intelligence.
 - API học thuật bên thứ ba được giả định luôn khả dụng và trả về cấu trúc nhất quán.
 - Đồng bộ dữ liệu theo chu kỳ (hàng ngày hoặc hàng tuần), không realtime.
-- OpenAlex API là nguồn dữ liệu học thuật duy nhất trong phạm vi phiên bản này; hệ thống không đồng bộ dữ liệu từ Semantic Scholar, Crossref hoặc SCImago.
+- Dữ liệu SCImago sử dụng cho mục đích học thuật phi thương mại.
 - Hỗ trợ trình duyệt: Chrome, Firefox, Edge, Safari (2 phiên bản mới nhất).
 - **(Mới)** Hệ thống chấp nhận mô hình **eventual consistency** giữa PostgreSQL và Neo4j: do hai hệ quản trị dữ liệu độc lập, không tồn tại transaction phân tán (distributed transaction) đảm bảo ACID xuyên cơ sở dữ liệu; tính nhất quán được đảm bảo thông qua cơ chế đối soát (reconciliation) định kỳ ở tầng ứng dụng.
 - **(Mới)** PostgreSQL không lưu bản sao (duplicate) metadata học thuật; mọi tham chiếu đến Article/Author/Journal/Keyword/Topic từ PostgreSQL chỉ là Reference ID (UUID) trỏ sang Node tương ứng trong Neo4j.
 
 #### 1.2 Dependencies
 
-- **OpenAlex API** – nguồn dữ liệu học thuật duy nhất; cung cấp metadata bài báo, tạp chí/nguồn xuất bản, tác giả, keyword/topic, quan hệ trích dẫn, metric theo năm và các external IDs khi có.
+- **OpenAlex API** – metadata bài báo, tạp chí, tác giả, chủ đề (miễn phí, ~100k req/ngày).
+- **Semantic Scholar API** – bài báo, trích dẫn (nên có API key để tăng rate limit).
+- **Crossref API** – metadata DOI, thông tin tạp chí (miễn phí, polite pool).
+- **SCImago CSV** – xếp hạng tạp chí, SJR, H-Index (nhập CSV thủ công hoặc scraping theo ToS).
 - **SMTP/Email Service** – gửi thông báo cho người dùng (SendGrid hoặc tương đương).
 - **JWT/OAuth2** – xác thực và phân quyền người dùng.
 - **(Mới) Neo4j Graph Database** – lưu trữ và truy vấn mạng lưới học thuật (Article, Author, Keyword, Journal, Topic) bằng ngôn ngữ Cypher; là nguồn dữ liệu chính (source of truth) cho mọi nghiệp vụ liên quan đến nội dung học thuật.
@@ -51,19 +54,20 @@ Về mặt lưu trữ, SciLab áp dụng kiến trúc **Polyglot Persistence**: 
 
 #### 1.3 Context Diagram
 
-SciLab đóng vai trò trung tâm kết nối 3 nhóm người dùng (Nhà nghiên cứu, Giảng viên/Sinh viên, Quản trị viên) với 1 nguồn dữ liệu học thuật ngoại vi (OpenAlex API), 1 dịch vụ thông báo (SMTP Email), và nội bộ vận hành song song hai hệ quản trị cơ sở dữ liệu (PostgreSQL, Neo4j) đóng vai trò lưu trữ chuyên biệt theo bản chất dữ liệu.
+SciLab đóng vai trò trung tâm kết nối 3 nhóm người dùng (Nhà nghiên cứu, Giảng viên/Sinh viên, Quản trị viên) với 4 nguồn dữ liệu ngoại vi (OpenAlex, Semantic Scholar, Crossref, SCImago), 1 dịch vụ thông báo (SMTP Email), và nội bộ vận hành song song hai hệ quản trị cơ sở dữ liệu (PostgreSQL, Neo4j) đóng vai trò lưu trữ chuyên biệt theo bản chất dữ liệu.
 
 **External Entities and Interactions:**
 
 - **Researcher**: Truy cập phân tích xu hướng chuyên sâu, xuất báo cáo, theo dõi keyword, khai thác công cụ đồ thị (Knowledge Graph, Graph Search).
-- **Student**: Tìm bài tham khảo, khám phá chủ đề phổ biến, bookmark.
+- **Lecturer / Student**: Tìm bài tham khảo, khám phá chủ đề phổ biến, bookmark.
 - **System Admin**: Quản lý tài khoản, cấu hình API, kích hoạt đồng bộ dữ liệu, theo dõi sức khỏe của cả hai cơ sở dữ liệu.
-- **OpenAlex**: Cung cấp metadata bài báo, tạp chí/nguồn xuất bản, tác giả, keyword/topic, quan hệ trích dẫn, metric học thuật và external IDs qua REST API; ETL ghi metadata học thuật vào Neo4j và ghi metric theo năm vào PostgreSQL khi cần.
+- **OpenAlex / Semantic Scholar / Crossref**: Cung cấp metadata bài báo và tạp chí qua REST API, được ETL ghi vào Neo4j.
+- **SCImago**: Cung cấp dữ liệu xếp hạng tạp chí (nhập định kỳ qua CSV), được ETL ghi vào PostgreSQL (bảng Journal_Ranking).
 - **Email Service**: Gửi thông báo alert cho người dùng đăng ký theo dõi.
 
 ### 2. Business Main Flows
 
-**2.1 Register / Log In** — Người dùng mới đăng ký bằng email + mật khẩu hoặc qua OAuth2 (Google). Sau khi đăng ký, vai trò mặc định là Student. Admin có thể nâng cấp vai trò lên Researcher hoặc Admin. Đăng nhập trả về JWT access token (1h) và refresh token (7 ngày).
+**2.1 Register / Log In** — Người dùng mới đăng ký bằng email + mật khẩu hoặc qua OAuth2 (Google). Sau khi đăng ký, vai trò mặc định là Lecturer/Student. Admin có thể nâng cấp vai trò. Đăng nhập trả về JWT access token (1h) và refresh token (7 ngày).
 
 **2.2 Search Journal & Article** — Người dùng (kể cả chưa đăng nhập) truy cập tính năng tìm kiếm tạp chí hoặc bài báo. Hệ thống trả về danh sách phân trang (20 items/page) với bộ lọc (lĩnh vực, OA status, xếp hạng, năm, quốc gia). Chọn một journal/article → trang chi tiết đầy đủ. *(Toàn bộ dữ liệu Journal/Article cho luồng này được truy vấn trực tiếp từ Neo4j.)*
 
@@ -73,7 +77,7 @@ SciLab đóng vai trò trung tâm kết nối 3 nhóm người dùng (Nhà nghi�
 
 **2.5 Dashboard & Report** — Dashboard cá nhân hóa hiển thị thống kê tổng hợp và xu hướng dựa trên chủ đề đang theo dõi. Nhà nghiên cứu có thêm dashboard mở rộng (so sánh nhiều keyword, heatmap) và **(mới)** công cụ trực quan hóa mạng lưới tri thức (Knowledge Graph). Hỗ trợ xuất báo cáo PDF/CSV theo khoảng thời gian và tập chủ đề.
 
-**2.6 Data Synchronization (Background Job)** — Hệ thống có scheduler chạy nền, định kỳ gọi **OpenAlex API** để đồng bộ metadata bài báo và thông tin tạp chí mới, ghi (upsert) Node/Edge vào Neo4j, đồng thời ghi metric theo năm từ OpenAlex vào PostgreSQL nếu cần báo cáo/xếp hạng. Mỗi job ghi log vào bảng Sync_Log (PostgreSQL). Admin có thể kích hoạt đồng bộ thủ công từ bảng quản trị. Hệ thống dùng `openalex_id` làm khóa chống trùng chính, `doi_normalized` là khóa phụ khi có.
+**2.6 Data Synchronization (Background Job)** — Hệ thống có scheduler chạy nền, định kỳ gọi các API ngoại vi để đồng bộ metadata bài báo và thông tin tạp chí mới, ghi (upsert) Node/Edge vào Neo4j, đồng thời ghi dữ liệu xếp hạng (SCImago) vào PostgreSQL. Mỗi job ghi log vào bảng Sync_Log (PostgreSQL). Admin có thể kích hoạt đồng bộ thủ công từ bảng quản trị. Hệ thống dùng DOI làm khóa chính để tránh trùng lặp.
 
 **2.7 Admin Management** — Admin quản lý toàn bộ tài khoản người dùng (xem, kích hoạt/vô hiệu hóa, đổi vai trò), cấu hình nguồn API, lên lịch đồng bộ, quản lý phân loại chủ đề và theo dõi sức khỏe của cả PostgreSQL và Neo4j.
 
@@ -83,7 +87,7 @@ SciLab đóng vai trò trung tâm kết nối 3 nhóm người dùng (Nhà nghi�
 |---|---|
 | BR-01 | Mọi người dùng phải đăng ký tài khoản trước khi sử dụng các tính năng cần xác thực (bookmark, theo dõi, dashboard, xuất báo cáo). |
 | BR-02 | Email phải là duy nhất trong hệ thống và đúng định dạng. Mật khẩu tối thiểu 8 ký tự, bao gồm chữ và số. |
-| BR-03 | Sau đăng ký thành công, hệ thống gán vai trò `STUDENT` làm mặc định. |
+| BR-03 | Sau đăng ký thành công, hệ thống gán vai trò Lecturer/Student làm mặc định. |
 | BR-04 | Hỗ trợ đăng ký và đăng nhập qua OAuth2 (Google). Email đã tồn tại → đăng nhập; email mới → tạo tài khoản. |
 | BR-05 | JWT access token có thời hạn 1 giờ; refresh token có thời hạn 7 ngày. |
 | BR-06 | Các endpoint và trang dành cho Admin trả về HTTP 403 với người dùng không có quyền. |
@@ -98,7 +102,7 @@ SciLab đóng vai trò trung tâm kết nối 3 nhóm người dùng (Nhà nghi�
 | BR-15 | Dashboard hỗ trợ widget có thể sắp xếp lại hoặc ẩn theo tùy chọn người dùng. |
 | BR-16 | Nhà nghiên cứu có dashboard mở rộng: so sánh nhiều keyword, heatmap tần suất công bố, tiến trình xếp hạng tạp chí. |
 | BR-17 | Thông báo email có thể cấu hình: chỉ in-app, hàng ngày, hàng tuần, hoặc tắt. |
-| BR-18 | Hệ thống dùng `openalex_id` làm khóa chống trùng chính trên Node Article tại Neo4j; `doi_normalized` là khóa phụ khi có; dự phòng cuối cùng là tiêu đề + năm + journal. |
+| BR-18 | Hệ thống dùng DOI làm khóa chính (trên Node Article tại Neo4j) để tránh lưu bài báo trùng lặp; dự phòng là tiêu đề + năm + journal. |
 | BR-19 | Mỗi job đồng bộ ghi log: thời gian bắt đầu, kết thúc, số bản ghi cập nhật, lỗi phát sinh. |
 | BR-20 | Admin có thể kích hoạt đồng bộ thủ công bất kỳ lúc nào từ bảng quản trị. |
 | BR-21 | Toàn bộ giao tiếp client-server qua HTTPS (TLS 1.2+). JWT, mật khẩu bcrypt (work factor ≥ 12). |
@@ -176,7 +180,7 @@ Hệ thống SciLab có 7 luồng màn hình chính: (1) Authentication Flow, (2
 
 #### 5.3 User Authorization
 
-| Screen / Function | Student | Researcher | System Admin | Guest |
+| Screen / Function | Lecturer / Student | Researcher | System Admin | Guest |
 |---|---|---|---|---|
 | Register (Sign Up) | X | X | X | |
 | Login / Logout | X | X | X | X |
@@ -202,16 +206,16 @@ Hệ thống SciLab có 7 luồng màn hình chính: (1) Authentication Flow, (2
 **Roles:**
 
 - **Guest**: Truy cập các tính năng công khai (tìm kiếm, xem chi tiết, gợi ý bài báo tương tự), không cần đăng nhập.
-- **Student**: Đăng ký/đăng nhập, bookmark, theo dõi, nhận thông báo, dashboard cơ bản.
-- **Researcher**: Tất cả quyền của Student + dashboard mở rộng, xuất báo cáo, Knowledge Graph Visualization, Graph-based Advanced Search.
+- **Lecturer / Student**: Đăng ký/đăng nhập, bookmark, theo dõi, nhận thông báo, dashboard cơ bản.
+- **Researcher**: Tất cả quyền của Lecturer/Student + dashboard mở rộng, xuất báo cáo, Knowledge Graph Visualization, Graph-based Advanced Search.
 - **System Admin**: Quản lý người dùng, cấu hình API, đồng bộ dữ liệu, theo dõi hệ thống (cả PostgreSQL và Neo4j).
 
 #### 5.4 Non-Screen Functions
 
 | # | Feature | System Function | Description |
 |---|---|---|---|
-| 1 | Data Sync | Scheduled Sync Job | Cron job định kỳ gọi OpenAlex API; upsert Node/Edge vào Neo4j; ghi metric theo năm từ OpenAlex vào PostgreSQL khi cần. Ghi log mỗi lần chạy vào Sync_Log. |
-| 2 | Data Sync | Deduplication Service | Kiểm tra `openalex_id` (fallback: `doi_normalized`, sau đó title+year+journal) trên Node Article tại Neo4j trước khi tạo/cập nhật, tránh bản ghi trùng lặp. |
+| 1 | Data Sync | Scheduled Sync Job | Cron job định kỳ gọi OpenAlex, Semantic Scholar, Crossref; upsert Node/Edge vào Neo4j; ghi dữ liệu xếp hạng (SCImago) vào PostgreSQL. Ghi log mỗi lần chạy vào Sync_Log. |
+| 2 | Data Sync | Deduplication Service | Kiểm tra DOI (fallback: title+year+journal) trên Node Article tại Neo4j trước khi tạo/cập nhật, tránh bản ghi trùng lặp. |
 | 3 | Notification | Alert Dispatch Service | Background service truy vấn Neo4j tìm bài báo mới khớp đối tượng theo dõi (lấy danh sách object_id đang follow từ Postgres), gửi thông báo in-app và email theo lịch đã cấu hình. |
 | 4 | Analytics | Trend Aggregation Job | Tổng hợp và cache dữ liệu xu hướng công bố theo năm (Cypher aggregation trên Neo4j) để tối ưu hiệu năng truy vấn dashboard. |
 | 5 | Auth | Token Refresh Service | Xử lý refresh JWT access token khi hết hạn, vô hiệu hóa refresh token sau khi đăng xuất. |
@@ -226,7 +230,7 @@ Hệ thống SciLab có 7 luồng màn hình chính: (1) Authentication Flow, (2
 
 SciLab áp dụng kiến trúc **Polyglot Persistence**, lựa chọn công cụ lưu trữ phù hợp với bản chất từng loại dữ liệu:
 
-- **PostgreSQL (Relational)**: lưu dữ liệu nghiệp vụ và vận hành có cấu trúc bảng rõ ràng, ít thay đổi quan hệ — tài khoản người dùng, cấu hình hệ thống, metric tạp chí theo năm từ OpenAlex, log đồng bộ, và các bảng "liên kết" (bookmark, follow) chỉ chứa **Reference ID**.
+- **PostgreSQL (Relational)**: lưu dữ liệu nghiệp vụ và vận hành có cấu trúc bảng rõ ràng, ít thay đổi quan hệ — tài khoản người dùng, cấu hình hệ thống, dữ liệu xếp hạng tạp chí theo năm, log đồng bộ, và các bảng "liên kết" (bookmark, follow) chỉ chứa **Reference ID**.
 - **Neo4j (Graph)**: lưu mạng lưới học thuật — bài báo, tác giả, từ khóa, tạp chí, chủ đề — nơi mối quan hệ nhiều-nhiều (N-N) giữa các thực thể là trọng tâm truy vấn (ai viết bài nào, bài nào trích dẫn bài nào, tác giả nào hay xuất bản chung). Đây là dạng dữ liệu mà JOIN nhiều bảng trung gian trong RDBMS trở nên tốn kém khi độ sâu truy vấn tăng (ví dụ: "tác giả của tác giả cùng từ khóa"), trong khi Neo4j duyệt theo cạnh (edge traversal) với độ phức tạp gần như không đổi theo độ sâu.
 
 **Nguyên tắc cốt lõi**: Neo4j là **nguồn dữ liệu duy nhất (single source of truth)** cho mọi metadata học thuật. PostgreSQL không lưu bản sao của bất kỳ thuộc tính học thuật nào (title, abstract, author name, keyword, journal name...); PostgreSQL chỉ lưu **Reference ID (UUID)** khi cần liên kết một hành vi nghiệp vụ (bookmark, follow) tới một Node trong Neo4j.
@@ -238,15 +242,14 @@ SciLab áp dụng kiến trúc **Polyglot Persistence**, lựa chọn công cụ
 #### 2.1 Phần quan hệ (PostgreSQL)
 
 - **User** – tương tác với hệ thống qua bookmark, follow, nhận thông báo.
-- **Auth_Session** – phiên đăng nhập, lưu hash token và thời hạn access/refresh token.
-- **System_Config** – cấu hình nguồn dữ liệu OpenAlex.
-- **Journal_Ranking** – metric/chỉ số tạp chí theo năm lấy từ OpenAlex (tham chiếu Journal qua Reference ID).
+- **System_Config** – cấu hình nguồn dữ liệu ngoại vi.
+- **Journal_Ranking** – dữ liệu xếp hạng tạp chí theo năm (tham chiếu Journal qua Reference ID).
 - **User_Bookmark / User_Follow** – hành vi người dùng, chỉ lưu Reference ID trỏ sang Neo4j.
 - **Sync_Log** – nhật ký vận hành của tiến trình đồng bộ.
 
 #### 2.2 Phần đồ thị (Neo4j)
 
-- **Article ↔ Author** (ai viết bài nào), **Article ↔ Keyword** (bài nào gắn từ khóa nào), **Article → Topic** (bài nào thuộc chủ đề nào), **Topic → Topic** (phân cấp chủ đề nếu có), **Article → Journal** (bài được công bố ở tạp chí nào), **Article → Article** (trích dẫn).
+- **Article ↔ Author** (ai viết bài nào), **Article ↔ Keyword** (bài nào gắn từ khóa nào), **Article → Topic** (bài nào thuộc chủ đề nào), **Article → Journal** (bài được công bố ở tạp chí nào), **Article → Article** (trích dẫn).
 
 *[Xem Conceptual Data Model đính kèm – phần PostgreSQL vẽ bằng dbdiagram.io, phần Graph Model vẽ bằng Neo4j Arrows.app]*
 
@@ -256,17 +259,17 @@ SciLab áp dụng kiến trúc **Polyglot Persistence**, lựa chọn công cụ
 
 | No | Table | Description |
 |---|---|---|
-| 01 | **User** | Người dùng đã đăng ký. Lưu thông tin xác thực, hồ sơ và vai trò. — PK: `user_id` (uuid) — Fields: `email` (NN), `password`, `type` (auth_provider E), `status` (status_account E), `role` (role_account E: STUDENT/RESEARCHER/ADMIN), `last_name`, `first_name`, `url_image`, `date_of_birth`, `gender`. |
-| 02 | **Auth_Session** *(mới)* | Phiên đăng nhập của người dùng. Lưu hash token để refresh/thu hồi phiên an toàn. — PK: `auth_session_id` (uuid) — FK: `user_id` (FK → User, NN) — Fields: `access_token_id_hash` (UK, NN), `refresh_token_hash` (UK, NN), `issued_at`, `access_token_expires_at`, `refresh_token_expires_at`, `revoked_at`, `created_at`, `last_used_at`, `rotated_at`. |
-| 03 | **System_Config** *(mới)* | Cấu hình nguồn dữ liệu OpenAlex phục vụ UC-15. — PK: `config_id` (uuid) — Fields: `api_name` (giá trị mặc định: OpenAlex), `api_endpoint`, `api_key` (mã hóa at rest, nullable nếu dùng public access), `sync_frequency` (enum: daily/weekly), `is_active` (bool), `last_tested_at`, `created_at`, `updated_at`. |
-| 04 | **Journal_Ranking** | Chỉ số/metric hàng năm của tạp chí lấy từ OpenAlex. — PK: `journal_ranking_id` (uuid) — FK: `journal_id` *(Reference ID → Node Journal tại Neo4j, không còn là khóa ngoại nội bộ)*, `subject_category_id` (FK → Subject_Category), `metric_id` (FK → Ranking_Metric, NN) — Fields: `source` (ranking_source E, NN, chỉ `openalex`), `year` (int, NN), `value_txt`, `value_int`, `value_float`, `created_at`. |
-| 05 | **Ranking_Metric** | Danh mục các loại chỉ số lấy từ OpenAlex (VD: works_count, cited_by_count, h_index, i10_index, 2yr_mean_citedness). — PK: `metric_id` (uuid) — Fields: `code`, `display_name`, `metric_type` (ranking_metric_type E), `description`. |
+| 01 | **User** | Người dùng đã đăng ký. Lưu thông tin xác thực, hồ sơ và vai trò. — PK: `user_id` (uuid) — Fields: `email` (NN), `password`, `type` (auth_provider E), `status` (status_account E), `role` (role_account E), `last_name`, `first_name`, `url_image`, `date_of_birth`, `gender`. |
+| 02 | **System_Config** *(mới)* | Cấu hình nguồn dữ liệu ngoại vi phục vụ UC-15. — PK: `config_id` (uuid) — Fields: `api_name`, `api_endpoint`, `api_key` (mã hóa at rest), `sync_frequency` (enum: daily/weekly), `is_active` (bool), `last_tested_at`, `created_at`, `updated_at`. |
+| 03 | **Journal_Ranking** | Chỉ số xếp hạng hàng năm của tạp chí. — PK: `journal_ranking_id` (uuid) — FK: `journal_id` *(Reference ID → Node Journal tại Neo4j, không còn là khóa ngoại nội bộ)*, `subject_category_id` (FK → Subject_Category), `metric_id` (FK → Ranking_Metric, NN) — Fields: `source` (ranking_source E, NN), `year` (int, NN), `value_txt`, `value_int`, `value_float`, `created_at`. |
+| 04 | **Ranking_Metric** | Danh mục các loại chỉ số (SJR, H-Index, CiteScore, Impact Factor). — PK: `metric_id` (uuid) — Fields: `code`, `display_name`, `metric_type` (ranking_metric_type E), `description`. |
+| 05 | **Zone** | Khu vực địa lý / quốc gia, phục vụ phân loại dữ liệu xếp hạng. — PK: `zone_id` (uuid) — Fields: `code`, `name`, `type` (type_zone E), `iso_code`, `source` (source_zone E), `created_at`. |
 | 06 | **Subject_Area** | Lĩnh vực chuyên môn rộng (VD: Computer Science). Là danh mục tra cứu; danh sách subject_categories trên Node Journal (Neo4j) tham chiếu tên hiển thị từ đây. — PK: `subject_area_id` (uuid) — Fields: `display_name`, `description`. |
 | 07 | **Subject_Category** | Danh mục chi tiết trong một lĩnh vực. — PK: `subject_category_id` (uuid) — FK: `subject_area_id` — Fields: `display_name`, `description`. |
 | 08 | **User_Bookmark** *(mới)* | Bookmark bài báo của người dùng — chỉ lưu Reference ID, **không** lưu metadata bài báo. — PK: `user_bookmark_id` (uuid) — FK: `user_id` (NN) — Fields: `article_id` (uuid, **Reference ID → Node Article tại Neo4j**), `created_at`. Unique: (`user_id`, `article_id`). |
 | 09 | **User_Follow** *(mới)* | Theo dõi Journal/Keyword/Topic của người dùng — chỉ lưu Reference ID. — PK: `user_follow_id` (uuid) — FK: `user_id` (NN) — Fields: `object_type` (enum: JOURNAL/KEYWORD/TOPIC, NN), `object_id` (uuid, **Reference ID → Node tương ứng tại Neo4j**), `notify_mode` (enum: in_app/daily/weekly/off), `created_at`. Unique: (`user_id`, `object_type`, `object_id`). |
 | 10 | **Notification** | Thông báo in-app/email cho người dùng. — PK: `notification_id` (uuid) — FK: `user_id` — Fields: `title`, `message`, `related_object_type`, `related_object_id` (Reference ID), `is_read` (bool), `created_at`. |
-| 11 | **Sync_Log** *(mới)* | Nhật ký mỗi lần chạy job đồng bộ. — PK: `sync_log_id` (uuid) — Fields: `source` (enum: openalex/orphan_cleanup), `started_at`, `finished_at`, `total_fetched` (int), `total_inserted` (int), `total_updated` (int), `total_errors` (int), `status` (enum: success/failed/partial), `error_detail` (text), `created_at`. |
+| 11 | **Sync_Log** *(mới)* | Nhật ký mỗi lần chạy job đồng bộ. — PK: `sync_log_id` (uuid) — Fields: `source` (enum: openalex/semantic_scholar/crossref/scimago), `started_at`, `finished_at`, `total_fetched` (int), `total_inserted` (int), `total_updated` (int), `total_errors` (int), `status` (enum: success/failed/partial), `error_detail` (text), `created_at`. |
 
 > **Lưu ý quan trọng**: `journal_id` trong bảng `Journal_Ranking`, `article_id` trong `User_Bookmark`, và `object_id` trong `User_Follow` **không** được khai báo ràng buộc khóa ngoại (Foreign Key constraint) ở cấp database engine, vì thực thể được tham chiếu không tồn tại trong PostgreSQL — chúng là **Reference ID**, được kiểm soát toàn vẹn ở tầng ứng dụng (application-level integrity) và bởi cơ chế đối soát mô tả tại Mục IV.7.
 
@@ -278,11 +281,11 @@ SciLab áp dụng kiến trúc **Polyglot Persistence**, lựa chọn công cụ
 
 | Node Label | Properties chính | Mô tả |
 |---|---|---|
-| **Article** | `id` (uuid – Reference ID dùng tại Postgres), `title`, `abstract`, `doi`, `doi_normalized`, `openalex_id`, `semantic_scholar_id`, `crossref_id`, `publication_year`, `version`, `volume_number`, `issue_number`, `created_at`, `updated_at` | Bài báo nghiên cứu. Các external source IDs giúp đối chiếu dữ liệu giữa nguồn học thuật và chống trùng lặp; `doi_normalized` phục vụ tìm kiếm/so khớp DOI ổn định. `volume_number`/`issue_number` được gộp trực tiếp làm thuộc tính, không còn là thực thể Volume/Issue riêng. |
+| **Article** | `id` (uuid – Reference ID dùng tại Postgres), `title`, `abstract`, `doi`, `publication_year`, `version`, `volume_number`, `issue_number`, `created_at` | Bài báo nghiên cứu. `volume_number`/`issue_number` được gộp trực tiếp làm thuộc tính, không còn là thực thể Volume/Issue riêng. |
 | **Author** | `id` (uuid), `orcid`, `display_name`, `url_image` | Tác giả bài báo. |
 | **Keyword** | `id` (uuid), `display_name` | Từ khóa học thuật. |
-| **Journal** | `id` (uuid), `source_id`, `display_name`, `type`, `is_open_access` (bool), `is_oa_diamond` (bool), `coverage`, `country`, `region`, `issn_list` (array), `issn_normalized_list` (array), `publisher_name`, `publisher_image_url`, `subject_categories` (array, tên danh mục — chi tiết tra cứu tại bảng `Subject_Category` ở Postgres), `created_at`, `updated_at` | Tạp chí học thuật. `source_id` lưu ID nguồn chính; `issn_normalized_list` phục vụ tìm kiếm/so khớp ISSN. Thông tin Publisher và ISSN trước đây tách bảng riêng, nay gộp làm property. |
-| **Topic** | `id` (uuid), `display_name`, `score` | Chủ đề nghiên cứu cấp cao; nếu dữ liệu có phân cấp, dùng relationship `PARENT_OF` giữa các Topic. |
+| **Journal** | `id` (uuid), `source_id`, `display_name`, `type`, `is_open_access` (bool), `is_oa_diamond` (bool), `coverage`, `country`, `region`, `issn_list` (array), `publisher_name`, `publisher_image_url`, `subject_categories` (array, tên danh mục — chi tiết tra cứu tại bảng `Subject_Category` ở Postgres) | Tạp chí học thuật. Thông tin Publisher và ISSN trước đây tách bảng riêng, nay gộp làm property. |
+| **Topic** | `id` (uuid), `display_name`, `score` | Chủ đề nghiên cứu cấp cao. |
 
 #### 4.2 Relationships (Edges)
 
@@ -293,7 +296,6 @@ SciLab áp dụng kiến trúc **Polyglot Persistence**, lựa chọn công cụ
 | **PUBLISHED_IN** | `(Article) -> (Journal)` | — | Xác định bài báo được công bố tại tạp chí nào. |
 | **BELONGS_TO** | `(Article) -> (Topic)` | — | Thay thế quan hệ Article–Topic/Sub_Topic trước đây; chủ đề con (sub-topic) nếu cần được lưu như property bổ sung trên Edge hoặc property mở rộng của Node Topic. |
 | **CITES** *(bổ sung mới)* | `(Article) -> (Article)` | — | Quan hệ trích dẫn giữa các bài báo, cần thiết để phục vụ tính năng Knowledge Graph Visualization (UC-17) và Graph-based Recommendation (UC-18). |
-| **PARENT_OF** *(tùy chọn)* | `(Topic) -> (Topic)` | — | Quan hệ phân cấp chủ đề, dùng khi nguồn dữ liệu có topic hierarchy. Topic cha trỏ tới Topic con. |
 
 > **Index & Constraint**: Tạo `UNIQUE CONSTRAINT` trên thuộc tính `id` của từng Node Label (Article, Author, Keyword, Journal, Topic) để đảm bảo tính duy nhất và tối ưu tốc độ tra cứu theo Reference ID khi Backend gửi truy vấn `IN [$ids]` từ PostgreSQL.
 
@@ -304,7 +306,7 @@ SciLab áp dụng kiến trúc **Polyglot Persistence**, lựa chọn công cụ
 | Thực thể / Bảng (thiết kế cũ – 100% RDBMS) | Trạng thái mới | Ghi chú |
 |---|---|---|
 | Publisher | Loại bỏ bảng riêng — gộp vào property `publisher_name`, `publisher_image_url` của Node **Journal** (Neo4j) | |
-| Journal | Chuyển thành Node **Journal** (Neo4j) | Riêng metric theo năm (`Journal_Ranking`) vẫn ở Postgres, tham chiếu qua Reference ID |
+| Journal | Chuyển thành Node **Journal** (Neo4j) | Riêng dữ liệu xếp hạng (Journal_Ranking) vẫn ở Postgres, tham chiếu qua Reference ID |
 | Journal_ISSN | Loại bỏ bảng riêng — gộp vào property `issn_list[]` của Node Journal | |
 | Volume | Loại bỏ bảng riêng — gộp vào property `volume_number` của Node **Article** | |
 | Issue | Loại bỏ bảng riêng — gộp vào property `issue_number` của Node Article | |
@@ -316,7 +318,7 @@ SciLab áp dụng kiến trúc **Polyglot Persistence**, lựa chọn công cụ
 | Topic | Chuyển thành Node **Topic** (Neo4j) | |
 | Sub_Topic | Loại bỏ bảng composite — gộp vào metadata Edge BELONGS_TO / property mở rộng của Node Topic | |
 | **Journal_Subject_Category** | **Loại bỏ hoàn toàn** — thay bằng property `subject_categories[]` trên Node Journal (Neo4j); danh mục gốc vẫn tra cứu tại bảng `Subject_Category` (PostgreSQL) để phục vụ lọc nhanh ở tầng API | Junction table |
-| Ranking_Metric, Subject_Area, Subject_Category | Giữ nguyên tại PostgreSQL | Dữ liệu danh mục/tĩnh, không thuộc mạng lưới học thuật |
+| Ranking_Metric, Zone, Subject_Area, Subject_Category | Giữ nguyên tại PostgreSQL | Dữ liệu danh mục/tĩnh, không thuộc mạng lưới học thuật |
 | Journal_Ranking | Giữ nguyên tại PostgreSQL | `journal_id` chuyển từ FK nội bộ thành Reference ID trỏ Neo4j |
 | *(mới)* User_Bookmark, User_Follow, Sync_Log, System_Config | Bảng mới tại PostgreSQL | Phục vụ lưu Reference ID và vận hành hệ thống |
 
@@ -362,7 +364,7 @@ Function trigger: Người dùng truy cập trang 'Journals' hoặc nhập từ 
 
 Function Details:
 - Search fields: tên tạp chí (partial match), ISSN, lĩnh vực chuyên môn, danh mục chủ đề, tên nhà xuất bản, quốc gia/khu vực.
-- Filters: open access (bool), OA diamond (bool), subject area, subject category, country, region, OpenAlex metric type, metric value range.
+- Filters: open access (bool), OA diamond (bool), subject area, subject category, country, region, ranking source, metric type, metric value range.
 - Sort: tên A-Z, metric value cao→thấp, năm xuất bản gần nhất.
 - Pagination: 20 items/page, hiển thị tổng số kết quả.
 - Result card: tên tạp chí, ISSN, nhà xuất bản, OA badge, top metric value, chủ đề chính.
@@ -373,7 +375,7 @@ Function trigger: Người dùng click vào một tạp chí từ trang danh sá
 
 Function Details:
 - Thông tin: tên, tất cả ISSN, nhà xuất bản, khu vực, OA status, danh mục chủ đề — toàn bộ lấy từ Node Journal (Neo4j).
-- Lịch sử metric: bảng theo năm với các chỉ số từ OpenAlex (VD: works_count, cited_by_count, h_index, i10_index, 2yr_mean_citedness) — lấy từ bảng `Journal_Ranking` (PostgreSQL), join bằng Reference ID.
+- Lịch sử xếp hạng: bảng theo năm với các metric (SJR, H-Index, CiteScore) — lấy từ bảng `Journal_Ranking` (PostgreSQL), join bằng Reference ID.
 - Biểu đồ xu hướng: số lượng bài báo công bố theo năm (line/bar chart) — aggregate từ Neo4j theo Edge `PUBLISHED_IN`.
 - Danh sách bài báo gần đây (20 bài mới nhất) — Neo4j.
 - Nút Follow (yêu cầu đăng nhập) để theo dõi tạp chí này — ghi Reference ID vào `User_Follow` (PostgreSQL).
@@ -498,10 +500,10 @@ Function Details:
 Function trigger: Cron job kích hoạt theo lịch đã cấu hình (hàng ngày hoặc hàng tuần).
 
 Function Details:
-- Gọi duy nhất **OpenAlex API** theo lịch cấu hình; không gọi Semantic Scholar, Crossref hoặc SCImago.
-- Rate limiting: tuân thủ giới hạn tốc độ OpenAlex API, dùng queue/batch (BullMQ).
-- Deduplication: kiểm tra `openalex_id` trên Node Article (Neo4j) trước khi tạo/cập nhật; fallback `doi_normalized`, sau đó title+year+journal.
-- **Ghi dữ liệu**: Node/Edge học thuật (Article, Author, Keyword, Journal, Topic, WROTE, HAS_KEYWORD, PUBLISHED_IN, BELONGS_TO, CITES, PARENT_OF nếu có hierarchy) → **Neo4j**; metric theo năm từ OpenAlex → bảng `Journal_Ranking` (**PostgreSQL**, qua Reference ID `journal_id`).
+- Gọi tuần tự các API: OpenAlex → Semantic Scholar → Crossref.
+- Rate limiting: tuân thủ giới hạn tốc độ API bên thứ ba, dùng queue/batch (BullMQ).
+- Deduplication: kiểm tra DOI trên Node Article (Neo4j) trước khi tạo/cập nhật; fallback title+year+journal.
+- **Ghi dữ liệu**: Node/Edge học thuật (Article, Author, Keyword, Journal, Topic, WROTE, HAS_KEYWORD, PUBLISHED_IN, BELONGS_TO, CITES) → **Neo4j**; dữ liệu xếp hạng SCImago → bảng `Journal_Ranking` (**PostgreSQL**, qua Reference ID `journal_id`).
 - Logging: ghi log thời gian bắt đầu, kết thúc, số bản ghi cập nhật/thêm mới, lỗi phát sinh vào `Sync_Log` (PostgreSQL).
 - Error handling: nếu API ngoài không khả dụng → skip, hiển thị dữ liệu cache, thông báo độ tươi.
 
@@ -521,7 +523,7 @@ Function trigger: Admin truy cập trang Admin > Users.
 
 Function Details:
 - Bảng danh sách: tất cả tài khoản với email, vai trò, ngày đăng ký, trạng thái.
-- Actions: Activate / Deactivate / Delete tài khoản; Change Role (`STUDENT` ↔ `RESEARCHER`/`ADMIN`).
+- Actions: Activate / Deactivate / Delete tài khoản; Change Role (Lecturer/Student ↔ Researcher).
 - Search & filter: theo email, vai trò, trạng thái.
 
 #### b. API Source Configuration (UC-15)
@@ -529,9 +531,9 @@ Function Details:
 Function trigger: Admin truy cập trang Admin > Data Sources.
 
 Function Details:
-- Cập nhật cấu hình OpenAlex: URL endpoint, API key nếu có (mã hóa at rest), tần suất đồng bộ.
-- Test connection: ping OpenAlex API và hiển thị kết quả.
-- Enable/Disable tiến trình đồng bộ OpenAlex.
+- CRUD cấu hình nguồn API: URL endpoint, API key (mã hóa at rest), tần suất đồng bộ.
+- Test connection: ping API và hiển thị kết quả.
+- Enable/Disable từng nguồn độc lập.
 
 #### c. System Health (FR-ADM-06)
 

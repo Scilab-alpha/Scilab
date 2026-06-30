@@ -1,48 +1,64 @@
-# ERD - SciLab
+# SciLab ERD & Model Specification
 
-Tài liệu này được phân tích từ `docs/SRS/SRS.md` phiên bản 2.0. Thiết kế dữ liệu mục tiêu của SciLab dùng **polyglot persistence**:
+Tài liệu này được xây dựng từ `docs/SRS/SRS.md` phiên bản 2.0. SciLab sử dụng mô hình **Polyglot Persistence**:
 
-- **PostgreSQL** lưu dữ liệu nghiệp vụ, giao dịch, cấu hình, log, bookmark/follow và danh mục tra cứu.
-- **Neo4j** lưu metadata học thuật dạng graph: Article, Author, Journal, Keyword, Topic và các quan hệ giữa chúng.
-- PostgreSQL **không lưu bản sao metadata học thuật** như title, abstract, author name, keyword name, journal name. Khi cần liên kết tới dữ liệu học thuật, PostgreSQL chỉ lưu **Reference ID** là UUID trùng với thuộc tính `id` của node Neo4j.
+- **PostgreSQL** lưu dữ liệu giao dịch và vận hành: người dùng, phiên đăng nhập, bookmark, follow, thông báo, cấu hình nguồn dữ liệu, xếp hạng tạp chí, log đồng bộ.
+- **Neo4j** lưu dữ liệu học thuật dạng mạng lưới: bài báo, tác giả, từ khóa, tạp chí, chủ đề và các quan hệ giữa chúng.
 
-## 1. Tổng quan quan hệ dữ liệu
+Nguyên tắc quan trọng: **Neo4j là nguồn dữ liệu chính cho metadata học thuật**. PostgreSQL không lưu bản sao `title`, `abstract`, `author name`, `keyword`, `journal name`... mà chỉ lưu **Reference ID** khi cần liên kết nghiệp vụ tới node trong Neo4j.
 
-```mermaid
-flowchart LR
-    Backend["Backend NestJS"]
-    PG[("PostgreSQL\nBusiness & Operational Data")]
-    N4J[("Neo4j\nAcademic Network Data")]
+> Ghi chú với schema hiện tại: `services/api/prisma/schema.prisma` vẫn còn một số bảng học thuật kiểu RDBMS như `article`, `author`, `journal`, `keyword`, `topic`. Theo SRS v2, các bảng này cần được chuyển sang Neo4j; PostgreSQL chỉ giữ lại các bảng nghiệp vụ/danh mục/log như bên dưới.
 
-    Backend -->|"SQL: user, config, ranking, bookmark, follow, log"| PG
-    Backend -->|"Cypher: article, author, journal, keyword, topic"| N4J
-    PG -. "Reference ID only\njournal_id, article_id, object_id, related_object_id" .-> N4J
-```
+---
+
+## 1. Tổng quan model
+
+### 1.1 Nhóm PostgreSQL
+
+| Nhóm | Model | Vai trò |
+|---|---|---|
+| Identity & Access | `User_Account`, `AuthSession` | Tài khoản, hồ sơ, vai trò, phiên JWT/refresh token |
+| User Activity | `UserBookmark`, `UserFollow`, `Notification` | Bookmark bài báo, theo dõi journal/keyword/topic, nhận thông báo |
+| Configuration & Operations | `SystemConfig`, `SyncLog` | Cấu hình API nguồn, log đồng bộ và đối soát orphan reference |
+| Ranking & Taxonomy | `JournalRanking`, `RankingMetric`, `SubjectArea`, `SubjectCategory` | Dữ liệu xếp hạng SCImago/Scopus/WoS/DOAJ và danh mục tra cứu |
+
+### 1.2 Nhóm Neo4j
+
+| Nhóm | Node / Relationship | Vai trò |
+|---|---|---|
+| Academic Nodes | `Article`, `Author`, `Journal`, `Keyword`, `Topic` | Metadata học thuật và thực thể chính để tìm kiếm/phân tích |
+| Academic Edges | `WROTE`, `HAS_KEYWORD`, `PUBLISHED_IN`, `BELONGS_TO`, `CITES` | Mạng lưới quan hệ phục vụ search, trend, recommendation, knowledge graph |
+
+---
 
 ## 2. PostgreSQL ERD
 
 ```mermaid
 erDiagram
-    USER ||--o{ USER_BOOKMARK : creates
-    USER ||--o{ USER_FOLLOW : follows
-    USER ||--o{ NOTIFICATION : receives
-    USER ||--o{ AUTH_SESSION : owns
+    USER_ACCOUNT ||--o{ AUTH_SESSION : owns
+    USER_ACCOUNT ||--o{ USER_BOOKMARK : creates
+    USER_ACCOUNT ||--o{ USER_FOLLOW : follows
+    USER_ACCOUNT ||--o{ NOTIFICATION : receives
+    SYSTEM_CONFIG ||--o{ SYNC_LOG : used_by
+
     SUBJECT_AREA ||--o{ SUBJECT_CATEGORY : contains
     SUBJECT_CATEGORY ||--o{ JOURNAL_RANKING : classifies
     RANKING_METRIC ||--o{ JOURNAL_RANKING : measures
 
-    USER {
+    USER_ACCOUNT {
         uuid user_id PK
         varchar email UK
-        varchar password
+        varchar password_hash
         auth_provider type
-        status_account status
-        role_account role
+        account_status status
+        account_role role
         varchar last_name
         varchar first_name
         varchar url_image
         date date_of_birth
-        boolean gender
+        gender gender
+        timestamp created_at
+        timestamp updated_at
     }
 
     AUTH_SESSION {
@@ -54,14 +70,42 @@ erDiagram
         timestamp access_token_expires_at
         timestamp refresh_token_expires_at
         timestamp revoked_at
-        timestamp created_at
         timestamp last_used_at
         timestamp rotated_at
+        timestamp created_at
+    }
+
+    USER_BOOKMARK {
+        uuid user_bookmark_id PK
+        uuid user_id FK
+        uuid article_id "Reference ID to Neo4j Article"
+        timestamp created_at
+    }
+
+    USER_FOLLOW {
+        uuid user_follow_id PK
+        uuid user_id FK
+        follow_object_type object_type "JOURNAL | KEYWORD | TOPIC"
+        uuid object_id "Reference ID to Neo4j Journal/Keyword/Topic"
+        notify_mode notify_mode "IN_APP | DAILY_EMAIL | WEEKLY_EMAIL | OFF"
+        timestamp created_at
+    }
+
+    NOTIFICATION {
+        uuid notification_id PK
+        uuid user_id FK
+        varchar title
+        text message
+        notification_object_type related_object_type
+        uuid related_object_id "Reference ID to Neo4j node"
+        boolean is_read
+        timestamp created_at
+        timestamp read_at
     }
 
     SYSTEM_CONFIG {
         uuid config_id PK
-        varchar api_name
+        varchar api_name UK
         varchar api_endpoint
         text api_key_encrypted
         sync_frequency sync_frequency
@@ -71,9 +115,27 @@ erDiagram
         timestamp updated_at
     }
 
+    SYNC_LOG {
+        uuid sync_log_id PK
+        uuid config_id FK
+        sync_source source
+        sync_job_type job_type
+        timestamp started_at
+        timestamp finished_at
+        int total_fetched
+        int total_inserted
+        int total_updated
+        int total_errors
+        int orphan_found
+        int orphan_processed
+        sync_status status
+        text error_detail
+        timestamp created_at
+    }
+
     JOURNAL_RANKING {
         uuid journal_ranking_id PK
-        uuid journal_id "Reference ID -> Neo4j Journal.id"
+        uuid journal_id "Reference ID to Neo4j Journal"
         uuid subject_category_id FK
         uuid metric_id FK
         ranking_source source
@@ -89,494 +151,655 @@ erDiagram
         varchar code UK
         varchar display_name
         ranking_metric_type metric_type
-        text description
+        varchar description
     }
 
     SUBJECT_AREA {
         uuid subject_area_id PK
         varchar display_name
-        text description
+        varchar description
     }
 
     SUBJECT_CATEGORY {
         uuid subject_category_id PK
         uuid subject_area_id FK
         varchar display_name
-        text description
-    }
-
-    USER_BOOKMARK {
-        uuid user_bookmark_id PK
-        uuid user_id FK
-        uuid article_id "Reference ID -> Neo4j Article.id"
-        timestamp created_at
-    }
-
-    USER_FOLLOW {
-        uuid user_follow_id PK
-        uuid user_id FK
-        follow_object_type object_type
-        uuid object_id "Reference ID -> Neo4j Journal/Keyword/Topic.id"
-        notify_mode notify_mode
-        timestamp created_at
-    }
-
-    NOTIFICATION {
-        uuid notification_id PK
-        uuid user_id FK
-        varchar title
-        text message
-        varchar related_object_type
-        uuid related_object_id "Reference ID -> Neo4j node id"
-        boolean is_read
-        timestamp created_at
-    }
-
-    SYNC_LOG {
-        uuid sync_log_id PK
-        sync_source source
-        timestamp started_at
-        timestamp finished_at
-        int total_fetched
-        int total_inserted
-        int total_updated
-        int total_errors
-        sync_status status
-        text error_detail
-        timestamp created_at
+        varchar description
     }
 ```
 
-## 3. Chi tiết bảng PostgreSQL
+### 2.1 Quan hệ PostgreSQL
 
-### 3.1 `User`
+| Quan hệ | Cardinality | Ghi chú |
+|---|---:|---|
+| `User_Account` - `AuthSession` | 1 - N | Một người dùng có nhiều phiên đăng nhập. Xóa user thì xóa session. |
+| `User_Account` - `UserBookmark` | 1 - N | Một user bookmark nhiều bài báo. `article_id` là Reference ID sang Neo4j, không phải FK PostgreSQL. |
+| `User_Account` - `UserFollow` | 1 - N | Một user theo dõi nhiều Journal/Keyword/Topic. `object_id` là Reference ID sang Neo4j. |
+| `User_Account` - `Notification` | 1 - N | Một user nhận nhiều thông báo. |
+| `SystemConfig` - `SyncLog` | 1 - N | Một cấu hình nguồn dữ liệu có thể được nhiều job đồng bộ/log sử dụng. |
+| `SubjectArea` - `SubjectCategory` | 1 - N | Lĩnh vực lớn chứa nhiều danh mục nhỏ. |
+| `SubjectCategory` - `JournalRanking` | 1 - N | Một danh mục có nhiều bản ghi xếp hạng theo journal/năm/metric. |
+| `RankingMetric` - `JournalRanking` | 1 - N | Một metric như SJR/H-Index có nhiều giá trị theo journal/năm. |
 
-Lưu tài khoản, hồ sơ cơ bản và phân quyền.
+### 2.2 Reference ID không có FK database
 
-| Field | Type | Key | Null | Ghi chú |
-|---|---|---:|---:|---|
-| `user_id` | uuid | PK | No | Khóa chính. |
-| `email` | varchar(255) | UK | No | Email duy nhất, dùng đăng nhập. |
-| `password` | varchar(255) |  | Conditional | Hash mật khẩu; bắt buộc với `type = EMAIL`, có thể rỗng/null với OAuth. |
-| `type` | `auth_provider` |  | No | `EMAIL`, `GOOGLE`. |
-| `status` | `status_account` |  | No | Trạng thái tài khoản. |
-| `role` | `role_account` |  | No | Vai trò người dùng: `STUDENT`, `RESEARCHER`, `ADMIN`. |
-| `last_name` | varchar(255) |  | Yes | Họ. |
-| `first_name` | varchar(255) |  | Yes | Tên. |
-| `url_image` | varchar(2048) |  | Yes | Ảnh đại diện. |
-| `date_of_birth` | date |  | Yes | Ngày sinh. |
-| `gender` | boolean |  | Yes | Giới tính theo thiết kế hiện tại; nếu cần nhiều giá trị hơn nên đổi enum. |
+Các cột sau **không tạo foreign key ở PostgreSQL**, vì thực thể đích nằm trong Neo4j:
 
-Ràng buộc:
+| Bảng | Cột | Trỏ tới |
+|---|---|---|
+| `UserBookmark` | `article_id` | `(:Article { id })` |
+| `UserFollow` | `object_id` | `(:Journal { id })`, `(:Keyword { id })`, hoặc `(:Topic { id })` tùy `object_type` |
+| `Notification` | `related_object_id` | Node liên quan trong Neo4j |
+| `JournalRanking` | `journal_id` | `(:Journal { id })` |
+
+Tính toàn vẹn của các Reference ID này được đảm bảo ở tầng ứng dụng bằng batch query Neo4j `WHERE node.id IN $ids` và job đối soát orphan reference định kỳ.
+
+---
+
+## 3. Neo4j graph model
+
+```mermaid
+flowchart LR
+    Author((Author))
+    Article((Article))
+    Journal((Journal))
+    Keyword((Keyword))
+    Topic((Topic))
+
+    Author -- "WROTE\n{author_position}" --> Article
+    Article -- "HAS_KEYWORD\n{score}" --> Keyword
+    Article -- "PUBLISHED_IN" --> Journal
+    Article -- "BELONGS_TO" --> Topic
+    Article -- "CITES" --> Article
+```
+
+### 3.1 Graph cardinality
+
+| Relationship | Cardinality nghiệp vụ | Ý nghĩa |
+|---|---|---|
+| `(Author)-[:WROTE]->(Article)` | N - N | Một tác giả viết nhiều bài; một bài có nhiều tác giả. |
+| `(Article)-[:HAS_KEYWORD]->(Keyword)` | N - N | Một bài có nhiều keyword; một keyword xuất hiện ở nhiều bài. |
+| `(Article)-[:PUBLISHED_IN]->(Journal)` | N - 1 | Một bài công bố ở một journal chính; một journal có nhiều bài. |
+| `(Article)-[:BELONGS_TO]->(Topic)` | N - N | Một bài có thể thuộc nhiều chủ đề; một chủ đề có nhiều bài. |
+| `(Article)-[:CITES]->(Article)` | N - N self-reference | Một bài trích dẫn nhiều bài khác và có thể được nhiều bài trích dẫn. |
+
+---
+
+## 4. Chi tiết model PostgreSQL
+
+### 4.1 `User_Account`
+
+Lưu thông tin tài khoản, hồ sơ và phân quyền người dùng.
+
+| Field | Type | Constraint | Mô tả |
+|---|---|---|---|
+| `user_id` | `uuid` | PK | Định danh người dùng. |
+| `email` | `varchar(255)` | NN, UK | Email đăng nhập, duy nhất trong hệ thống. |
+| `password_hash` | `varchar(255)` | NN với provider `EMAIL` | Mật khẩu đã hash. Theo SRS dùng bcrypt work factor >= 12; code hiện tại có thể dùng Argon2. |
+| `type` | `auth_provider` | NN | `EMAIL` hoặc `GOOGLE`. |
+| `status` | `account_status` | NN | Trạng thái tài khoản. |
+| `role` | `account_role` | NN | Vai trò truy cập. SRS cần `STUDENT`, `LECTURER`, `RESEARCHER`, `ADMIN`; schema hiện tại đang có `USER`, `ADMIN`. |
+| `last_name` | `varchar(255)` | nullable | Họ. |
+| `first_name` | `varchar(255)` | nullable | Tên. |
+| `url_image` | `varchar(2048)` | nullable | URL ảnh đại diện. |
+| `date_of_birth` | `date` | nullable | Ngày sinh. |
+| `gender` | `gender` | nullable | Giới tính người dùng: `MALE`, `FEMALE`, `OTHER`. |
+| `created_at` | `timestamp` | NN | Thời điểm tạo. |
+| `updated_at` | `timestamp` | NN | Thời điểm cập nhật cuối. |
+
+Index/unique:
 
 - `UNIQUE(email)`
-- Password tối thiểu 8 ký tự và gồm chữ + số theo business rule, kiểm tra ở tầng ứng dụng.
+- Index đề xuất: `(role)`, `(status)`, `(created_at)` cho màn hình Admin User Management.
 
-### 3.2 `Auth_Session`
+Quy tắc nghiệp vụ:
 
-Lưu phiên đăng nhập, hash token và thời hạn token để hỗ trợ refresh/thu hồi phiên.
+- Email phải đúng định dạng và duy nhất.
+- Mật khẩu tối thiểu 8 ký tự, gồm chữ và số.
+- User mới mặc định là Student/Lecturer theo quyết định sản phẩm.
+- Admin mới được đổi vai trò hoặc vô hiệu hóa tài khoản.
 
-| Field | Type | Key | Null | Ghi chú |
-|---|---|---:|---:|---|
-| `auth_session_id` | uuid | PK | No | Khóa chính. |
-| `user_id` | uuid | FK | No | Người sở hữu phiên. |
-| `access_token_id_hash` | varchar(128) | UK | No | Hash của access token id/jti, không lưu token thô. |
-| `refresh_token_hash` | varchar(128) | UK | No | Hash refresh token, không lưu token thô. |
-| `issued_at` | timestamp |  | No | Thời điểm phát hành token. |
-| `access_token_expires_at` | timestamp |  | No | Thời điểm access token hết hạn. |
-| `refresh_token_expires_at` | timestamp |  | No | Thời điểm refresh token hết hạn. |
-| `revoked_at` | timestamp |  | Yes | Thời điểm thu hồi phiên khi logout/rotate bất thường. |
-| `created_at` | timestamp |  | No | Thời điểm tạo bản ghi. |
-| `last_used_at` | timestamp |  | Yes | Lần sử dụng gần nhất. |
-| `rotated_at` | timestamp |  | Yes | Lần rotate refresh token gần nhất. |
+### 4.2 `AuthSession`
 
-Ràng buộc:
+Lưu phiên đăng nhập và refresh token đã hash để hỗ trợ JWT access token 1 giờ, refresh token 7 ngày.
 
-- FK: `user_id -> User.user_id`
+| Field | Type | Constraint | Mô tả |
+|---|---|---|---|
+| `auth_session_id` | `uuid` | PK | Định danh session. |
+| `user_id` | `uuid` | FK -> `User_Account.user_id`, NN | Chủ sở hữu session. |
+| `access_token_id_hash` | `varchar(128)` | NN, UK | Hash định danh access token. |
+| `refresh_token_hash` | `varchar(128)` | NN, UK | Hash refresh token. |
+| `issued_at` | `timestamp` | NN | Thời điểm phát hành. |
+| `access_token_expires_at` | `timestamp` | NN | Thời điểm access token hết hạn. |
+| `refresh_token_expires_at` | `timestamp` | NN | Thời điểm refresh token hết hạn. |
+| `revoked_at` | `timestamp` | nullable | Thời điểm logout/revoke. |
+| `last_used_at` | `timestamp` | nullable | Lần sử dụng gần nhất. |
+| `rotated_at` | `timestamp` | nullable | Thời điểm token được rotate. |
+| `created_at` | `timestamp` | NN | Thời điểm tạo session. |
+
+Index/unique:
+
 - `UNIQUE(access_token_id_hash)`
 - `UNIQUE(refresh_token_hash)`
-- Index nên có: `(user_id)`, `(access_token_expires_at)`, `(refresh_token_expires_at)`
+- `INDEX(user_id)`
+- `INDEX(access_token_expires_at)`
+- `INDEX(refresh_token_expires_at)`
 
-### 3.3 `System_Config`
+### 4.3 `UserBookmark`
 
-Cấu hình nguồn API bên ngoài cho Admin quản lý.
+Lưu hành vi bookmark bài báo của người dùng. Bảng này chỉ lưu Reference ID, không lưu metadata bài báo.
 
-| Field | Type | Key | Null | Ghi chú |
-|---|---|---:|---:|---|
-| `config_id` | uuid | PK | No | Khóa chính. |
-| `api_name` | varchar(100) |  | No | Tên nguồn, mặc định là OpenAlex. |
-| `api_endpoint` | varchar(2048) |  | No | Endpoint/API base URL. |
-| `api_key_encrypted` | text |  | Yes | API key đã mã hóa at rest; nullable nếu dùng public access của OpenAlex. |
-| `sync_frequency` | `sync_frequency` |  | No | `daily`, `weekly`. |
-| `is_active` | boolean |  | No | Bật/tắt nguồn dữ liệu. |
-| `last_tested_at` | timestamp |  | Yes | Lần test connection gần nhất. |
-| `created_at` | timestamp |  | No | Thời điểm tạo. |
-| `updated_at` | timestamp |  | No | Thời điểm cập nhật. |
+| Field | Type | Constraint | Mô tả |
+|---|---|---|---|
+| `user_bookmark_id` | `uuid` | PK | Định danh bookmark. |
+| `user_id` | `uuid` | FK -> `User_Account.user_id`, NN | Người bookmark. |
+| `article_id` | `uuid` | NN, Reference ID | Trỏ tới `(:Article { id })` trong Neo4j. Không phải FK PostgreSQL. |
+| `created_at` | `timestamp` | NN | Thời điểm bookmark. |
 
-Gợi ý ràng buộc:
+Index/unique:
+
+- `UNIQUE(user_id, article_id)`
+- `INDEX(user_id, created_at DESC)` để phân trang danh sách bookmark.
+- `INDEX(article_id)` để đối soát orphan reference.
+
+Luồng đọc chuẩn:
+
+1. PostgreSQL lấy `article_id` theo `user_id`, phân trang và sắp xếp theo `created_at`.
+2. Neo4j nhận toàn bộ danh sách ID trong một query `WHERE a.id IN $ids`.
+3. Backend map metadata theo đúng thứ tự bookmark.
+
+### 4.4 `UserFollow`
+
+Lưu đối tượng mà người dùng theo dõi: journal, keyword hoặc topic.
+
+| Field | Type | Constraint | Mô tả |
+|---|---|---|---|
+| `user_follow_id` | `uuid` | PK | Định danh follow. |
+| `user_id` | `uuid` | FK -> `User_Account.user_id`, NN | Người theo dõi. |
+| `object_type` | `follow_object_type` | NN | `JOURNAL`, `KEYWORD`, `TOPIC`. |
+| `object_id` | `uuid` | NN, Reference ID | Trỏ tới node Neo4j tương ứng với `object_type`. |
+| `notify_mode` | `notify_mode` | NN | `IN_APP`, `DAILY_EMAIL`, `WEEKLY_EMAIL`, `OFF`. |
+| `created_at` | `timestamp` | NN | Thời điểm bắt đầu follow. |
+
+Index/unique:
+
+- `UNIQUE(user_id, object_type, object_id)`
+- `INDEX(user_id, created_at DESC)` cho trang profile.
+- `INDEX(object_type, object_id)` cho Alert Dispatch Service.
+
+Quy tắc nghiệp vụ:
+
+- Follow/unfollow là thao tác toggle hoặc xóa record tương ứng.
+- Khi gửi alert, service nhóm `object_id` theo `object_type`, query Neo4j theo batch, sau đó quay lại PostgreSQL tìm danh sách user cần nhận thông báo.
+
+### 4.5 `Notification`
+
+Lưu thông báo in-app và thông báo liên quan tới digest email.
+
+| Field | Type | Constraint | Mô tả |
+|---|---|---|---|
+| `notification_id` | `uuid` | PK | Định danh thông báo. |
+| `user_id` | `uuid` | FK -> `User_Account.user_id`, NN | Người nhận. |
+| `title` | `varchar(255)` | NN | Tiêu đề thông báo. |
+| `message` | `text` | NN | Nội dung thông báo. |
+| `related_object_type` | `notification_object_type` | nullable | Loại node liên quan: `ARTICLE`, `JOURNAL`, `KEYWORD`, `TOPIC` nếu cần mở rộng. |
+| `related_object_id` | `uuid` | nullable, Reference ID | Node Neo4j liên quan. |
+| `is_read` | `boolean` | NN, default `false` | Đã đọc hay chưa. |
+| `created_at` | `timestamp` | NN | Thời điểm tạo. |
+| `read_at` | `timestamp` | nullable | Thời điểm đọc. |
+
+Index đề xuất:
+
+- `INDEX(user_id, is_read, created_at DESC)`
+- `INDEX(related_object_type, related_object_id)`
+
+### 4.6 `SystemConfig`
+
+Lưu cấu hình nguồn dữ liệu ngoại vi cho Admin Data Sources.
+
+| Field | Type | Constraint | Mô tả |
+|---|---|---|---|
+| `config_id` | `uuid` | PK | Định danh cấu hình. |
+| `api_name` | `varchar(100)` | NN, UK | Tên nguồn: OpenAlex, Semantic Scholar, Crossref, SCImago. |
+| `api_endpoint` | `varchar(2048)` | NN | URL endpoint. |
+| `api_key_encrypted` | `text` | nullable | API key đã mã hóa at rest. |
+| `sync_frequency` | `sync_frequency` | NN | `DAILY`, `WEEKLY`, hoặc tùy lịch mở rộng. |
+| `is_active` | `boolean` | NN | Bật/tắt nguồn dữ liệu. |
+| `last_tested_at` | `timestamp` | nullable | Lần test connection gần nhất. |
+| `created_at` | `timestamp` | NN | Thời điểm tạo. |
+| `updated_at` | `timestamp` | NN | Thời điểm cập nhật. |
+
+Index/unique:
 
 - `UNIQUE(api_name)`
-- `is_active DEFAULT true`
-- `created_at DEFAULT now()`, `updated_at DEFAULT now()`
+- `INDEX(is_active)`
 
-### 3.4 `Journal_Ranking`
+### 4.7 `SyncLog`
 
-Lưu chỉ số xếp hạng tạp chí theo năm. Metadata của tạp chí nằm ở Neo4j, bảng này chỉ giữ `journal_id` dạng Reference ID.
+Ghi log cho scheduled sync, manual sync, trend aggregation và orphan cleanup.
 
-| Field | Type | Key | Null | Ghi chú |
-|---|---|---:|---:|---|
-| `journal_ranking_id` | uuid | PK | No | Khóa chính. |
-| `journal_id` | uuid | REF | No | Reference ID tới `(:Journal {id})` trong Neo4j, không khai báo FK ở PostgreSQL. |
-| `subject_category_id` | uuid | FK | Yes | FK tới `Subject_Category`. |
-| `metric_id` | uuid | FK | No | FK tới `Ranking_Metric`. |
-| `source` | `ranking_source` |  | No | `openalex`. |
-| `year` | int |  | No | Năm xếp hạng. |
-| `value_txt` | varchar(255) |  | Yes | Giá trị dạng text, ví dụ quartile `Q1`. |
-| `value_int` | int |  | Yes | Giá trị số nguyên, ví dụ rank/h-index. |
-| `value_float` | double precision |  | Yes | Giá trị thập phân, ví dụ SJR/CiteScore. |
-| `created_at` | timestamp |  | No | Thời điểm import/tạo bản ghi. |
+| Field | Type | Constraint | Mô tả |
+|---|---|---|---|
+| `sync_log_id` | `uuid` | PK | Định danh log. |
+| `config_id` | `uuid` | FK -> `SystemConfig.config_id`, NN | Cấu hình nguồn dữ liệu được job/log sử dụng. |
+| `source` | `sync_source` | NN | `OPENALEX`, `SEMANTIC_SCHOLAR`, `CROSSREF`, `SCIMAGO`, `NEO4J`, `SYSTEM`. |
+| `job_type` | `sync_job_type` | NN | `SCHEDULED_SYNC`, `MANUAL_SYNC`, `ORPHAN_CLEANUP`, `TREND_AGGREGATION`, `ALERT_DISPATCH`. |
+| `started_at` | `timestamp` | NN | Thời điểm bắt đầu. |
+| `finished_at` | `timestamp` | nullable | Thời điểm kết thúc. |
+| `total_fetched` | `int` | default `0` | Số bản ghi lấy từ nguồn ngoài. |
+| `total_inserted` | `int` | default `0` | Số node/record thêm mới. |
+| `total_updated` | `int` | default `0` | Số node/record cập nhật. |
+| `total_errors` | `int` | default `0` | Số lỗi phát sinh. |
+| `orphan_found` | `int` | default `0` | Số Reference ID mồ côi phát hiện. |
+| `orphan_processed` | `int` | default `0` | Số Reference ID mồ côi đã xử lý. |
+| `status` | `sync_status` | NN | `SUCCESS`, `FAILED`, `PARTIAL`, `RUNNING`. |
+| `error_detail` | `text` | nullable | Chi tiết lỗi. |
+| `created_at` | `timestamp` | NN | Thời điểm ghi log. |
 
-Ràng buộc:
+Index đề xuất:
 
-- FK: `subject_category_id -> Subject_Category.subject_category_id`
-- FK: `metric_id -> Ranking_Metric.metric_id`
-- Không FK database cho `journal_id`
-- Gợi ý unique: `(journal_id, subject_category_id, source, metric_id, year)`
+- `INDEX(source, started_at DESC)`
+- `INDEX(config_id, started_at DESC)`
+- `INDEX(job_type, started_at DESC)`
+- `INDEX(status, started_at DESC)`
 
-### 3.5 `Ranking_Metric`
+### 4.8 `JournalRanking`
 
-Danh mục loại chỉ số xếp hạng.
+Lưu lịch sử xếp hạng journal theo năm và metric. Journal metadata vẫn nằm ở Neo4j.
 
-| Field | Type | Key | Null | Ghi chú |
-|---|---|---:|---:|---|
-| `metric_id` | uuid | PK | No | Khóa chính. |
-| `code` | varchar(100) | UK | No | Mã chỉ số: `SJR`, `H_INDEX`, `CITESCORE`, `IMPACT_FACTOR`. |
-| `display_name` | varchar(255) |  | No | Tên hiển thị. |
-| `metric_type` | `ranking_metric_type` |  | No | `quartile`, `rank`, `score`, `percentile`. |
-| `description` | text |  | Yes | Mô tả. |
+| Field | Type | Constraint | Mô tả |
+|---|---|---|---|
+| `journal_ranking_id` | `uuid` | PK | Định danh bản ghi ranking. |
+| `journal_id` | `uuid` | NN, Reference ID | Trỏ tới `(:Journal { id })` trong Neo4j. Không phải FK PostgreSQL. |
+| `subject_category_id` | `uuid` | FK -> `SubjectCategory.subject_category_id`, nullable | Danh mục chuyên ngành áp dụng. |
+| `metric_id` | `uuid` | FK -> `RankingMetric.metric_id`, NN | Metric được đo. |
+| `source` | `ranking_source` | NN | Nguồn xếp hạng. |
+| `year` | `int` | NN | Năm xếp hạng. |
+| `value_txt` | `varchar(255)` | nullable | Giá trị dạng text, ví dụ `Q1`. |
+| `value_int` | `int` | nullable | Giá trị dạng số nguyên, ví dụ h-index. |
+| `value_float` | `float` | nullable | Giá trị dạng số thực, ví dụ SJR score. |
+| `created_at` | `timestamp` | NN | Thời điểm import. |
 
-Ràng buộc:
+Index/unique:
 
-- `UNIQUE(code)`
+- `UNIQUE(journal_id, subject_category_id, source, metric_id, year)`
+- `INDEX(journal_id, year DESC)`
+- `INDEX(metric_id)`
+- `INDEX(subject_category_id)`
+- `INDEX(source, year)`
 
-### 3.6 `Subject_Area`
+### 4.9 `RankingMetric`
 
-Danh mục lĩnh vực rộng, ví dụ Computer Science.
+Danh mục metric xếp hạng.
 
-| Field | Type | Key | Null | Ghi chú |
-|---|---|---:|---:|---|
-| `subject_area_id` | uuid | PK | No | Khóa chính. |
-| `display_name` | varchar(255) |  | No | Tên lĩnh vực. |
-| `description` | text |  | Yes | Mô tả. |
+| Field | Type | Constraint | Mô tả |
+|---|---|---|---|
+| `metric_id` | `uuid` | PK | Định danh metric. |
+| `code` | `varchar(100)` | UK | Mã metric: `SJR`, `H_INDEX`, `CITESCORE`, `IMPACT_FACTOR`, `QUARTILE`. |
+| `display_name` | `varchar(255)` | nullable | Tên hiển thị. |
+| `metric_type` | `ranking_metric_type` | NN | `QUARTILE`, `RANK`, `SCORE`, `PERCENTILE`. |
+| `description` | `varchar(1000)` | nullable | Mô tả. |
 
-### 3.7 `Subject_Category`
+### 4.10 `SubjectArea`
 
-Danh mục chi tiết thuộc một subject area.
+Danh mục lĩnh vực lớn.
 
-| Field | Type | Key | Null | Ghi chú |
-|---|---|---:|---:|---|
-| `subject_category_id` | uuid | PK | No | Khóa chính. |
-| `subject_area_id` | uuid | FK | No | FK tới `Subject_Area`. |
-| `display_name` | varchar(255) |  | No | Tên danh mục. |
-| `description` | text |  | Yes | Mô tả. |
+| Field | Type | Constraint | Mô tả |
+|---|---|---|---|
+| `subject_area_id` | `uuid` | PK | Định danh lĩnh vực. |
+| `display_name` | `varchar(255)` | NN | Tên lĩnh vực, ví dụ `Computer Science`. |
+| `description` | `varchar(1000)` | nullable | Mô tả. |
 
-Ràng buộc:
+Index/unique đề xuất:
 
-- FK: `subject_area_id -> Subject_Area.subject_area_id`
+- `UNIQUE(display_name)`
 
-### 3.8 `User_Bookmark`
+### 4.11 `SubjectCategory`
 
-Lưu bookmark bài báo của người dùng. Không lưu title/abstract/author/journal.
+Danh mục chuyên ngành chi tiết nằm trong một `SubjectArea`.
 
-| Field | Type | Key | Null | Ghi chú |
-|---|---|---:|---:|---|
-| `user_bookmark_id` | uuid | PK | No | Khóa chính. |
-| `user_id` | uuid | FK | No | Người bookmark. |
-| `article_id` | uuid | REF | No | Reference ID tới `(:Article {id})` trong Neo4j. |
-| `created_at` | timestamp |  | No | Thời điểm bookmark. |
+| Field | Type | Constraint | Mô tả |
+|---|---|---|---|
+| `subject_category_id` | `uuid` | PK | Định danh danh mục. |
+| `subject_area_id` | `uuid` | FK -> `SubjectArea.subject_area_id`, nullable | Lĩnh vực cha. |
+| `display_name` | `varchar(255)` | NN | Tên danh mục. |
+| `description` | `varchar(1000)` | nullable | Mô tả. |
 
-Ràng buộc:
+Index/unique đề xuất:
 
-- FK: `user_id -> User.user_id`
-- Không FK database cho `article_id`
-- `UNIQUE(user_id, article_id)`
-- Index nên có: `(user_id, created_at DESC)`, `(article_id)`
+- `INDEX(subject_area_id)`
+- `UNIQUE(subject_area_id, display_name)`
 
-### 3.9 `User_Follow`
+---
 
-Lưu đối tượng người dùng theo dõi: Journal, Keyword hoặc Topic.
+## 5. Chi tiết model Neo4j
 
-| Field | Type | Key | Null | Ghi chú |
-|---|---|---:|---:|---|
-| `user_follow_id` | uuid | PK | No | Khóa chính. |
-| `user_id` | uuid | FK | No | Người theo dõi. |
-| `object_type` | `follow_object_type` |  | No | `JOURNAL`, `KEYWORD`, `TOPIC`. |
-| `object_id` | uuid | REF | No | Reference ID tới node Neo4j tương ứng với `object_type`. |
-| `notify_mode` | `notify_mode` |  | No | `in_app`, `daily`, `weekly`, `off`. |
-| `created_at` | timestamp |  | No | Thời điểm follow. |
+### 5.1 `Article` node
 
-Ràng buộc:
+Bài báo nghiên cứu. Đây là node trung tâm cho search, trend analysis, recommendation và knowledge graph.
 
-- FK: `user_id -> User.user_id`
-- Không FK database cho `object_id`
-- `UNIQUE(user_id, object_type, object_id)`
-- Index nên có: `(object_type, object_id)`, `(user_id, created_at DESC)`
+| Property | Type | Constraint | Mô tả |
+|---|---|---|---|
+| `id` | `uuid/string` | Unique, required | Reference ID dùng bởi PostgreSQL. |
+| `title` | `string` | required | Tiêu đề bài báo. |
+| `abstract` | `string` | nullable | Tóm tắt. |
+| `doi` | `string` | unique nếu có | DOI, dùng để deduplicate. |
+| `publication_year` | `int` | nullable | Năm công bố. |
+| `version` | `string` | nullable | Phiên bản metadata. |
+| `volume_number` | `int/string` | nullable | Số volume, gộp từ bảng `Volume` cũ. |
+| `issue_number` | `string` | nullable | Số issue, gộp từ bảng `Issue` cũ. |
+| `created_at` | `datetime` | required | Thời điểm đồng bộ/tạo. |
+| `updated_at` | `datetime` | nullable | Thời điểm cập nhật metadata gần nhất. |
 
-### 3.10 `Notification`
+Constraint/index:
 
-Lưu thông báo in-app/email cho người dùng.
+```cypher
+CREATE CONSTRAINT article_id_unique IF NOT EXISTS
+FOR (a:Article) REQUIRE a.id IS UNIQUE;
 
-| Field | Type | Key | Null | Ghi chú |
-|---|---|---:|---:|---|
-| `notification_id` | uuid | PK | No | Khóa chính. |
-| `user_id` | uuid | FK | No | Người nhận thông báo. |
-| `title` | varchar(255) |  | No | Tiêu đề thông báo. |
-| `message` | text |  | No | Nội dung. |
-| `related_object_type` | varchar(50) |  | Yes | Loại đối tượng liên quan: ARTICLE/JOURNAL/KEYWORD/TOPIC/SYSTEM... |
-| `related_object_id` | uuid | REF | Yes | Reference ID tới node Neo4j hoặc đối tượng nghiệp vụ liên quan. |
-| `is_read` | boolean |  | No | Đã đọc/chưa đọc. |
-| `created_at` | timestamp |  | No | Thời điểm tạo. |
+CREATE INDEX article_doi_index IF NOT EXISTS
+FOR (a:Article) ON (a.doi);
 
-Ràng buộc:
+CREATE INDEX article_publication_year_index IF NOT EXISTS
+FOR (a:Article) ON (a.publication_year);
+```
 
-- FK: `user_id -> User.user_id`
-- Index nên có: `(user_id, is_read, created_at DESC)`
+### 5.2 `Author` node
 
-### 3.11 `Sync_Log`
+Tác giả bài báo.
 
-Nhật ký chạy job đồng bộ và đối soát dữ liệu.
+| Property | Type | Constraint | Mô tả |
+|---|---|---|---|
+| `id` | `uuid/string` | Unique, required | Định danh author. |
+| `orcid` | `string` | unique nếu có | ORCID. |
+| `display_name` | `string` | nullable | Tên hiển thị. |
+| `url_image` | `string` | nullable | Ảnh đại diện/hồ sơ nếu nguồn có. |
 
-| Field | Type | Key | Null | Ghi chú |
-|---|---|---:|---:|---|
-| `sync_log_id` | uuid | PK | No | Khóa chính. |
-| `source` | `sync_source` |  | No | `openalex` hoặc `orphan_cleanup`. |
-| `started_at` | timestamp |  | No | Thời điểm bắt đầu. |
-| `finished_at` | timestamp |  | Yes | Thời điểm kết thúc. |
-| `total_fetched` | int |  | No | Số bản ghi lấy được. |
-| `total_inserted` | int |  | No | Số bản ghi thêm mới. |
-| `total_updated` | int |  | No | Số bản ghi cập nhật. |
-| `total_errors` | int |  | No | Số lỗi. |
-| `status` | `sync_status` |  | No | `success`, `failed`, `partial`. |
-| `error_detail` | text |  | Yes | Chi tiết lỗi nếu có. |
-| `created_at` | timestamp |  | No | Thời điểm tạo log. |
+Constraint/index:
 
-Index nên có:
+```cypher
+CREATE CONSTRAINT author_id_unique IF NOT EXISTS
+FOR (a:Author) REQUIRE a.id IS UNIQUE;
 
-- `(source, started_at DESC)`
-- `(status, started_at DESC)`
+CREATE INDEX author_orcid_index IF NOT EXISTS
+FOR (a:Author) ON (a.orcid);
 
-## 4. Enum đề xuất
+CREATE TEXT INDEX author_display_name_text IF NOT EXISTS
+FOR (a:Author) ON (a.display_name);
+```
+
+### 5.3 `Journal` node
+
+Tạp chí học thuật. Metadata journal nằm ở Neo4j; ranking lịch sử nằm ở PostgreSQL qua `JournalRanking.journal_id`.
+
+| Property | Type | Constraint | Mô tả |
+|---|---|---|---|
+| `id` | `uuid/string` | Unique, required | Reference ID dùng bởi `JournalRanking` và `UserFollow`. |
+| `source_id` | `string` | nullable | ID từ OpenAlex/Crossref/SCImago. |
+| `display_name` | `string` | nullable | Tên tạp chí. |
+| `type` | `string` | nullable | Loại nguồn/tạp chí. |
+| `is_open_access` | `boolean` | nullable | Trạng thái open access. |
+| `is_oa_diamond` | `boolean` | nullable | Trạng thái OA diamond. |
+| `coverage` | `string` | nullable | Phạm vi coverage. |
+| `country` | `string` | nullable | Quốc gia hiển thị hoặc mã chuẩn. |
+| `region` | `string` | nullable | Khu vực hiển thị hoặc mã chuẩn. |
+| `issn_list` | `list<string>` | nullable | Danh sách ISSN, gộp từ `Journal_ISSN` cũ. |
+| `publisher_name` | `string` | nullable | Tên publisher, gộp từ `Publisher` cũ. |
+| `publisher_image_url` | `string` | nullable | Ảnh publisher nếu có. |
+| `subject_categories` | `list<string>` | nullable | Danh mục chủ đề hiển thị/lọc. |
+
+Constraint/index:
+
+```cypher
+CREATE CONSTRAINT journal_id_unique IF NOT EXISTS
+FOR (j:Journal) REQUIRE j.id IS UNIQUE;
+
+CREATE INDEX journal_source_id_index IF NOT EXISTS
+FOR (j:Journal) ON (j.source_id);
+
+CREATE TEXT INDEX journal_display_name_text IF NOT EXISTS
+FOR (j:Journal) ON (j.display_name);
+```
+
+### 5.4 `Keyword` node
+
+Từ khóa học thuật.
+
+| Property | Type | Constraint | Mô tả |
+|---|---|---|---|
+| `id` | `uuid/string` | Unique, required | Reference ID dùng bởi `UserFollow`. |
+| `display_name` | `string` | Unique đề xuất | Tên keyword. |
+
+Constraint/index:
+
+```cypher
+CREATE CONSTRAINT keyword_id_unique IF NOT EXISTS
+FOR (k:Keyword) REQUIRE k.id IS UNIQUE;
+
+CREATE TEXT INDEX keyword_display_name_text IF NOT EXISTS
+FOR (k:Keyword) ON (k.display_name);
+```
+
+### 5.5 `Topic` node
+
+Chủ đề nghiên cứu cấp cao.
+
+| Property | Type | Constraint | Mô tả |
+|---|---|---|---|
+| `id` | `uuid/string` | Unique, required | Reference ID dùng bởi `UserFollow`. |
+| `display_name` | `string` | nullable | Tên topic. |
+| `score` | `float` | nullable | Điểm liên quan/độ tin cậy từ nguồn phân loại. |
+
+Constraint/index:
+
+```cypher
+CREATE CONSTRAINT topic_id_unique IF NOT EXISTS
+FOR (t:Topic) REQUIRE t.id IS UNIQUE;
+
+CREATE TEXT INDEX topic_display_name_text IF NOT EXISTS
+FOR (t:Topic) ON (t.display_name);
+```
+
+### 5.6 `WROTE` relationship
+
+```text
+(Author)-[:WROTE]->(Article)
+```
+
+| Property | Type | Mô tả |
+|---|---|---|
+| `author_position` | `int` | Thứ tự tác giả trong bài báo. |
+
+Thay thế bảng `Author_Article` trong thiết kế RDBMS cũ.
+
+### 5.7 `HAS_KEYWORD` relationship
+
+```text
+(Article)-[:HAS_KEYWORD]->(Keyword)
+```
+
+| Property | Type | Mô tả |
+|---|---|---|
+| `score` | `float` | Mức độ liên quan của keyword với article. |
+
+Thay thế bảng `Keyword_Article`; trường `score` được chuyển thành property của relationship.
+
+### 5.8 `PUBLISHED_IN` relationship
+
+```text
+(Article)-[:PUBLISHED_IN]->(Journal)
+```
+
+Không cần property bắt buộc. Relationship này phục vụ:
+
+- Trang chi tiết article.
+- Trang chi tiết journal.
+- Trend số lượng bài theo journal/năm.
+- Follow journal và alert bài mới.
+
+### 5.9 `BELONGS_TO` relationship
+
+```text
+(Article)-[:BELONGS_TO]->(Topic)
+```
+
+Thay thế `Article.primary_topic` và `Sub_Topic` trong thiết kế cũ. Nếu cần phân biệt topic chính/phụ, có thể thêm property:
+
+| Property | Type | Mô tả |
+|---|---|---|
+| `is_primary` | `boolean` | Topic chính của article. |
+| `score` | `float` | Mức độ liên quan article-topic. |
+
+### 5.10 `CITES` relationship
+
+```text
+(Article)-[:CITES]->(Article)
+```
+
+Relationship tự tham chiếu dùng cho:
+
+- Knowledge Graph Visualization.
+- Recommendation dựa trên citation network.
+- Advanced graph search.
+
+---
+
+## 6. Enum đề xuất
+
+### 6.1 PostgreSQL enums
 
 | Enum | Values | Ghi chú |
 |---|---|---|
 | `auth_provider` | `EMAIL`, `GOOGLE` | Nguồn xác thực. |
-| `status_account` | `ACTIVE`, `INACTIVE`, `BANNED` | Có thể bổ sung `PENDING` nếu cần duyệt tài khoản. |
-| `role_account` | `STUDENT`, `RESEARCHER`, `ADMIN` | Vai trò hệ thống. `STUDENT` là mặc định sau đăng ký. |
-| `ranking_metric_type` | `QUARTILE`, `RANK`, `SCORE`, `PERCENTILE` | Kiểu chỉ số ranking. |
-| `ranking_source` | `OPENALEX` | Nguồn metric/ranking trong phạm vi hiện tại. |
-| `sync_frequency` | `DAILY`, `WEEKLY` | Tần suất đồng bộ cấu hình API. |
-| `follow_object_type` | `JOURNAL`, `KEYWORD`, `TOPIC` | Loại node được follow tại Neo4j. |
-| `notify_mode` | `IN_APP`, `DAILY`, `WEEKLY`, `OFF` | Chế độ nhận thông báo. |
-| `sync_source` | `OPENALEX`, `ORPHAN_CLEANUP` | `ORPHAN_CLEANUP` dùng để log reconciliation job theo NFR-DC03. |
-| `sync_status` | `SUCCESS`, `FAILED`, `PARTIAL` | Trạng thái job. |
+| `account_status` | `ACTIVE`, `INACTIVE`, `BANNED` | Trạng thái tài khoản. |
+| `account_role` | `STUDENT`, `LECTURER`, `RESEARCHER`, `ADMIN` | Theo SRS. Nếu giữ schema hiện tại, `USER` cần được tách chi tiết hơn. |
+| `gender` | `MALE`, `FEMALE`, `OTHER` | Giới tính trong `User_Account.gender`. |
+| `follow_object_type` | `JOURNAL`, `KEYWORD`, `TOPIC` | Enum riêng của `UserFollow.object_type`. |
+| `notify_mode` | `IN_APP`, `DAILY_EMAIL`, `WEEKLY_EMAIL`, `OFF` | Cấu hình thông báo trong `UserFollow.notify_mode`. |
+| `notification_object_type` | `ARTICLE`, `JOURNAL`, `KEYWORD`, `TOPIC` | Loại node liên quan cho `Notification.related_object_type`. |
+| `sync_frequency` | `DAILY`, `WEEKLY` | Có thể mở rộng `MANUAL`, `CRON`. |
+| `sync_source` | `OPENALEX`, `SEMANTIC_SCHOLAR`, `CROSSREF`, `SCIMAGO`, `NEO4J`, `SYSTEM` | Nguồn job/log. |
+| `sync_job_type` | `SCHEDULED_SYNC`, `MANUAL_SYNC`, `ORPHAN_CLEANUP`, `TREND_AGGREGATION`, `ALERT_DISPATCH` | Loại job nền. |
+| `sync_status` | `RUNNING`, `SUCCESS`, `FAILED`, `PARTIAL` | Trạng thái job. |
+| `ranking_source` | `SCIMAGO`, `SCOPUS`, `WOS`, `DOAJ`, `OTHER` | Nguồn ranking. |
+| `ranking_metric_type` | `QUARTILE`, `RANK`, `SCORE`, `PERCENTILE` | Kiểu metric. |
 
-## 5. Neo4j Graph Data Model
+---
 
-### 5.1 Graph overview
-
-```mermaid
-flowchart LR
-    Author["Author\nid, orcid, display_name, url_image"]
-    Article["Article\nid, title, abstract, doi,\ndoi_normalized, openalex_id,\nsemantic_scholar_id, crossref_id,\npublication_year, version,\nvolume_number, issue_number,\ncreated_at, updated_at"]
-    Keyword["Keyword\nid, display_name"]
-    Journal["Journal\nid, source_id, display_name, type,\nis_open_access, is_oa_diamond,\ncoverage, country, region,\nissn_list, issn_normalized_list,\npublisher_name, publisher_image_url,\nsubject_categories, created_at, updated_at"]
-    Topic["Topic\nid, display_name, score"]
-
-    Author -->|"WROTE\nauthor_position"| Article
-    Article -->|"HAS_KEYWORD\nscore"| Keyword
-    Article -->|"PUBLISHED_IN"| Journal
-    Article -->|"BELONGS_TO"| Topic
-    Article -->|"CITES"| Article
-    Topic -->|"PARENT_OF"| Topic
-```
-
-### 5.2 Node labels
-
-#### `Article`
-
-| Property | Type | Required | Ghi chú |
-|---|---|---:|---|
-| `id` | uuid | Yes | Unique; Reference ID dùng ở PostgreSQL. |
-| `title` | string | Yes | Tiêu đề bài báo. |
-| `abstract` | text | Yes/No | SRS cho phép metadata abstract; có thể null nếu nguồn không cung cấp. |
-| `doi` | string | Yes/No | Dùng chống trùng; unique khi có giá trị. |
-| `doi_normalized` | string | Yes/No | DOI đã chuẩn hóa để tìm kiếm/so khớp ổn định, ví dụ lower-case và bỏ prefix URL. |
-| `openalex_id` | string | Yes/No | External ID của OpenAlex Work. |
-| `semantic_scholar_id` | string | Yes/No | External ID từ Semantic Scholar nếu dữ liệu nguồn có cung cấp/đối chiếu được. |
-| `crossref_id` | string | Yes/No | External ID từ Crossref nếu dữ liệu nguồn có cung cấp/đối chiếu được. |
-| `publication_year` | int | Yes | Dùng phân tích xu hướng. |
-| `version` | string | Yes/No | Phiên bản bài báo. |
-| `volume_number` | int/string | Yes/No | Gộp từ thực thể Volume cũ. |
-| `issue_number` | string | Yes/No | Gộp từ thực thể Issue cũ. |
-| `created_at` | datetime | Yes | Thời điểm ghi vào graph. |
-| `updated_at` | datetime | Yes/No | Thời điểm cập nhật metadata gần nhất. |
-
-Constraint/index:
-
-- `UNIQUE (:Article.id)`
-- Index nên có: `Article(doi_normalized)`, `Article(openalex_id)`, `Article(semantic_scholar_id)`, `Article(crossref_id)`, `Article(publication_year)`, full-text index cho `title`, `abstract`.
-
-#### `Author`
-
-| Property | Type | Required | Ghi chú |
-|---|---|---:|---|
-| `id` | uuid | Yes | Unique. |
-| `orcid` | string | Yes/No | Định danh ORCID, nên unique khi có. |
-| `display_name` | string | Yes | Tên hiển thị. |
-| `url_image` | string | Yes/No | Ảnh tác giả. |
-
-Constraint/index:
-
-- `UNIQUE (:Author.id)`
-- Optional unique/index: `Author(orcid)`
-
-#### `Keyword`
-
-| Property | Type | Required | Ghi chú |
-|---|---|---:|---|
-| `id` | uuid | Yes | Unique. |
-| `display_name` | string | Yes | Từ khóa học thuật. |
-
-Constraint/index:
-
-- `UNIQUE (:Keyword.id)`
-- Index nên có: `Keyword(display_name)`
-
-#### `Journal`
-
-| Property | Type | Required | Ghi chú |
-|---|---|---:|---|
-| `id` | uuid | Yes | Unique; được `Journal_Ranking.journal_id`, `User_Follow.object_id` tham chiếu. |
-| `source_id` | string | Yes/No | ID nguồn chính của journal/source. |
-| `display_name` | string | Yes | Tên tạp chí. |
-| `type` | string | Yes/No | Loại tạp chí/nguồn. |
-| `is_open_access` | boolean | Yes/No | Trạng thái OA. |
-| `is_oa_diamond` | boolean | Yes/No | Trạng thái OA diamond. |
-| `coverage` | string | Yes/No | Phạm vi coverage. |
-| `country` | string | Yes/No | Quốc gia. |
-| `region` | string | Yes/No | Khu vực. |
-| `issn_list` | string[] | Yes/No | Danh sách ISSN, thay thế bảng `Journal_ISSN` cũ. |
-| `issn_normalized_list` | string[] | Yes/No | Danh sách ISSN đã chuẩn hóa để tìm kiếm/so khớp. |
-| `publisher_name` | string | Yes/No | Tên publisher, thay thế bảng `Publisher` cũ. |
-| `publisher_image_url` | string | Yes/No | Ảnh/logo publisher. |
-| `subject_categories` | string[] | Yes/No | Tên danh mục; chi tiết tra cứu ở PostgreSQL `Subject_Category`. |
-| `created_at` | datetime | Yes/No | Thời điểm ghi vào graph. |
-| `updated_at` | datetime | Yes/No | Thời điểm cập nhật metadata gần nhất. |
-
-Constraint/index:
-
-- `UNIQUE (:Journal.id)`
-- Index nên có: `Journal(source_id)`, `Journal(display_name)`, `Journal(country)`, `Journal(region)`, `Journal(issn_normalized_list)`
-
-#### `Topic`
-
-| Property | Type | Required | Ghi chú |
-|---|---|---:|---|
-| `id` | uuid | Yes | Unique. |
-| `display_name` | string | Yes | Tên chủ đề. |
-| `score` | float | Yes/No | Điểm liên quan/độ tin cậy từ nguồn phân loại. |
-
-Constraint/index:
-
-- `UNIQUE (:Topic.id)`
-- Index nên có: `Topic(display_name)`
-- Nếu nguồn dữ liệu có topic hierarchy, dùng relationship `(:Topic)-[:PARENT_OF]->(:Topic)` để nối Topic cha với Topic con.
-
-### 5.3 Relationships
-
-| Relationship | Direction | Properties | Cardinality | Ghi chú |
-|---|---|---|---|---|
-| `WROTE` | `(Author) -> (Article)` | `author_position int` | Author N - N Article | Thay bảng `Author_Article`. |
-| `HAS_KEYWORD` | `(Article) -> (Keyword)` | `score double` | Article N - N Keyword | Thay bảng `Keyword_Article`. |
-| `PUBLISHED_IN` | `(Article) -> (Journal)` | None | Journal 1 - N Article | Một article thuộc một journal chính. |
-| `BELONGS_TO` | `(Article) -> (Topic)` | Optional metadata nếu có sub-topic | Article N - N Topic | Thay `Sub_Topic`; topic chính/phụ có thể phân biệt bằng property nếu cần. |
-| `CITES` | `(Article) -> (Article)` | None | Article N - N Article | Phục vụ knowledge graph và recommendation. |
-| `PARENT_OF` | `(Topic) -> (Topic)` | None | Topic 1 - N Topic | Tùy chọn, dùng cho phân cấp chủ đề khi dữ liệu có topic hierarchy. |
-
-## 6. Reference ID và quy tắc toàn vẹn
-
-Các field sau là **Reference ID**, không phải FK vật lý trong PostgreSQL:
-
-| PostgreSQL field | Trỏ tới Neo4j | Cách kiểm tra |
-|---|---|---|
-| `Journal_Ranking.journal_id` | `(:Journal {id})` | Backend/ETL kiểm tra bằng batch Cypher. |
-| `User_Bookmark.article_id` | `(:Article {id})` | Khi hiển thị bookmark, lấy danh sách ID từ PostgreSQL rồi query Neo4j bằng `IN`. |
-| `User_Follow.object_id` | `(:Journal {id})`, `(:Keyword {id})`, hoặc `(:Topic {id})` | Dựa vào `object_type`. |
-| `Notification.related_object_id` | Node liên quan hoặc object nghiệp vụ liên quan | Có thể null với thông báo hệ thống. |
-
-Quy tắc bắt buộc từ SRS:
-
-- Không lưu duplicate metadata học thuật trong PostgreSQL.
-- Không truy vấn Neo4j kiểu N+1 theo từng ID. Phải batch query bằng `WHERE n.id IN $ids`.
-- Mọi Cypher query phải parameterized để tránh Cypher injection.
-- Phải có reconciliation/orphan cleanup job định kỳ quét `User_Bookmark` và `User_Follow`, kiểm tra ID còn tồn tại ở Neo4j hay không.
-
-## 7. Luồng dữ liệu quan trọng
+## 7. Cross-database read/write patterns
 
 ### 7.1 Bookmark list
 
-1. PostgreSQL lấy `article_id` từ `User_Bookmark` theo `user_id`, phân trang và sắp xếp theo `created_at DESC`.
-2. Backend gom toàn bộ `article_id` thành một batch.
-3. Neo4j query một lần:
+```mermaid
+sequenceDiagram
+    participant UI as Frontend
+    participant API as NestJS API
+    participant PG as PostgreSQL
+    participant G as Neo4j
 
-```cypher
-MATCH (a:Article)
-WHERE a.id IN $ids
-OPTIONAL MATCH (a)<-[w:WROTE]-(au:Author)
-OPTIONAL MATCH (a)-[:PUBLISHED_IN]->(j:Journal)
-RETURN a, collect({author: au, position: w.author_position}) AS authors, j
+    UI->>API: GET /bookmarks?page=1
+    API->>PG: SELECT article_id, created_at FROM user_bookmark WHERE user_id = ?
+    PG-->>API: article_ids[]
+    API->>G: MATCH (a:Article) WHERE a.id IN $ids OPTIONAL MATCH metadata
+    G-->>API: Article metadata[]
+    API-->>UI: Ordered bookmark cards with bookmarked_at
 ```
 
-4. Backend map kết quả Neo4j về đúng thứ tự bookmark và bổ sung `bookmarked_at`.
+### 7.2 Follow alert dispatch
 
-### 7.2 Follow notification
+```mermaid
+sequenceDiagram
+    participant Job as Alert Dispatch Job
+    participant PG as PostgreSQL
+    participant G as Neo4j
+    participant Mail as Email/In-app Service
 
-1. PostgreSQL lấy danh sách `object_id` đang được follow theo `object_type`.
-2. Neo4j tìm article mới có quan hệ với các object đó:
-   - Journal: `(:Article)-[:PUBLISHED_IN]->(:Journal)`
-   - Keyword: `(:Article)-[:HAS_KEYWORD]->(:Keyword)`
-   - Topic: `(:Article)-[:BELONGS_TO]->(:Topic)`
-3. PostgreSQL truy ngược `User_Follow` theo `object_type + object_id` để lấy người nhận.
-4. Tạo bản ghi `Notification` và gửi email nếu `notify_mode` yêu cầu.
+    Job->>PG: SELECT DISTINCT object_type, object_id FROM user_follow WHERE notify_mode != OFF
+    PG-->>Job: grouped object_ids
+    Job->>G: MATCH new Article linked to followed Journal/Keyword/Topic with id IN $ids
+    G-->>Job: matched articles
+    Job->>PG: SELECT user_id, notify_mode FROM user_follow WHERE object_id IN matched ids
+    PG-->>Job: recipients
+    Job->>Mail: create Notification and send digest if needed
+```
 
-### 7.3 Data synchronization
+### 7.3 Orphan reference cleanup
 
-1. Scheduler gọi OpenAlex API theo lịch cấu hình.
-2. ETL upsert node/edge học thuật vào Neo4j.
-3. Metric theo năm từ OpenAlex được ghi vào PostgreSQL `Journal_Ranking`, dùng `journal_id` là Reference ID sang Neo4j.
-4. Mỗi lần chạy ghi `Sync_Log`.
+```mermaid
+sequenceDiagram
+    participant Job as Orphan Cleanup Job
+    participant PG as PostgreSQL
+    participant G as Neo4j
 
-## 8. Bảng cũ được thay đổi theo SRS 2.0
+    Job->>PG: Load article_id from UserBookmark and object_id from UserFollow
+    PG-->>Job: Reference IDs grouped by type
+    Job->>G: MATCH nodes WHERE node.id IN $ids
+    G-->>Job: Existing IDs
+    Job->>PG: Mark/delete records whose IDs are missing in Neo4j
+    Job->>PG: INSERT SyncLog with orphan_found/orphan_processed
+```
 
-| Thiết kế RDBMS cũ | Trạng thái trong SRS 2.0 |
-|---|---|
-| `Publisher` | Loại bảng riêng, gộp vào `Journal.publisher_name`, `Journal.publisher_image_url` ở Neo4j. |
-| `Journal` | Chuyển thành node `Journal` trong Neo4j. |
-| `Journal_ISSN` | Gộp vào `Journal.issn_list[]` ở Neo4j. |
-| `Volume` | Gộp vào `Article.volume_number` ở Neo4j. |
-| `Issue` | Gộp vào `Article.issue_number` ở Neo4j. |
-| `Article` | Chuyển thành node `Article` trong Neo4j. |
-| `Author` | Chuyển thành node `Author` trong Neo4j. |
-| `Author_Article` | Loại bỏ, thay bằng relationship `WROTE`. |
-| `Keyword` | Chuyển thành node `Keyword` trong Neo4j. |
-| `Keyword_Article` | Loại bỏ, thay bằng relationship `HAS_KEYWORD`. |
-| `Topic` | Chuyển thành node `Topic` trong Neo4j. |
-| `Sub_Topic` | Gộp vào relationship/property của `BELONGS_TO` hoặc property mở rộng của `Topic`. |
-| `Journal_Subject_Category` | Loại bỏ junction table; `Journal.subject_categories[]` ở Neo4j, danh mục gốc vẫn ở PostgreSQL `Subject_Category`. |
-| `Ranking_Metric`, `Subject_Area`, `Subject_Category` | Giữ ở PostgreSQL. |
-| `Journal_Ranking` | Giữ ở PostgreSQL nhưng `journal_id` là Reference ID sang Neo4j. |
+---
 
-## 9. Ghi chú triển khai
+## 8. Mapping từ schema RDBMS cũ sang mô hình mới
 
-- ERD này là thiết kế mục tiêu theo SRS 2.0. Nếu Prisma schema hiện tại vẫn còn các bảng học thuật kiểu RDBMS (`journal`, `article`, `author`, `keyword`, `topic`...), cần migration theo bảng mapping ở mục 8.
-- `Sync_Log.source` trong SRS chưa bao phủ orphan cleanup job, trong khi NFR-DC03 yêu cầu log reconciliation. Nên bổ sung `ORPHAN_CLEANUP` hoặc đổi thiết kế thành `job_type + source`.
+| Schema cũ / hiện tại | Mô hình theo SRS v2 | Ghi chú |
+|---|---|---|
+| `publisher` | Property của `(:Journal)` | `publisher_name`, `publisher_image_url`. |
+| `journal` | `(:Journal)` | PostgreSQL chỉ giữ `journal_id` dạng Reference ID ở `JournalRanking`/`UserFollow`. |
+| `journal_issn` | Property `issn_list` của `(:Journal)` | Không cần bảng riêng. |
+| `volume` | Property `volume_number` của `(:Article)` | Không cần bảng riêng. |
+| `issue` | Property `issue_number` của `(:Article)` | Không cần bảng riêng. |
+| `article` | `(:Article)` | `doi` là khóa dedup chính. |
+| `author` | `(:Author)` | `orcid` là định danh phụ nếu có. |
+| `author_article` | `(:Author)-[:WROTE]->(:Article)` | `author_position` là relationship property. |
+| `keyword` | `(:Keyword)` | Search/trend truy vấn bằng Cypher. |
+| `keyword_article` | `(:Article)-[:HAS_KEYWORD]->(:Keyword)` | `score` là relationship property. |
+| `topic` | `(:Topic)` | Topic có thể dùng cho trend/follow/advanced search. |
+| `sub_topic` | `(:Article)-[:BELONGS_TO]->(:Topic)` | Có thể thêm `is_primary`/`score` trên relationship. |
+| `journal_subject_category` | Property `subject_categories` của `(:Journal)` hoặc relationship graph mở rộng nếu cần | SRS đề xuất gộp property; bảng danh mục gốc vẫn ở PostgreSQL. |
+| `ranking_metric` | Giữ PostgreSQL | Danh mục metric. |
+| `journal_ranking` | Giữ PostgreSQL nhưng `journal_id` là Reference ID | Không FK tới bảng `journal`. |
+| `subject_area`, `subject_category` | Giữ PostgreSQL | Danh mục/taxonomy phục vụ lọc và ranking trong MVP. |
+| `auth_session` | Giữ PostgreSQL | Phục vụ JWT/refresh token. |
+| `user_bookmark`, `user_follow`, `notification`, `sync_log`, `system_config` | Bổ sung PostgreSQL | Các bảng nghiệp vụ/vận hành theo SRS. |
+
+---
+
+## 9. Ràng buộc thiết kế quan trọng
+
+1. PostgreSQL không lưu duplicate metadata học thuật. Mọi title/abstract/author/journal/keyword/topic nằm ở Neo4j.
+2. Mọi truy vấn kết hợp PostgreSQL + Neo4j phải dùng batch query theo `IN $ids`, không truy vấn N+1 từng ID.
+3. `UserBookmark.article_id`, `UserFollow.object_id`, `Notification.related_object_id`, `JournalRanking.journal_id` là Reference ID, không phải FK database.
+4. `UserBookmark` phải có `UNIQUE(user_id, article_id)`.
+5. `UserFollow` phải có `UNIQUE(user_id, object_type, object_id)`.
+6. `SyncLog.config_id` liên kết tới `SystemConfig.config_id` để biết log/job thuộc cấu hình nguồn nào.
+7. Orphan reference phải được phát hiện bằng cron job định kỳ và ghi lại trong `SyncLog`.
+8. API phải parameterize toàn bộ Cypher query, đặc biệt các danh sách ID truyền vào `IN $ids`.
+9. Neo4j cần unique constraint trên `id` cho mọi node label chính để đảm bảo tra cứu nhanh và ổn định.
+10. Các chức năng graph như recommendation, knowledge graph visualization, advanced search phải truy vấn trực tiếp Neo4j.
+
+---
+
+## 10. Checklist triển khai schema
+
+### PostgreSQL
+
+- [ ] Thêm bảng `user_bookmark`.
+- [ ] Thêm bảng `user_follow`.
+- [ ] Thêm bảng `notification`.
+- [ ] Thêm bảng `sync_log`.
+- [ ] Thêm bảng `system_config`.
+- [ ] Thêm FK `sync_log.config_id -> system_config.config_id`.
+- [ ] Điều chỉnh `role_account` để hỗ trợ `STUDENT`, `LECTURER`, `RESEARCHER`, `ADMIN` nếu bám sát SRS.
+- [ ] Chuyển `journal_ranking.journal_id` thành Reference ID, không FK tới bảng `journal`.
+- [ ] Loại bỏ hoặc ngừng dùng các bảng học thuật cũ trong PostgreSQL sau khi ETL sang Neo4j hoàn tất.
+
+### Neo4j
+
+- [ ] Tạo constraint unique cho `Article.id`, `Author.id`, `Journal.id`, `Keyword.id`, `Topic.id`.
+- [ ] Tạo index cho `Article.doi`, `Article.publication_year`.
+- [ ] Tạo text index cho `display_name` của `Author`, `Journal`, `Keyword`, `Topic`.
+- [ ] ETL dữ liệu học thuật từ nguồn ngoài vào node/relationship Neo4j.
+- [ ] Implement deduplication theo DOI, fallback `title + publication_year + journal`.
+- [ ] Implement reconciliation job kiểm tra orphan reference giữa PostgreSQL và Neo4j.
