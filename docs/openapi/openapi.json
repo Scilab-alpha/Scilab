@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Scilab API",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": "API documentation for the Scilab backend."
   },
   "servers": [
@@ -13,30 +13,48 @@
   ],
   "tags": [
     {
-      "name": "Health",
-      "description": "API availability checks."
-    },
-    {
       "name": "Auth",
       "description": "JWT-backed authentication sessions."
+    },
+    {
+      "name": "Users",
+      "description": "Authenticated user profile and admin user management."
     }
   ],
   "paths": {
-    "/": {
-      "get": {
-        "summary": "Check API availability",
-        "operationId": "getHealth",
-        "tags": ["Health"],
+    "/auth/register": {
+      "post": {
+        "summary": "Register a student account",
+        "operationId": "register",
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": {
-            "description": "The API is running.",
+          "201": {
+            "description": "Registration successful.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthResponseEnvelope"
+                  "$ref": "#/components/schemas/RegisteredUserResponseEnvelope"
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRegistrationInput"
+          },
+          "409": {
+            "$ref": "#/components/responses/EmailAlreadyRegistered"
           }
         }
       }
@@ -45,7 +63,9 @@
       "post": {
         "summary": "Sign in with credentials",
         "operationId": "login",
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -58,7 +78,7 @@
         },
         "responses": {
           "200": {
-            "description": "Sign-in succeeded and an authenticated session was issued.",
+            "description": "Authentication successful.",
             "content": {
               "application/json": {
                 "schema": {
@@ -68,7 +88,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "$ref": "#/components/responses/LoginBadRequest"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -83,7 +103,9 @@
       "post": {
         "summary": "Refresh access and refresh tokens",
         "operationId": "refreshTokens",
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -96,17 +118,17 @@
         },
         "responses": {
           "200": {
-            "description": "Refresh succeeded and a new token pair was issued.",
+            "description": "Authentication refreshed.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenPairResponseEnvelope"
+                  "$ref": "#/components/schemas/RefreshTokenPairResponseEnvelope"
                 }
               }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "$ref": "#/components/responses/RefreshBadRequest"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -118,7 +140,9 @@
       "get": {
         "summary": "Return the authenticated user",
         "operationId": "getCurrentUser",
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -126,7 +150,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Current authenticated user.",
+            "description": "Current user retrieved.",
             "content": {
               "application/json": {
                 "schema": {
@@ -145,7 +169,9 @@
       "post": {
         "summary": "Revoke the current authenticated session",
         "operationId": "logout",
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -153,7 +179,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Current session was revoked.",
+            "description": "Logout successful.",
             "content": {
               "application/json": {
                 "schema": {
@@ -167,9 +193,368 @@
           }
         }
       }
+    },
+    "/users/me": {
+      "get": {
+        "summary": "Return the authenticated user profile",
+        "operationId": "getMyUser",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update the authenticated user profile",
+        "operationId": "patchMyUser",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserUpdatedResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/UserInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/EmailAlreadyUsed"
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "summary": "List users for admin management",
+        "operationId": "listUsers",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminRequired"
+          }
+        }
+      }
+    },
+    "/users/{userId}": {
+      "get": {
+        "summary": "Return one user for admin management",
+        "operationId": "getUserById",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminRequired"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update one user profile for admin management",
+        "operationId": "patchUserById",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserUpdatedResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/UserInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminRequired"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/EmailAlreadyUsed"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete one user for admin management",
+        "operationId": "deleteUserById",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDeletedResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminRequired"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          }
+        }
+      }
+    },
+    "/users/{userId}/role": {
+      "patch": {
+        "summary": "Update one user role for admin management",
+        "operationId": "patchUserRole",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRolePatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User role updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRoleUpdatedResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/UserInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminRequired"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          }
+        }
+      }
+    },
+    "/users/{userId}/status": {
+      "patch": {
+        "summary": "Update one user status for admin management",
+        "operationId": "patchUserStatus",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserStatusPatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User status updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserStatusUpdatedResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/UserInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminRequired"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          }
+        }
+      }
     }
   },
   "components": {
+    "parameters": {
+      "UserId": {
+        "name": "userId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
     "securitySchemes": {
       "bearerAuth": {
         "type": "http",
@@ -178,8 +563,46 @@
       }
     },
     "responses": {
-      "BadRequest": {
-        "description": "The request body is missing required fields or is malformed.",
+      "InvalidRegistrationInput": {
+        "description": "Registration input is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "invalidRegistrationInput": {
+                "value": {
+                  "success": false,
+                  "message": "Registration input is invalid",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "EmailAlreadyRegistered": {
+        "description": "Email is already registered.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "emailAlreadyRegistered": {
+                "value": {
+                  "success": false,
+                  "message": "Email is already registered",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "LoginBadRequest": {
+        "description": "Email and password are required.",
         "content": {
           "application/json": {
             "schema": {
@@ -190,6 +613,25 @@
                 "value": {
                   "success": false,
                   "message": "Email and password are required",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "RefreshBadRequest": {
+        "description": "Refresh token is required.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "missingRefreshToken": {
+                "value": {
+                  "success": false,
+                  "message": "Refresh token is required",
                   "data": {}
                 }
               }
@@ -234,12 +676,93 @@
             }
           }
         }
+      },
+      "AdminRequired": {
+        "description": "Authenticated user must have the ADMIN role.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "adminRequired": {
+                "value": {
+                  "success": false,
+                  "message": "Admin role is required",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "UserInputInvalid": {
+        "description": "User input is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "userInputInvalid": {
+                "value": {
+                  "success": false,
+                  "message": "User input is invalid",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "EmailAlreadyUsed": {
+        "description": "Email is already used.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "emailAlreadyUsed": {
+                "value": {
+                  "success": false,
+                  "message": "Email is already used",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "UserNotFound": {
+        "description": "User not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "userNotFound": {
+                "value": {
+                  "success": false,
+                  "message": "User not found",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
       }
     },
     "schemas": {
       "ApiResponseBase": {
         "type": "object",
-        "required": ["success", "message", "data"],
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "additionalProperties": false,
         "properties": {
           "success": {
             "type": "boolean"
@@ -252,9 +775,59 @@
           }
         }
       },
+      "RegisterRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "firstname",
+          "lastname",
+          "gender",
+          "dataofbirth"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255,
+            "example": "new.user@example.com"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 1024,
+            "format": "password",
+            "example": "Password123!"
+          },
+          "firstname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "example": "New"
+          },
+          "lastname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "example": "User"
+          },
+          "gender": {
+            "$ref": "#/components/schemas/Gender"
+          },
+          "dataofbirth": {
+            "type": "string",
+            "format": "date",
+            "example": "2001-04-12"
+          }
+        }
+      },
       "LoginRequest": {
         "type": "object",
-        "required": ["email", "password"],
+        "required": [
+          "email",
+          "password"
+        ],
         "additionalProperties": false,
         "properties": {
           "email": {
@@ -274,7 +847,9 @@
       },
       "RefreshRequest": {
         "type": "object",
-        "required": ["refreshToken"],
+        "required": [
+          "refreshToken"
+        ],
         "additionalProperties": false,
         "properties": {
           "refreshToken": {
@@ -283,26 +858,88 @@
           }
         }
       },
-      "HealthResponseEnvelope": {
+      "UserPatchRequest": {
+        "type": "object",
+        "minProperties": 1,
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255,
+            "example": "updated.user@example.com"
+          },
+          "firstname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "example": "Updated"
+          },
+          "lastname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "example": "User"
+          },
+          "gender": {
+            "$ref": "#/components/schemas/Gender"
+          },
+          "dateofbirth": {
+            "type": "string",
+            "format": "date",
+            "example": "2001-04-12"
+          }
+        }
+      },
+      "UserRolePatchRequest": {
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/PatchableRoleAccount"
+          }
+        }
+      },
+      "UserStatusPatchRequest": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/StatusAccount"
+          }
+        }
+      },
+      "RegisteredUserResponseEnvelope": {
         "allOf": [
           {
             "$ref": "#/components/schemas/ApiResponseBase"
           },
           {
             "type": "object",
-            "required": ["success", "message", "data"],
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [true]
+                "enum": [
+                  true
+                ]
               },
               "message": {
                 "type": "string",
-                "example": "OK"
+                "example": "Registration successful"
               },
               "data": {
-                "type": "string",
-                "example": "Hello World!"
+                "$ref": "#/components/schemas/RegisteredUser"
               }
             }
           }
@@ -315,15 +952,51 @@
           },
           {
             "type": "object",
-            "required": ["success", "message", "data"],
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [true]
+                "enum": [
+                  true
+                ]
               },
               "message": {
                 "type": "string",
                 "example": "Authentication successful"
+              },
+              "data": {
+                "$ref": "#/components/schemas/TokenPairData"
+              }
+            }
+          }
+        ]
+      },
+      "RefreshTokenPairResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Authentication refreshed"
               },
               "data": {
                 "$ref": "#/components/schemas/TokenPairData"
@@ -339,11 +1012,17 @@
           },
           {
             "type": "object",
-            "required": ["success", "message", "data"],
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [true]
+                "enum": [
+                  true
+                ]
               },
               "message": {
                 "type": "string",
@@ -356,6 +1035,158 @@
           }
         ]
       },
+      "UserProfileResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "User retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/UserProfile"
+              }
+            }
+          }
+        ]
+      },
+      "UserUpdatedResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserProfileResponseEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string",
+                "example": "User updated"
+              }
+            }
+          }
+        ]
+      },
+      "UserRoleUpdatedResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserProfileResponseEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string",
+                "example": "User role updated"
+              }
+            }
+          }
+        ]
+      },
+      "UserStatusUpdatedResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserProfileResponseEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string",
+                "example": "User status updated"
+              }
+            }
+          }
+        ]
+      },
+      "UserListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Users retrieved"
+              },
+              "data": {
+                "type": "object",
+                "required": [
+                  "users"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "users": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/UserProfile"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "UserDeletedResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "User deleted"
+              },
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "example": {}
+              }
+            }
+          }
+        ]
+      },
       "EmptyResponseEnvelope": {
         "allOf": [
           {
@@ -363,11 +1194,17 @@
           },
           {
             "type": "object",
-            "required": ["success", "message", "data"],
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [true]
+                "enum": [
+                  true
+                ]
               },
               "message": {
                 "type": "string",
@@ -389,11 +1226,17 @@
           },
           {
             "type": "object",
-            "required": ["success", "message", "data"],
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [false]
+                "enum": [
+                  false
+                ]
               },
               "message": {
                 "type": "string",
@@ -410,16 +1253,74 @@
       },
       "TokenPairData": {
         "type": "object",
-        "required": ["accessToken", "refreshToken"],
+        "required": [
+          "accessToken",
+          "refreshToken"
+        ],
         "additionalProperties": false,
         "properties": {
           "accessToken": {
             "type": "string",
-            "description": "JWT access token for bearer authentication. Expires 30 minutes after issue."
+            "description": "JWT access token for bearer authentication."
           },
           "refreshToken": {
             "type": "string",
-            "description": "Refresh token for obtaining a new token pair. Expires 30 days after issue."
+            "description": "Refresh token for obtaining a new token pair."
+          }
+        }
+      },
+      "RegisteredUser": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "status",
+          "role",
+          "firstName",
+          "lastName",
+          "gender",
+          "dateOfBirth"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusAccount"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "STUDENT"
+            ],
+            "description": "Public registration always creates STUDENT accounts."
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "gender": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Gender"
+              }
+            ],
+            "nullable": true
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         }
       },
@@ -445,12 +1346,10 @@
             "format": "email"
           },
           "status": {
-            "type": "string",
-            "enum": ["ACTIVE", "INACTIVE", "BANNED"]
+            "$ref": "#/components/schemas/StatusAccount"
           },
           "role": {
-            "type": "string",
-            "enum": ["USER", "ADMIN"]
+            "$ref": "#/components/schemas/RoleAccount"
           },
           "firstName": {
             "type": "string",
@@ -465,6 +1364,93 @@
             "nullable": true
           }
         }
+      },
+      "UserProfile": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "status",
+          "role",
+          "firstName",
+          "lastName",
+          "imageUrl",
+          "gender",
+          "dateOfBirth"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusAccount"
+          },
+          "role": {
+            "$ref": "#/components/schemas/RoleAccount"
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "gender": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Gender"
+              }
+            ],
+            "nullable": true
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "StatusAccount": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "INACTIVE",
+          "BANNED"
+        ]
+      },
+      "RoleAccount": {
+        "type": "string",
+        "enum": [
+          "STUDENT",
+          "RESEARCHER",
+          "ADMIN"
+        ]
+      },
+      "PatchableRoleAccount": {
+        "type": "string",
+        "enum": [
+          "STUDENT",
+          "RESEARCHER"
+        ]
+      },
+      "Gender": {
+        "type": "string",
+        "enum": [
+          "MALE",
+          "FEMALE",
+          "OTHER"
+        ]
       }
     }
   }

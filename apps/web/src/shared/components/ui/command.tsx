@@ -13,10 +13,12 @@ import {
   DialogTitle,
 } from "./dialog";
 
+type WithoutKey<T> = Omit<T, "key">;
+
 function Command({
   className,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive>) {
+}: WithoutKey<React.ComponentProps<typeof CommandPrimitive>>) {
   return (
     <CommandPrimitive
       data-slot="command"
@@ -56,7 +58,7 @@ function CommandDialog({
 function CommandInput({
   className,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Input>) {
+}: WithoutKey<React.ComponentProps<typeof CommandPrimitive.Input>>) {
   return (
     <div
       data-slot="command-input-wrapper"
@@ -78,7 +80,7 @@ function CommandInput({
 function CommandList({
   className,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.List>) {
+}: WithoutKey<React.ComponentProps<typeof CommandPrimitive.List>>) {
   return (
     <CommandPrimitive.List
       data-slot="command-list"
@@ -93,7 +95,7 @@ function CommandList({
 
 function CommandEmpty({
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Empty>) {
+}: WithoutKey<React.ComponentProps<typeof CommandPrimitive.Empty>>) {
   return (
     <CommandPrimitive.Empty
       data-slot="command-empty"
@@ -106,7 +108,7 @@ function CommandEmpty({
 function CommandGroup({
   className,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Group>) {
+}: WithoutKey<React.ComponentProps<typeof CommandPrimitive.Group>>) {
   return (
     <CommandPrimitive.Group
       data-slot="command-group"
@@ -122,7 +124,7 @@ function CommandGroup({
 function CommandSeparator({
   className,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Separator>) {
+}: WithoutKey<React.ComponentProps<typeof CommandPrimitive.Separator>>) {
   return (
     <CommandPrimitive.Separator
       data-slot="command-separator"
@@ -135,7 +137,7 @@ function CommandSeparator({
 function CommandItem({
   className,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Item>) {
+}: WithoutKey<React.ComponentProps<typeof CommandPrimitive.Item>>) {
   return (
     <CommandPrimitive.Item
       data-slot="command-item"
