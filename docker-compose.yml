@@ -19,23 +19,11 @@ services:
       - NODE_ENV=production
       - PORT=80
       - DATABASE_URL=postgresql://postgres:123@postgres:5432/scilab?schema=public
-      - NEO4J_URI=bolt://neo4j:7687
-      - NEO4J_USERNAME=neo4j
-      - NEO4J_PASSWORD=12345678
-      - NEO4J_DATABASE=neo4j
-      - NEO4J_MAX_CONNECTION_POOL_SIZE=50
-      - NEO4J_CONNECTION_ACQUISITION_TIMEOUT=60000
-      - NEO4J_CONNECTION_TIMEOUT=30000
-      - NEO4J_MAX_TRANSACTION_RETRY_TIME=30000
-      - ADMIN_EMAIL=Admin@admin.com
-      - ADMIN_PASSWORD=12345678
       - TZ=Asia/Bangkok
       - PGTZ=Asia/Bangkok
       - SERVICE_FQDN_API
     depends_on:
       postgres:
-        condition: service_healthy
-      neo4j:
         condition: service_healthy
 
   postgres:
@@ -59,30 +47,6 @@ services:
       timeout: 5s
       retries: 5
 
-  neo4j:
-    image: neo4j:5-community
-    container_name: scilab-neo4j
-    restart: unless-stopped
-    environment:
-      NEO4J_AUTH: neo4j/12345678
-      TZ: Asia/Bangkok
-    ports:
-      - "7474:7474"
-      - "7687:7687"
-    volumes:
-      - neo4j-data:/data
-      - neo4j-logs:/logs
-    healthcheck:
-      test:
-        ["CMD-SHELL", "cypher-shell -u neo4j -p 12345678 'RETURN 1' || exit 1"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-
 volumes:
   postgres-data:
     name: scilab-postgres-data
-  neo4j-data:
-    name: scilab-neo4j-data
-  neo4j-logs:
-    name: scilab-neo4j-logs

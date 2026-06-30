@@ -1,16 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import {
-  CreateUserInput,
   UserAuthRecord,
   UserRepository,
 } from '@/auth/application/ports/auth.ports';
 import { PrismaService } from '@/prisma/prisma.service';
-import {
-  AuthProvider,
-  Gender,
-  RoleAccount,
-  StatusAccount,
-} from '@prisma/client';
 
 @Injectable()
 export class PrismaUserRepository implements UserRepository {
@@ -32,24 +25,6 @@ export class PrismaUserRepository implements UserRepository {
   async findById(id: string): Promise<UserAuthRecord | null> {
     const user = await this.prisma.user.findUnique({ where: { id } });
     return user ? this.toRecord(user) : null;
-  }
-
-  async create(input: CreateUserInput): Promise<UserAuthRecord> {
-    const user = await this.prisma.user.create({
-      data: {
-        email: input.email,
-        password: input.password,
-        type: input.type as AuthProvider,
-        status: input.status as StatusAccount,
-        role: input.role as RoleAccount,
-        firstName: input.firstName,
-        lastName: input.lastName,
-        dateOfBirth: input.dateOfBirth,
-        gender: input.gender as Gender,
-      },
-    });
-
-    return this.toRecord(user);
   }
 
   private toRecord(user: {

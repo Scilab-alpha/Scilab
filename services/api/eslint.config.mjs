@@ -29,7 +29,7 @@ export default tseslint.config(
         projectService: {
           allowDefaultProject: ['test/*.ts'],
         },
-        tsconfigRootDir: process.cwd(),
+        tsconfigRootDir: import.meta.dirname,
       },
     },
   },
