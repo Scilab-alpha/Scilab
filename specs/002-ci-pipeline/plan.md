@@ -16,7 +16,7 @@ PostgreSQL service container for API migration validation.
 ## Technical Context
 
 **Language/Version**: TypeScript 5.x on Node.js 22.x for CI; repo package
-manager is pnpm 9.0.0
+manager is pnpm 11.7.0
 
 **Primary Dependencies**: GitHub Actions, pnpm, Turborepo, Prettier, ESLint,
 TypeScript, Next.js, Expo, NestJS, Prisma, Jest, Supertest, PostgreSQL 16
