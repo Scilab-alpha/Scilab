@@ -1,5 +1,5 @@
 -- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "public";
+CREATE SCHEMA IF NOT EXISTS "scilab_api";
 
 -- CreateEnum
 CREATE TYPE "auth_provider" AS ENUM ('EMAIL', 'GOOGLE');
@@ -8,19 +8,31 @@ CREATE TYPE "auth_provider" AS ENUM ('EMAIL', 'GOOGLE');
 CREATE TYPE "status_account" AS ENUM ('ACTIVE', 'INACTIVE', 'BANNED');
 
 -- CreateEnum
-CREATE TYPE "role_account" AS ENUM ('USER', 'ADMIN');
+CREATE TYPE "role_account" AS ENUM ('STUDENT', 'RESEARCHER', 'ADMIN');
+
+-- CreateEnum
+CREATE TYPE "gender" AS ENUM ('MALE', 'FEMALE', 'OTHER');
+
+-- CreateEnum
+CREATE TYPE "sync_frequency" AS ENUM ('DAILY', 'WEEKLY');
 
 -- CreateEnum
 CREATE TYPE "ranking_metric_type" AS ENUM ('QUARTILE', 'RANK', 'SCORE', 'PERCENTILE');
 
 -- CreateEnum
-CREATE TYPE "ranking_source" AS ENUM ('SCIMAGO', 'SCOPUS', 'WOS', 'DOAJ', 'OTHER');
+CREATE TYPE "ranking_source" AS ENUM ('OPENALEX');
 
 -- CreateEnum
-CREATE TYPE "type_zone" AS ENUM ('COUNTRY', 'REGION');
+CREATE TYPE "follow_object_type" AS ENUM ('JOURNAL', 'KEYWORD', 'TOPIC');
 
 -- CreateEnum
-CREATE TYPE "source_zone" AS ENUM ('ISO', 'SCIMAGO', 'SCOPUS', 'OTHER');
+CREATE TYPE "notify_mode" AS ENUM ('IN_APP', 'DAILY', 'WEEKLY', 'OFF');
+
+-- CreateEnum
+CREATE TYPE "sync_source" AS ENUM ('OPENALEX', 'ORPHAN_CLEANUP');
+
+-- CreateEnum
+CREATE TYPE "sync_status" AS ENUM ('SUCCESS', 'FAILED', 'PARTIAL');
 
 -- CreateTable
 CREATE TABLE "user" (
@@ -29,96 +41,53 @@ CREATE TABLE "user" (
     "password" VARCHAR(255) NOT NULL,
     "type" "auth_provider" NOT NULL,
     "status" "status_account" NOT NULL,
-    "role" "role_account" NOT NULL,
+    "role" "role_account" NOT NULL DEFAULT 'STUDENT',
     "last_name" VARCHAR(255),
     "first_name" VARCHAR(255),
     "url_image" VARCHAR(2048),
     "date_of_birth" DATE,
-    "gender" BOOLEAN,
+    "gender" "gender",
 
     CONSTRAINT "user_pkey" PRIMARY KEY ("user_id")
 );
 
 -- CreateTable
-CREATE TABLE "publisher" (
-    "publisher_id" UUID NOT NULL,
-    "display_name" VARCHAR(255),
-    "image_url" VARCHAR(2048),
+CREATE TABLE "auth_session" (
+    "auth_session_id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "access_token_id_hash" VARCHAR(128) NOT NULL,
+    "refresh_token_hash" VARCHAR(128) NOT NULL,
+    "issued_at" TIMESTAMP(6) NOT NULL,
+    "access_token_expires_at" TIMESTAMP(6) NOT NULL,
+    "refresh_token_expires_at" TIMESTAMP(6) NOT NULL,
+    "revoked_at" TIMESTAMP(6),
     "created_at" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "last_used_at" TIMESTAMP(6),
+    "rotated_at" TIMESTAMP(6),
 
-    CONSTRAINT "publisher_pkey" PRIMARY KEY ("publisher_id")
+    CONSTRAINT "auth_session_pkey" PRIMARY KEY ("auth_session_id")
 );
 
 -- CreateTable
-CREATE TABLE "zone" (
-    "zone_id" UUID NOT NULL,
-    "code" VARCHAR(50),
-    "name" VARCHAR(255),
-    "type" "type_zone" NOT NULL,
-    "iso_code" VARCHAR(50),
-    "source" "source_zone" NOT NULL,
+CREATE TABLE "system_config" (
+    "config_id" UUID NOT NULL,
+    "api_name" VARCHAR(100) NOT NULL,
+    "api_endpoint" VARCHAR(2048) NOT NULL,
+    "api_key_encrypted" TEXT,
+    "sync_frequency" "sync_frequency" NOT NULL,
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "last_tested_at" TIMESTAMP(6),
     "created_at" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(6) NOT NULL,
 
-    CONSTRAINT "zone_pkey" PRIMARY KEY ("zone_id")
-);
-
--- CreateTable
-CREATE TABLE "journal" (
-    "journal_id" UUID NOT NULL,
-    "source_id" VARCHAR(255),
-    "publisher_id" UUID,
-    "country" UUID,
-    "region" UUID,
-    "display_name" VARCHAR(255),
-    "type" VARCHAR(100),
-    "is_open_access" BOOLEAN,
-    "is_oa_diamond" BOOLEAN,
-    "coverage" VARCHAR(255),
-
-    CONSTRAINT "journal_pkey" PRIMARY KEY ("journal_id")
-);
-
--- CreateTable
-CREATE TABLE "journal_issn" (
-    "journal_issn_id" UUID NOT NULL,
-    "journal_id" UUID,
-    "issn" VARCHAR(32),
-
-    CONSTRAINT "journal_issn_pkey" PRIMARY KEY ("journal_issn_id")
-);
-
--- CreateTable
-CREATE TABLE "subject_area" (
-    "subject_area_id" UUID NOT NULL,
-    "display_name" VARCHAR(255),
-    "description" VARCHAR(1000),
-
-    CONSTRAINT "subject_area_pkey" PRIMARY KEY ("subject_area_id")
-);
-
--- CreateTable
-CREATE TABLE "subject_category" (
-    "subject_category_id" UUID NOT NULL,
-    "subject_area_id" UUID,
-    "display_name" VARCHAR(255),
-    "description" VARCHAR(1000),
-
-    CONSTRAINT "subject_category_pkey" PRIMARY KEY ("subject_category_id")
-);
-
--- CreateTable
-CREATE TABLE "journal_subject_category" (
-    "journal_id" UUID NOT NULL,
-    "subject_category_id" UUID NOT NULL,
-
-    CONSTRAINT "journal_subject_category_pkey" PRIMARY KEY ("journal_id","subject_category_id")
+    CONSTRAINT "system_config_pkey" PRIMARY KEY ("config_id")
 );
 
 -- CreateTable
 CREATE TABLE "ranking_metric" (
     "metric_id" UUID NOT NULL,
-    "code" VARCHAR(100),
-    "display_name" VARCHAR(255),
+    "code" VARCHAR(100) NOT NULL,
+    "display_name" VARCHAR(255) NOT NULL,
     "metric_type" "ranking_metric_type" NOT NULL,
     "description" VARCHAR(1000),
 
@@ -142,124 +111,103 @@ CREATE TABLE "journal_ranking" (
 );
 
 -- CreateTable
-CREATE TABLE "volume" (
-    "volume_id" UUID NOT NULL,
-    "journal_id" UUID,
-    "volume_number" INTEGER,
-    "publication_year" INTEGER,
+CREATE TABLE "subject_area" (
+    "subject_area_id" UUID NOT NULL,
+    "display_name" VARCHAR(255) NOT NULL,
+    "description" VARCHAR(1000),
 
-    CONSTRAINT "volume_pkey" PRIMARY KEY ("volume_id")
+    CONSTRAINT "subject_area_pkey" PRIMARY KEY ("subject_area_id")
 );
 
 -- CreateTable
-CREATE TABLE "issue" (
-    "issue_id" UUID NOT NULL,
-    "volume_id" UUID,
-    "issue_number" VARCHAR(100),
-    "publication_year" INTEGER,
+CREATE TABLE "subject_category" (
+    "subject_category_id" UUID NOT NULL,
+    "subject_area_id" UUID NOT NULL,
+    "display_name" VARCHAR(255) NOT NULL,
+    "description" VARCHAR(1000),
 
-    CONSTRAINT "issue_pkey" PRIMARY KEY ("issue_id")
+    CONSTRAINT "subject_category_pkey" PRIMARY KEY ("subject_category_id")
 );
 
 -- CreateTable
-CREATE TABLE "article" (
+CREATE TABLE "user_bookmark" (
+    "user_bookmark_id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
     "article_id" UUID NOT NULL,
-    "version" VARCHAR(100),
-    "issue_id" UUID,
-    "title" VARCHAR(1000) NOT NULL,
-    "abstract" TEXT,
-    "publication_year" INTEGER,
-    "doi" VARCHAR(255),
-    "primary_topic" UUID,
     "created_at" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "article_pkey" PRIMARY KEY ("article_id")
+    CONSTRAINT "user_bookmark_pkey" PRIMARY KEY ("user_bookmark_id")
 );
 
 -- CreateTable
-CREATE TABLE "author" (
-    "author_id" UUID NOT NULL,
-    "orcid" VARCHAR(50),
-    "display_name" VARCHAR(255),
-    "url_image" VARCHAR(2048),
+CREATE TABLE "user_follow" (
+    "user_follow_id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "object_type" "follow_object_type" NOT NULL,
+    "object_id" UUID NOT NULL,
+    "notify_mode" "notify_mode" NOT NULL,
+    "created_at" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "author_pkey" PRIMARY KEY ("author_id")
+    CONSTRAINT "user_follow_pkey" PRIMARY KEY ("user_follow_id")
 );
 
 -- CreateTable
-CREATE TABLE "author_article" (
-    "author_id" UUID NOT NULL,
-    "article_id" UUID NOT NULL,
+CREATE TABLE "notification" (
+    "notification_id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "title" VARCHAR(255) NOT NULL,
+    "message" TEXT NOT NULL,
+    "related_object_type" VARCHAR(50),
+    "related_object_id" UUID,
+    "is_read" BOOLEAN NOT NULL DEFAULT false,
+    "created_at" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "author_article_pkey" PRIMARY KEY ("author_id","article_id")
+    CONSTRAINT "notification_pkey" PRIMARY KEY ("notification_id")
 );
 
 -- CreateTable
-CREATE TABLE "keyword" (
-    "keyword_id" UUID NOT NULL,
-    "display_name" VARCHAR(255),
+CREATE TABLE "sync_log" (
+    "sync_log_id" UUID NOT NULL,
+    "source" "sync_source" NOT NULL,
+    "started_at" TIMESTAMP(6) NOT NULL,
+    "finished_at" TIMESTAMP(6),
+    "total_fetched" INTEGER NOT NULL DEFAULT 0,
+    "total_inserted" INTEGER NOT NULL DEFAULT 0,
+    "total_updated" INTEGER NOT NULL DEFAULT 0,
+    "total_errors" INTEGER NOT NULL DEFAULT 0,
+    "status" "sync_status" NOT NULL,
+    "error_detail" TEXT,
+    "created_at" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "keyword_pkey" PRIMARY KEY ("keyword_id")
-);
-
--- CreateTable
-CREATE TABLE "keyword_article" (
-    "keyword_id" UUID NOT NULL,
-    "article_id" UUID NOT NULL,
-    "score" DOUBLE PRECISION,
-
-    CONSTRAINT "keyword_article_pkey" PRIMARY KEY ("keyword_id","article_id")
-);
-
--- CreateTable
-CREATE TABLE "topic" (
-    "topic_id" UUID NOT NULL,
-    "display_name" VARCHAR(255),
-    "score" DOUBLE PRECISION,
-
-    CONSTRAINT "topic_pkey" PRIMARY KEY ("topic_id")
-);
-
--- CreateTable
-CREATE TABLE "sub_topic" (
-    "article_id" UUID NOT NULL,
-    "topic_id" UUID NOT NULL,
-
-    CONSTRAINT "sub_topic_pkey" PRIMARY KEY ("article_id","topic_id")
+    CONSTRAINT "sync_log_pkey" PRIMARY KEY ("sync_log_id")
 );
 
 -- CreateIndex
 CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "zone_code_type_source_key" ON "zone"("code", "type", "source");
+CREATE UNIQUE INDEX "auth_session_access_token_id_hash_key" ON "auth_session"("access_token_id_hash");
 
 -- CreateIndex
-CREATE INDEX "journal_publisher_id_idx" ON "journal"("publisher_id");
+CREATE UNIQUE INDEX "auth_session_refresh_token_hash_key" ON "auth_session"("refresh_token_hash");
 
 -- CreateIndex
-CREATE INDEX "journal_country_idx" ON "journal"("country");
+CREATE INDEX "auth_session_user_id_idx" ON "auth_session"("user_id");
 
 -- CreateIndex
-CREATE INDEX "journal_region_idx" ON "journal"("region");
+CREATE INDEX "auth_session_access_token_expires_at_idx" ON "auth_session"("access_token_expires_at");
 
 -- CreateIndex
-CREATE INDEX "journal_source_id_idx" ON "journal"("source_id");
+CREATE INDEX "auth_session_refresh_token_expires_at_idx" ON "auth_session"("refresh_token_expires_at");
 
 -- CreateIndex
-CREATE INDEX "journal_issn_journal_id_idx" ON "journal_issn"("journal_id");
-
--- CreateIndex
-CREATE UNIQUE INDEX "journal_issn_journal_id_issn_key" ON "journal_issn"("journal_id", "issn");
-
--- CreateIndex
-CREATE INDEX "subject_category_subject_area_id_idx" ON "subject_category"("subject_area_id");
-
--- CreateIndex
-CREATE INDEX "journal_subject_category_subject_category_id_idx" ON "journal_subject_category"("subject_category_id");
+CREATE UNIQUE INDEX "system_config_api_name_key" ON "system_config"("api_name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ranking_metric_code_key" ON "ranking_metric"("code");
+
+-- CreateIndex
+CREATE INDEX "journal_ranking_journal_id_idx" ON "journal_ranking"("journal_id");
 
 -- CreateIndex
 CREATE INDEX "journal_ranking_metric_id_idx" ON "journal_ranking"("metric_id");
@@ -271,64 +219,37 @@ CREATE INDEX "journal_ranking_subject_category_id_idx" ON "journal_ranking"("sub
 CREATE UNIQUE INDEX "journal_ranking_journal_id_subject_category_id_source_metri_key" ON "journal_ranking"("journal_id", "subject_category_id", "source", "metric_id", "year");
 
 -- CreateIndex
-CREATE INDEX "volume_journal_id_idx" ON "volume"("journal_id");
+CREATE INDEX "subject_category_subject_area_id_idx" ON "subject_category"("subject_area_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "volume_journal_id_volume_number_publication_year_key" ON "volume"("journal_id", "volume_number", "publication_year");
+CREATE INDEX "user_bookmark_user_id_created_at_idx" ON "user_bookmark"("user_id", "created_at");
 
 -- CreateIndex
-CREATE INDEX "issue_volume_id_idx" ON "issue"("volume_id");
+CREATE INDEX "user_bookmark_article_id_idx" ON "user_bookmark"("article_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "issue_volume_id_issue_number_publication_year_key" ON "issue"("volume_id", "issue_number", "publication_year");
+CREATE UNIQUE INDEX "user_bookmark_user_id_article_id_key" ON "user_bookmark"("user_id", "article_id");
 
 -- CreateIndex
-CREATE INDEX "article_doi_idx" ON "article"("doi");
+CREATE INDEX "user_follow_object_type_object_id_idx" ON "user_follow"("object_type", "object_id");
 
 -- CreateIndex
-CREATE INDEX "article_issue_id_idx" ON "article"("issue_id");
+CREATE INDEX "user_follow_user_id_created_at_idx" ON "user_follow"("user_id", "created_at");
 
 -- CreateIndex
-CREATE INDEX "article_primary_topic_idx" ON "article"("primary_topic");
+CREATE UNIQUE INDEX "user_follow_user_id_object_type_object_id_key" ON "user_follow"("user_id", "object_type", "object_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "author_orcid_key" ON "author"("orcid");
+CREATE INDEX "notification_user_id_is_read_created_at_idx" ON "notification"("user_id", "is_read", "created_at");
 
 -- CreateIndex
-CREATE INDEX "author_article_article_id_idx" ON "author_article"("article_id");
+CREATE INDEX "sync_log_source_started_at_idx" ON "sync_log"("source", "started_at");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "keyword_display_name_key" ON "keyword"("display_name");
-
--- CreateIndex
-CREATE INDEX "keyword_article_article_id_idx" ON "keyword_article"("article_id");
-
--- CreateIndex
-CREATE INDEX "sub_topic_topic_id_idx" ON "sub_topic"("topic_id");
+CREATE INDEX "sync_log_status_started_at_idx" ON "sync_log"("status", "started_at");
 
 -- AddForeignKey
-ALTER TABLE "journal" ADD CONSTRAINT "journal_publisher_id_fkey" FOREIGN KEY ("publisher_id") REFERENCES "publisher"("publisher_id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "journal" ADD CONSTRAINT "journal_country_fkey" FOREIGN KEY ("country") REFERENCES "zone"("zone_id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "journal" ADD CONSTRAINT "journal_region_fkey" FOREIGN KEY ("region") REFERENCES "zone"("zone_id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "journal_issn" ADD CONSTRAINT "journal_issn_journal_id_fkey" FOREIGN KEY ("journal_id") REFERENCES "journal"("journal_id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "subject_category" ADD CONSTRAINT "subject_category_subject_area_id_fkey" FOREIGN KEY ("subject_area_id") REFERENCES "subject_area"("subject_area_id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "journal_subject_category" ADD CONSTRAINT "journal_subject_category_journal_id_fkey" FOREIGN KEY ("journal_id") REFERENCES "journal"("journal_id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "journal_subject_category" ADD CONSTRAINT "journal_subject_category_subject_category_id_fkey" FOREIGN KEY ("subject_category_id") REFERENCES "subject_category"("subject_category_id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "journal_ranking" ADD CONSTRAINT "journal_ranking_journal_id_fkey" FOREIGN KEY ("journal_id") REFERENCES "journal"("journal_id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "auth_session" ADD CONSTRAINT "auth_session_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("user_id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "journal_ranking" ADD CONSTRAINT "journal_ranking_subject_category_id_fkey" FOREIGN KEY ("subject_category_id") REFERENCES "subject_category"("subject_category_id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -337,31 +258,13 @@ ALTER TABLE "journal_ranking" ADD CONSTRAINT "journal_ranking_subject_category_i
 ALTER TABLE "journal_ranking" ADD CONSTRAINT "journal_ranking_metric_id_fkey" FOREIGN KEY ("metric_id") REFERENCES "ranking_metric"("metric_id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "volume" ADD CONSTRAINT "volume_journal_id_fkey" FOREIGN KEY ("journal_id") REFERENCES "journal"("journal_id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "subject_category" ADD CONSTRAINT "subject_category_subject_area_id_fkey" FOREIGN KEY ("subject_area_id") REFERENCES "subject_area"("subject_area_id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "issue" ADD CONSTRAINT "issue_volume_id_fkey" FOREIGN KEY ("volume_id") REFERENCES "volume"("volume_id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "user_bookmark" ADD CONSTRAINT "user_bookmark_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("user_id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "article" ADD CONSTRAINT "article_issue_id_fkey" FOREIGN KEY ("issue_id") REFERENCES "issue"("issue_id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "user_follow" ADD CONSTRAINT "user_follow_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("user_id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "article" ADD CONSTRAINT "article_primary_topic_fkey" FOREIGN KEY ("primary_topic") REFERENCES "topic"("topic_id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "author_article" ADD CONSTRAINT "author_article_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "author"("author_id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "author_article" ADD CONSTRAINT "author_article_article_id_fkey" FOREIGN KEY ("article_id") REFERENCES "article"("article_id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "keyword_article" ADD CONSTRAINT "keyword_article_keyword_id_fkey" FOREIGN KEY ("keyword_id") REFERENCES "keyword"("keyword_id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "keyword_article" ADD CONSTRAINT "keyword_article_article_id_fkey" FOREIGN KEY ("article_id") REFERENCES "article"("article_id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "sub_topic" ADD CONSTRAINT "sub_topic_article_id_fkey" FOREIGN KEY ("article_id") REFERENCES "article"("article_id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "sub_topic" ADD CONSTRAINT "sub_topic_topic_id_fkey" FOREIGN KEY ("topic_id") REFERENCES "topic"("topic_id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "notification" ADD CONSTRAINT "notification_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("user_id") ON DELETE CASCADE ON UPDATE CASCADE;

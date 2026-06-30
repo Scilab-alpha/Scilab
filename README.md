@@ -22,6 +22,12 @@ pnpm --filter api test:e2e
 Documentation-only or metadata-only changes keep a CI status but skip code
 validation when no code-sensitive paths changed.
 
+## API Contract Rule
+
+Any new or changed backend HTTP API endpoint must update OpenAPI/Swagger in the
+same change. Keep request bodies, params/query, authentication metadata, success
+responses, failure responses, and the standard response envelope documented.
+
 # Turborepo starter
 
 This Turborepo starter is maintained by the Turborepo core team.

@@ -1,13 +1,15 @@
 import { INestApplication } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AuthenticatedUser } from '@/auth/application/ports/auth.ports';
-import { GetCurrentUserUseCase } from '@/auth/application/use-cases/get-current-user.use-case';
-import { RefreshTokensUseCase } from '@/auth/application/use-cases/refresh-tokens.use-case';
-import { SignInUseCase } from '@/auth/application/use-cases/sign-in.use-case';
-import { SignOutUseCase } from '@/auth/application/use-cases/sign-out.use-case';
-import { ValidateAccessTokenUseCase } from '@/auth/application/use-cases/validate-access-token.use-case';
+import { GetCurrentUserUseCase } from '@/auth/application/use-cases/get-current-user/get-current-user.use-case';
+import { RefreshTokensUseCase } from '@/auth/application/use-cases/refresh-tokens/refresh-tokens.use-case';
+import { RegisterUseCase } from '@/auth/application/use-cases/register/register.use-case';
+import { SignInUseCase } from '@/auth/application/use-cases/sign-in/sign-in.use-case';
+import { SignOutUseCase } from '@/auth/application/use-cases/sign-out/sign-out.use-case';
+import { ValidateAccessTokenUseCase } from '@/auth/application/use-cases/validate-access-token/validate-access-token.use-case';
 import { AuthFailureReason, AuthUseCaseError } from '@/auth/domain/auth.errors';
 import { JwtAuthGuard } from '@/auth/interfaces/guards/jwt-auth.guard';
 import { AuthController } from '@/auth/interfaces/http/auth.controller';
@@ -21,13 +23,14 @@ describe('Auth API (e2e)', () => {
     sessionId: 'session-1',
     email: 'user@example.com',
     status: 'ACTIVE',
-    role: 'USER',
+    role: 'STUDENT',
     firstName: 'Test',
     lastName: 'User',
     imageUrl: null,
   };
 
   const signIn = { execute: jest.fn() };
+  const register = { execute: jest.fn() };
   const refreshTokens = { execute: jest.fn() };
   const validateAccessToken = { execute: jest.fn() };
   const getCurrentUser = { execute: jest.fn() };
@@ -35,6 +38,16 @@ describe('Auth API (e2e)', () => {
 
   beforeEach(async () => {
     jest.resetAllMocks();
+    register.execute.mockResolvedValue({
+      id: 'registered-user-1',
+      email: 'new.user@example.com',
+      status: 'ACTIVE',
+      role: 'STUDENT',
+      firstName: 'New',
+      lastName: 'User',
+      gender: 'MALE',
+      dateOfBirth: new Date('2001-04-12T00:00:00.000Z'),
+    });
     signIn.execute.mockResolvedValue({
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
@@ -51,6 +64,7 @@ describe('Auth API (e2e)', () => {
       controllers: [AuthController],
       providers: [
         JwtAuthGuard,
+        { provide: RegisterUseCase, useValue: register },
         { provide: SignInUseCase, useValue: signIn },
         { provide: RefreshTokensUseCase, useValue: refreshTokens },
         { provide: ValidateAccessTokenUseCase, useValue: validateAccessToken },
@@ -72,6 +86,108 @@ describe('Auth API (e2e)', () => {
   function server(): App {
     return app.getHttpServer() as App;
   }
+
+  it('documents auth endpoints in OpenAPI with request, auth, and envelope responses', () => {
+    const swaggerDocument = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder().setTitle('Scilab API').addBearerAuth().build(),
+    );
+
+    expect(swaggerDocument.paths['/auth/register']).toBeDefined();
+    expect(swaggerDocument.paths['/auth/login']).toBeDefined();
+    expect(swaggerDocument.paths['/auth/refresh']).toBeDefined();
+    expect(swaggerDocument.paths['/auth/me']).toBeDefined();
+    expect(swaggerDocument.paths['/auth/logout']).toBeDefined();
+
+    const registerPost = swaggerDocument.paths['/auth/register']?.post;
+    const loginPost = swaggerDocument.paths['/auth/login']?.post;
+    const refreshPost = swaggerDocument.paths['/auth/refresh']?.post;
+    const meGet = swaggerDocument.paths['/auth/me']?.get;
+    const logoutPost = swaggerDocument.paths['/auth/logout']?.post;
+
+    expect(registerPost?.requestBody).toBeDefined();
+    expect(registerPost?.responses?.['201']).toBeDefined();
+    expect(registerPost?.responses?.['400']).toBeDefined();
+    expect(registerPost?.responses?.['409']).toBeDefined();
+    expect(loginPost?.requestBody).toBeDefined();
+    expect(loginPost?.responses?.['200']).toBeDefined();
+    expect(loginPost?.responses?.['400']).toBeDefined();
+    expect(loginPost?.responses?.['401']).toBeDefined();
+    expect(loginPost?.responses?.['403']).toBeDefined();
+    expect(refreshPost?.requestBody).toBeDefined();
+    expect(refreshPost?.responses?.['200']).toBeDefined();
+    expect(refreshPost?.responses?.['400']).toBeDefined();
+    expect(refreshPost?.responses?.['401']).toBeDefined();
+    expect(meGet?.security).toBeDefined();
+    expect(meGet?.responses?.['200']).toBeDefined();
+    expect(meGet?.responses?.['401']).toBeDefined();
+    expect(logoutPost?.security).toBeDefined();
+    expect(logoutPost?.responses?.['200']).toBeDefined();
+    expect(logoutPost?.responses?.['401']).toBeDefined();
+  });
+
+  it('POST /auth/register creates a student account', async () => {
+    await request(server())
+      .post('/auth/register')
+      .send({
+        email: 'new.user@example.com',
+        password: 'Password123!',
+        firstname: 'New',
+        lastname: 'User',
+        gender: 'MALE',
+        dataofbirth: '2001-04-12',
+      })
+      .expect(201)
+      .expect({
+        success: true,
+        message: 'Registration successful',
+        data: {
+          id: 'registered-user-1',
+          email: 'new.user@example.com',
+          status: 'ACTIVE',
+          role: 'STUDENT',
+          firstName: 'New',
+          lastName: 'User',
+          gender: 'MALE',
+          dateOfBirth: '2001-04-12T00:00:00.000Z',
+        },
+      });
+
+    expect(register.execute).toHaveBeenCalledWith({
+      email: 'new.user@example.com',
+      password: 'Password123!',
+      firstname: 'New',
+      lastname: 'User',
+      gender: 'MALE',
+      dataofbirth: '2001-04-12',
+    });
+  });
+
+  it('POST /auth/register denies duplicate emails', async () => {
+    register.execute.mockRejectedValueOnce(
+      new AuthUseCaseError(
+        AuthFailureReason.EmailAlreadyRegistered,
+        'Email is already registered',
+      ),
+    );
+
+    await request(server())
+      .post('/auth/register')
+      .send({
+        email: 'user@example.com',
+        password: 'Password123!',
+        firstname: 'Test',
+        lastname: 'User',
+        gender: 'FEMALE',
+        dataofbirth: '2001-04-12',
+      })
+      .expect(409)
+      .expect({
+        success: false,
+        message: 'Email is already registered',
+        data: {},
+      });
+  });
 
   it('POST /auth/login returns exactly accessToken and refreshToken in data', async () => {
     const response = await request(server())
@@ -164,7 +280,7 @@ describe('Auth API (e2e)', () => {
           id: 'user-1',
           email: 'user@example.com',
           status: 'ACTIVE',
-          role: 'USER',
+          role: 'STUDENT',
           firstName: 'Test',
           lastName: 'User',
           imageUrl: null,
