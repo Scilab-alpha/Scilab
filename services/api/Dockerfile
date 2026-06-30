@@ -4,7 +4,7 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 
 RUN corepack enable
-RUN corepack prepare pnpm@9.0.0 --activate
+RUN corepack prepare pnpm@11.7.0 --activate
 
 FROM base AS build
 
