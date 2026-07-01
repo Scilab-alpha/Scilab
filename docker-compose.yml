@@ -8,16 +8,16 @@ services:
     container_name: scilab-api
     restart: unless-stopped
     expose:
-      - "80"
+      - "6003"
     labels:
       - traefik.enable=true
       - traefik.http.routers.scilab-api-http.entrypoints=http
       - traefik.http.routers.scilab-api-http.rule=Host(`scilab-api.epsilon.io.vn`)
       - traefik.http.routers.scilab-api-http.service=scilab-api
-      - traefik.http.services.scilab-api.loadbalancer.server.port=80
+      - traefik.http.services.scilab-api.loadbalancer.server.port=6003
     environment:
       - NODE_ENV=production
-      - PORT=80
+      - PORT=6003
       - DATABASE_URL=postgresql://postgres:123@postgres:5432/scilab?schema=public
       - ADMIN_EMAIL=Admin@admin.com
       - ADMIN_PASSWORD=12345678
