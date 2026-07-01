@@ -41,4 +41,4 @@ COPY --from=build /app/services/api/prisma ./prisma
 
 EXPOSE 6003
 
-CMD ["node", "dist/main.js"]
+CMD ["sh", "-c", "pnpm prisma migrate deploy && node dist/main.js"]
