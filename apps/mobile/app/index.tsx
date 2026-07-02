@@ -1,7 +1,6 @@
 import { Redirect } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 
-import { DiscoverScreen } from "@/features/articles/screens/discover-screen";
 import { useAuthStore } from "@/store/auth.store";
 import { useAppTheme } from "@/theme";
 
@@ -29,5 +28,5 @@ export default function IndexRoute() {
     return <Redirect href="/login" />;
   }
 
-  return <DiscoverScreen />;
+  return <Redirect href="/(tabs)/dashboard" />;
 }
