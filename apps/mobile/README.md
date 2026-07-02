@@ -17,6 +17,9 @@ Those files are ignored by git. Set `EXPO_PUBLIC_API_URL` to an address
 reachable from the target device. For an Android emulator, `localhost` usually
 needs to be replaced with `10.0.2.2`.
 
+Use the API host as the base URL without adding an `/api/v1` suffix. The
+current API routes are exposed directly under `/auth` and `/users`.
+
 ## Structure
 
 ```text

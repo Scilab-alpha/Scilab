@@ -1,5 +1,5 @@
-import { Link } from "expo-router";
-import { useState } from "react";
+import { Link, useLocalSearchParams } from "expo-router";
+import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -7,8 +7,8 @@ import {
   AppButton,
   AppCheckbox,
   AppDivider,
-  AppMessage,
   AppTextField,
+  useToast,
 } from "@/components/ui";
 import { AuthFooter } from "@/features/auth/components/auth-footer";
 import { AuthScreen } from "@/features/auth/components/auth-screen";
@@ -27,31 +27,39 @@ const defaultValues: LoginFormValues = {
 export function LoginScreen() {
   const theme = useAppTheme();
   const loginMutation = useLogin();
-  const [notice, setNotice] = useState<string>();
+  const { showToast } = useToast();
+  const params = useLocalSearchParams<{
+    email?: string;
+    registered?: string;
+  }>();
   const {
     control,
     handleSubmit,
     formState: { errors },
+    setValue,
   } = useForm<LoginFormValues>({
     defaultValues,
     mode: "onBlur",
     resolver: createZodResolver(loginSchema),
   });
 
+  useEffect(() => {
+    if (params.registered !== "1") {
+      return;
+    }
+
+    if (typeof params.email === "string") {
+      setValue("email", params.email, { shouldValidate: true });
+    }
+  }, [params.email, params.registered, setValue]);
+
   function resetFeedback() {
     loginMutation.reset();
-    setNotice(undefined);
   }
 
   function submit(values: LoginFormValues) {
     loginMutation.mutate(values);
   }
-
-  const mutationMessage = loginMutation.isError
-    ? loginMutation.error.message
-    : loginMutation.isSuccess
-      ? "Signed in successfully. Your research workspace is ready."
-      : undefined;
 
   return (
     <AuthScreen
@@ -63,7 +71,9 @@ export function LoginScreen() {
         <SocialLoginButtons
           onUnavailable={(provider) => {
             loginMutation.reset();
-            setNotice(`${provider} sign-in is not connected yet.`);
+            showToast(`${provider} sign-in is unavailable right now.`, {
+              title: "Sign-in option unavailable",
+            });
           }}
         />
 
@@ -141,7 +151,7 @@ export function LoginScreen() {
             render={({ field }) => (
               <AppCheckbox
                 checked={field.value}
-                label="Keep me logged in for 30 days"
+                label="Keep me logged in"
                 onChange={(rememberMe) => {
                   field.onChange(rememberMe);
                   resetFeedback();
@@ -150,19 +160,8 @@ export function LoginScreen() {
             )}
           />
 
-          <AppMessage
-            message={mutationMessage ?? notice}
-            tone={
-              loginMutation.isError
-                ? "error"
-                : loginMutation.isSuccess
-                  ? "success"
-                  : "info"
-            }
-          />
-
           <AppButton
-            label="Sign In to Dashboard"
+            label="Sign In"
             loading={loginMutation.isPending}
             onPress={() => {
               void handleSubmit(submit)();

@@ -32,7 +32,7 @@ export function ForgotPasswordScreen() {
 
   function submit() {
     setNotice(
-      "Password reset is not available in the API yet. This screen is ready for integration.",
+      "Password recovery is temporarily unavailable. Please try again later.",
     );
   }
 

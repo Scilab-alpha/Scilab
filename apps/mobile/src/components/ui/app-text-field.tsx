@@ -64,6 +64,7 @@ export function AppTextField({
       >
         <TextInput
           {...inputProps}
+          accessibilityLabel={inputProps.accessibilityLabel ?? label}
           onBlur={(event) => {
             setFocused(false);
             onBlur?.(event);

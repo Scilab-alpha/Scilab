@@ -1,16 +1,16 @@
-import { Link } from "expo-router";
-import { useState } from "react";
+import { Link, useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import {
   AppButton,
   AppCheckbox,
-  AppMessage,
+  AppSegmentedControl,
   AppTextField,
 } from "@/components/ui";
 import { AuthFooter } from "@/features/auth/components/auth-footer";
 import { AuthScreen } from "@/features/auth/components/auth-screen";
+import { useRegister } from "@/features/auth/hooks/use-register";
 import { createZodResolver, registerSchema } from "@/features/auth/schemas";
 import type { RegisterFormValues } from "@/features/auth/types";
 import { useAppTheme } from "@/theme";
@@ -18,15 +18,27 @@ import { useAppTheme } from "@/theme";
 const defaultValues: RegisterFormValues = {
   acceptsTerms: false,
   confirmPassword: "",
+  dateOfBirth: "",
   email: "",
   firstName: "",
+  gender: "OTHER",
   lastName: "",
   password: "",
 };
 
+const genderOptions: { label: string; value: RegisterFormValues["gender"] }[] =
+  [
+    { label: "Female", value: "FEMALE" },
+    { label: "Male", value: "MALE" },
+    { label: "Other", value: "OTHER" },
+  ];
+
 export function RegisterScreen() {
+  const router = useRouter();
   const theme = useAppTheme();
-  const [notice, setNotice] = useState<string>();
+  const { width } = useWindowDimensions();
+  const registerMutation = useRegister();
+  const compactLayout = width < 400;
   const {
     control,
     handleSubmit,
@@ -38,13 +50,21 @@ export function RegisterScreen() {
   });
 
   function resetFeedback() {
-    setNotice(undefined);
+    registerMutation.reset();
   }
 
-  function submit() {
-    setNotice(
-      "Registration is not available in the API yet. Your form is ready for integration.",
-    );
+  function submit(values: RegisterFormValues) {
+    registerMutation.mutate(values, {
+      onSuccess: () => {
+        router.replace({
+          params: {
+            email: values.email.trim().toLowerCase(),
+            registered: "1",
+          },
+          pathname: "/login",
+        });
+      },
+    });
   }
 
   return (
@@ -54,7 +74,15 @@ export function RegisterScreen() {
       title="Create Your Scholar Profile"
     >
       <View style={{ gap: theme.spacing.xxl }}>
-        <View style={[styles.nameRow, { gap: theme.spacing.lg }]}>
+        <View
+          style={[
+            styles.fieldRow,
+            {
+              flexDirection: compactLayout ? "column" : "row",
+              gap: theme.spacing.lg,
+            },
+          ]}
+        >
           <View style={styles.nameField}>
             <Controller
               control={control}
@@ -121,6 +149,58 @@ export function RegisterScreen() {
           )}
         />
 
+        <View
+          style={[
+            styles.fieldRow,
+            {
+              flexDirection: compactLayout ? "column" : "row",
+              gap: theme.spacing.lg,
+            },
+          ]}
+        >
+          <View style={styles.nameField}>
+            <Controller
+              control={control}
+              name="gender"
+              render={({ field }) => (
+                <AppSegmentedControl
+                  error={errors.gender?.message}
+                  label="Gender"
+                  onChange={(gender) => {
+                    field.onChange(gender);
+                    resetFeedback();
+                  }}
+                  options={genderOptions}
+                  value={field.value}
+                />
+              )}
+            />
+          </View>
+
+          <View style={styles.nameField}>
+            <Controller
+              control={control}
+              name="dateOfBirth"
+              render={({ field }) => (
+                <AppTextField
+                  autoComplete="birthdate-full"
+                  error={errors.dateOfBirth?.message}
+                  keyboardType="numbers-and-punctuation"
+                  label="Date of Birth"
+                  onBlur={field.onBlur}
+                  onChangeText={(dateOfBirth) => {
+                    field.onChange(dateOfBirth);
+                    resetFeedback();
+                  }}
+                  placeholder="YYYY-MM-DD"
+                  textContentType="birthdate"
+                  value={field.value}
+                />
+              )}
+            />
+          </View>
+        </View>
+
         <Controller
           control={control}
           name="password"
@@ -183,9 +263,9 @@ export function RegisterScreen() {
           )}
         />
 
-        <AppMessage message={notice} />
         <AppButton
           label="Apply for Membership"
+          loading={registerMutation.isPending}
           onPress={() => {
             void handleSubmit(submit)();
           }}
@@ -213,8 +293,8 @@ const styles = StyleSheet.create({
   nameField: {
     flex: 1,
   },
-  nameRow: {
-    flexDirection: "row",
+  fieldRow: {
+    width: "100%",
   },
   signIn: {
     alignItems: "center",
