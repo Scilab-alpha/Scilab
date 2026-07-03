@@ -63,3 +63,17 @@ export interface ArticleGraph {
   topics?: TopicNode[];
   citedArticleIds?: string[];
 }
+
+export interface CursorPaginationInput {
+  cursor?: string | null;
+  limit: number;
+}
+
+export interface CursorPage<TItem> {
+  items: TItem[];
+  nextCursor: string | null;
+}
+
+export interface JournalListItem extends JournalNode {
+  articleCount: number;
+}
