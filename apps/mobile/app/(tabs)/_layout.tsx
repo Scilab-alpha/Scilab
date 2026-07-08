@@ -62,15 +62,14 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
           borderColor: theme.colors.outlineSoft,
-          borderRadius: 18,
           borderTopWidth: 1,
-          bottom: Math.max(insets.bottom, 8),
-          height: 66,
-          left: 10,
-          paddingBottom: 7,
+          bottom: 0,
+          height: 64 + insets.bottom,
+          left: 0,
+          paddingBottom: Math.max(insets.bottom, 7),
           paddingTop: 7,
           position: "absolute",
-          right: 10,
+          right: 0,
         },
       })}
     >
