@@ -1,0 +1,76 @@
+export type AcademicNodeType =
+  | "ARTICLE"
+  | "AUTHOR"
+  | "JOURNAL"
+  | "KEYWORD"
+  | "TOPIC";
+
+export type ArticleNode = {
+  abstract: string | null;
+  createdAt: string | null;
+  doi: string | null;
+  id: string;
+  issueNumber: string | null;
+  publicationYear: number | null;
+  title: string;
+  updatedAt: string | null;
+  version: string | null;
+  volumeNumber: number | string | null;
+};
+
+export type AuthorNode = {
+  authorPosition: number | null;
+  displayName: string | null;
+  id: string;
+  imageUrl: string | null;
+  orcid: string | null;
+};
+
+export type JournalNode = {
+  country: string | null;
+  coverage: string | null;
+  displayName: string | null;
+  id: string;
+  isOaDiamond: boolean | null;
+  isOpenAccess: boolean | null;
+  issnList: string[] | null;
+  publisherImageUrl: string | null;
+  publisherName: string | null;
+  region: string | null;
+  sourceId: string | null;
+  subjectCategories: string[] | null;
+  type: string | null;
+};
+
+export type KeywordNode = {
+  displayName: string | null;
+  id: string;
+  score: number | null;
+};
+
+export type TopicNode = {
+  displayName: string | null;
+  id: string;
+  isPrimary: boolean | null;
+  score: number | null;
+};
+
+export type ArticleGraph = {
+  article: ArticleNode;
+  authors: AuthorNode[];
+  citedArticleIds: string[];
+  journal: JournalNode | null;
+  keywords: KeywordNode[];
+  topics: TopicNode[];
+};
+
+export type CursorPage<TItem> = {
+  items: TItem[];
+  nextCursor: string | null;
+};
+
+export type ArticleListParams = {
+  cursor?: string | null;
+  keyword?: string | null;
+  limit?: number;
+};
