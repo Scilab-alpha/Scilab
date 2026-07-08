@@ -1,6 +1,8 @@
 import {
   AcademicNodeType,
+  ArticleListInput,
   ArticleGraph,
+  AuthorListItem,
   CursorPage,
   CursorPaginationInput,
   JournalListItem,
@@ -11,8 +13,12 @@ export const ACADEMIC_GRAPH_REPOSITORY = Symbol('ACADEMIC_GRAPH_REPOSITORY');
 export interface AcademicGraphRepository {
   ensureSchema(): Promise<void>;
   upsertArticleGraph(graph: ArticleGraph): Promise<void>;
-  listArticles(input: CursorPaginationInput): Promise<CursorPage<ArticleGraph>>;
+  listArticles(input: ArticleListInput): Promise<CursorPage<ArticleGraph>>;
   getArticleById(id: string): Promise<ArticleGraph | null>;
+  listAuthors(
+    input: CursorPaginationInput,
+  ): Promise<CursorPage<AuthorListItem>>;
+  getAuthorById(id: string): Promise<AuthorListItem | null>;
   listJournals(
     input: CursorPaginationInput,
   ): Promise<CursorPage<JournalListItem>>;

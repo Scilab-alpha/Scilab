@@ -30,4 +30,28 @@ describe('ListArticlesUseCase', () => {
       limit: 1,
     });
   });
+
+  it('passes a keyword search query to the graph repository', async () => {
+    const listArticles = jest.fn().mockResolvedValue({
+      items: [],
+      nextCursor: null,
+    });
+    const repository = createAcademicGraphRepositoryDouble({
+      listArticles,
+    });
+    const useCase = new ListArticlesUseCase(repository);
+
+    await expect(
+      useCase.execute({ cursor: null, keyword: 'machine learning', limit: 20 }),
+    ).resolves.toEqual({
+      items: [],
+      nextCursor: null,
+    });
+
+    expect(listArticles).toHaveBeenCalledWith({
+      cursor: null,
+      keyword: 'machine learning',
+      limit: 20,
+    });
+  });
 });

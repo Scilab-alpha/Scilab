@@ -6,8 +6,10 @@ import {
 } from '@/academic/application/ports/academic-graph.port';
 import { ExecuteOpenAlexSyncUseCase } from '@/academic/application/use-cases/execute-openalex-sync/execute-openalex-sync.use-case';
 import { GetArticleByIdUseCase } from '@/academic/application/use-cases/get-article-by-id/get-article-by-id.use-case';
+import { GetAuthorByIdUseCase } from '@/academic/application/use-cases/get-author-by-id/get-author-by-id.use-case';
 import { GetJournalByIdUseCase } from '@/academic/application/use-cases/get-journal-by-id/get-journal-by-id.use-case';
 import { ListArticlesUseCase } from '@/academic/application/use-cases/list-articles/list-articles.use-case';
+import { ListAuthorsUseCase } from '@/academic/application/use-cases/list-authors/list-authors.use-case';
 import { ListJournalsUseCase } from '@/academic/application/use-cases/list-journals/list-journals.use-case';
 import { OpenAlexEnvConfigReader } from '@/academic/infrastructure/config/openalex-env-config.reader';
 import { AcademicGraphSchemaInitializer } from '@/academic/infrastructure/neo4j/academic-graph-schema.initializer';
@@ -57,9 +59,21 @@ import { PrismaModule } from '@/prisma/prisma.module';
       inject: [ACADEMIC_GRAPH_REPOSITORY],
     },
     {
+      provide: ListAuthorsUseCase,
+      useFactory: (graphRepository: AcademicGraphRepository) =>
+        new ListAuthorsUseCase(graphRepository),
+      inject: [ACADEMIC_GRAPH_REPOSITORY],
+    },
+    {
       provide: GetArticleByIdUseCase,
       useFactory: (graphRepository: AcademicGraphRepository) =>
         new GetArticleByIdUseCase(graphRepository),
+      inject: [ACADEMIC_GRAPH_REPOSITORY],
+    },
+    {
+      provide: GetAuthorByIdUseCase,
+      useFactory: (graphRepository: AcademicGraphRepository) =>
+        new GetAuthorByIdUseCase(graphRepository),
       inject: [ACADEMIC_GRAPH_REPOSITORY],
     },
     {

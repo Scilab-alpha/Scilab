@@ -8,6 +8,8 @@ export function createAcademicGraphRepositoryDouble(
     upsertArticleGraph: jest.fn().mockResolvedValue(undefined),
     listArticles: jest.fn().mockResolvedValue({ items: [], nextCursor: null }),
     getArticleById: jest.fn().mockResolvedValue(null),
+    listAuthors: jest.fn().mockResolvedValue({ items: [], nextCursor: null }),
+    getAuthorById: jest.fn().mockResolvedValue(null),
     listJournals: jest.fn().mockResolvedValue({ items: [], nextCursor: null }),
     getJournalById: jest.fn().mockResolvedValue(null),
     findArticlesByIds: jest.fn().mockResolvedValue([]),

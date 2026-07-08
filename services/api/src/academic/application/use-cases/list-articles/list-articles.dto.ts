@@ -1,9 +1,9 @@
 import {
+  ArticleListInput,
   ArticleGraph,
   CursorPage,
-  CursorPaginationInput,
 } from '@/academic/domain/academic-graph.model';
 
-export type ListArticlesInput = CursorPaginationInput;
+export type ListArticlesInput = ArticleListInput;
 
 export type ListArticlesOutput = CursorPage<ArticleGraph>;

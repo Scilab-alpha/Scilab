@@ -69,11 +69,26 @@ export interface CursorPaginationInput {
   limit: number;
 }
 
+export interface ArticleListInput extends CursorPaginationInput {
+  keyword?: string | null;
+}
+
 export interface CursorPage<TItem> {
   items: TItem[];
   nextCursor: string | null;
 }
 
+export type AuthorListItem = Omit<AuthorNode, 'authorPosition'> & {
+  articleCount: number;
+};
+
 export interface JournalListItem extends JournalNode {
   articleCount: number;
+}
+
+export class InvalidArticleKeywordCursorError extends Error {
+  constructor() {
+    super('cursor is invalid for keyword article search');
+    this.name = 'InvalidArticleKeywordCursorError';
+  }
 }

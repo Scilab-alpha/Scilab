@@ -200,12 +200,15 @@
     },
     "/academic/articles": {
       "get": {
-        "summary": "List academic articles with cursor pagination",
+        "summary": "List academic articles with cursor pagination and keyword search",
         "operationId": "listAcademicArticles",
         "tags": [
           "Academic"
         ],
         "parameters": [
+          {
+            "$ref": "#/components/parameters/AcademicKeyword"
+          },
           {
             "$ref": "#/components/parameters/AcademicCursor"
           },
@@ -225,7 +228,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/AcademicCursorInvalid"
+            "$ref": "#/components/responses/AcademicArticleListInvalid"
           }
         }
       }
@@ -255,6 +258,67 @@
           },
           "404": {
             "$ref": "#/components/responses/ArticleNotFound"
+          }
+        }
+      }
+    },
+    "/academic/authors": {
+      "get": {
+        "summary": "List academic authors with cursor pagination",
+        "operationId": "listAcademicAuthors",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AcademicCursor"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authors retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicAuthorListResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/AcademicCursorInvalid"
+          }
+        }
+      }
+    },
+    "/academic/authors/{authorId}": {
+      "get": {
+        "summary": "Return one academic author by id",
+        "operationId": "getAcademicAuthorById",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AuthorId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Author retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicAuthorResponseEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/AuthorNotFound"
           }
         }
       }
@@ -705,6 +769,16 @@
           "type": "string"
         }
       },
+      "AcademicKeyword": {
+        "name": "keyword",
+        "in": "query",
+        "required": false,
+        "description": "Keyword text used to search articles by related keyword display name.",
+        "schema": {
+          "type": "string"
+        },
+        "example": "machine learning"
+      },
       "AcademicLimit": {
         "name": "limit",
         "in": "query",
@@ -715,6 +789,14 @@
           "minimum": 1,
           "maximum": 100,
           "default": 20
+        }
+      },
+      "AuthorId": {
+        "name": "authorId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
         }
       }
     },
@@ -935,6 +1017,32 @@
           }
         }
       },
+      "AcademicArticleListInvalid": {
+        "description": "Article list query is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "invalidLimit": {
+                "value": {
+                  "success": false,
+                  "message": "limit must be an integer between 1 and 100",
+                  "data": {}
+                }
+              },
+              "invalidKeywordCursor": {
+                "value": {
+                  "success": false,
+                  "message": "cursor is invalid for keyword article search",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
       "ArticleNotFound": {
         "description": "Article not found.",
         "content": {
@@ -969,6 +1077,21 @@
                   "data": {}
                 }
               }
+            }
+          }
+        }
+      },
+      "AuthorNotFound": {
+        "description": "Author not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "example": {
+              "success": false,
+              "message": "Author not found",
+              "data": {}
             }
           }
         }
@@ -2106,6 +2229,118 @@
             "nullable": true
           }
         }
+      },
+      "AcademicAuthorCursorPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicAuthorListItem"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AcademicAuthorListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Authors retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicAuthorCursorPage"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicAuthorListItem": {
+        "type": "object",
+        "required": [
+          "id",
+          "orcid",
+          "displayName",
+          "imageUrl",
+          "articleCount"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orcid": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "articleCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "AcademicAuthorResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Author retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicAuthorListItem"
+              }
+            }
+          }
+        ]
       }
     }
   }

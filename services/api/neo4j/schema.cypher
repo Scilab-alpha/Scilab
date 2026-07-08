@@ -1,5 +1,5 @@
 // SciLab Neo4j graph schema.
-// Run this before importing or seeding academic graph data.
+// Run this before importing academic graph data.
 
 CREATE CONSTRAINT article_id_unique IF NOT EXISTS
 FOR (article:Article)

@@ -16,3 +16,12 @@ export class AcademicCursorQueryDto {
   })
   limit?: string;
 }
+
+export class AcademicArticleQueryDto extends AcademicCursorQueryDto {
+  @ApiPropertyOptional({
+    description:
+      'Keyword text used to search articles by related keyword display name.',
+    example: 'machine learning',
+  })
+  keyword?: string;
+}

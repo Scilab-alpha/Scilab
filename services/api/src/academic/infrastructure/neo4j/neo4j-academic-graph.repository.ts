@@ -3,11 +3,14 @@ import neo4j from 'neo4j-driver';
 import { AcademicGraphRepository } from '@/academic/application/ports/academic-graph.port';
 import {
   AcademicNodeType,
+  ArticleListInput,
   ArticleGraph,
   ArticleNode,
+  AuthorListItem,
   CursorPage,
   CursorPaginationInput,
   AuthorNode,
+  InvalidArticleKeywordCursorError,
   JournalListItem,
   JournalNode,
   KeywordNode,
@@ -17,6 +20,11 @@ import { Neo4jService } from '@/neo4j/neo4j.service';
 import { ACADEMIC_GRAPH_SCHEMA_CYPHER } from './academic-graph-schema.cypher';
 
 type Neo4jArticleGraph = ArticleGraph;
+type Neo4jRankedArticleGraph = {
+  graph: ArticleGraph;
+  matchScore: number;
+};
+type Neo4jAuthorListItem = AuthorListItem;
 type Neo4jJournalListItem = JournalListItem;
 
 @Injectable()
@@ -124,8 +132,14 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
   }
 
   async listArticles(
-    input: CursorPaginationInput,
+    input: ArticleListInput,
   ): Promise<CursorPage<ArticleGraph>> {
+    const keyword = normalizeKeyword(input.keyword);
+
+    if (keyword) {
+      return this.listArticlesByKeyword({ ...input, keyword });
+    }
+
     const limit = input.limit + 1;
     const result = await this.neo4j.executeRead<Neo4jArticleGraph>(
       `
@@ -210,9 +224,173 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
     );
   }
 
+  private async listArticlesByKeyword(
+    input: ArticleListInput & { keyword: string },
+  ): Promise<CursorPage<ArticleGraph>> {
+    const limit = input.limit + 1;
+    const cursor = decodeKeywordCursor(input.cursor, input.keyword);
+    const result = await this.neo4j.executeRead<Neo4jRankedArticleGraph>(
+      `
+      MATCH (article:Article)-[matched_keyword:HAS_KEYWORD]->(matched_keyword_node:Keyword)
+      WHERE toLower(coalesce(matched_keyword_node.display_name, '')) CONTAINS $keyword
+      WITH article, max(coalesce(matched_keyword.score, 0.0)) AS match_score
+      WHERE $cursor_score IS NULL
+         OR match_score < $cursor_score
+         OR (match_score = $cursor_score AND article.id > $cursor_article_id)
+      WITH article, match_score
+      ORDER BY match_score DESC, article.id ASC
+      LIMIT $limit
+      OPTIONAL MATCH (article)-[:PUBLISHED_IN]->(journal:Journal)
+      OPTIONAL MATCH (author:Author)-[wrote:WROTE]->(article)
+      WITH article, journal, match_score,
+           collect(DISTINCT author {
+             .id,
+             .orcid,
+             displayName: author.display_name,
+             imageUrl: author.url_image,
+             authorPosition: wrote.author_position
+           }) AS author_rows
+      OPTIONAL MATCH (article)-[has_keyword:HAS_KEYWORD]->(keyword:Keyword)
+      WITH article, journal, match_score, author_rows,
+           collect(DISTINCT keyword {
+             .id,
+             displayName: keyword.display_name,
+             score: has_keyword.score
+           }) AS keyword_rows
+      OPTIONAL MATCH (article)-[belongs_to:BELONGS_TO]->(topic:Topic)
+      WITH article, journal, match_score, author_rows, keyword_rows,
+           collect(DISTINCT topic {
+             .id,
+             displayName: topic.display_name,
+             score: belongs_to.score,
+             isPrimary: belongs_to.is_primary
+           }) AS topic_rows
+      OPTIONAL MATCH (article)-[:CITES]->(cited:Article)
+      WITH article, journal, match_score, author_rows, keyword_rows, topic_rows,
+           collect(DISTINCT cited.id) AS cited_article_ids
+      ORDER BY match_score DESC, article.id ASC
+      RETURN {
+        article: article {
+          .id,
+          .title,
+          .abstract,
+          .doi,
+          publicationYear: article.publication_year,
+          .version,
+          volumeNumber: article.volume_number,
+          issueNumber: article.issue_number,
+          createdAt: article.created_at,
+          updatedAt: article.updated_at
+        },
+        journal: CASE
+          WHEN journal IS NULL THEN NULL
+          ELSE journal {
+            .id,
+            sourceId: journal.source_id,
+            displayName: journal.display_name,
+            .type,
+            isOpenAccess: journal.is_open_access,
+            isOaDiamond: journal.is_oa_diamond,
+            .coverage,
+            .country,
+            .region,
+            issnList: journal.issn_list,
+            publisherName: journal.publisher_name,
+            publisherImageUrl: journal.publisher_image_url,
+            subjectCategories: journal.subject_categories
+          }
+        END,
+        authors: [row IN author_rows WHERE row.id IS NOT NULL],
+        keywords: [row IN keyword_rows WHERE row.id IS NOT NULL],
+        topics: [row IN topic_rows WHERE row.id IS NOT NULL],
+        citedArticleIds: cited_article_ids
+      } AS graph,
+      match_score
+      `,
+      {
+        cursor_article_id: cursor?.articleId ?? null,
+        cursor_score: cursor?.score ?? null,
+        keyword: input.keyword,
+        limit: neo4j.int(limit),
+      },
+      (record) => {
+        const matchScore = toPlain(record.get('match_score'));
+
+        return {
+          graph: toPlain(record.get('graph')) as Neo4jArticleGraph,
+          matchScore:
+            typeof matchScore === 'number' ? matchScore : Number(matchScore),
+        };
+      },
+    );
+
+    const items = result.records.slice(0, input.limit);
+    const hasNextPage = result.records.length > input.limit;
+
+    return {
+      items: items.map((item) => item.graph),
+      nextCursor:
+        hasNextPage && items.length > 0
+          ? encodeKeywordCursor(input.keyword, items[items.length - 1])
+          : null,
+    };
+  }
+
   async getArticleById(id: string): Promise<ArticleGraph | null> {
     const [article] = await this.findArticlesByIds([id]);
     return article ?? null;
+  }
+
+  async listAuthors(
+    input: CursorPaginationInput,
+  ): Promise<CursorPage<AuthorListItem>> {
+    const limit = input.limit + 1;
+    const result = await this.neo4j.executeRead<Neo4jAuthorListItem>(
+      `
+      MATCH (author:Author)
+      WHERE $cursor IS NULL OR author.id > $cursor
+      WITH author
+      ORDER BY author.id ASC
+      LIMIT $limit
+      OPTIONAL MATCH (author)-[:WROTE]->(article:Article)
+      WITH author, count(article) AS article_count
+      RETURN author {
+        .id,
+        .orcid,
+        displayName: author.display_name,
+        imageUrl: author.url_image,
+        articleCount: article_count
+      } AS author
+      `,
+      {
+        cursor: input.cursor ?? null,
+        limit: neo4j.int(limit),
+      },
+      (record) => toPlain(record.get('author')) as Neo4jAuthorListItem,
+    );
+
+    return toCursorPage(result.records, input.limit, (author) => author.id);
+  }
+
+  async getAuthorById(id: string): Promise<AuthorListItem | null> {
+    const result = await this.neo4j.executeRead<Neo4jAuthorListItem>(
+      `
+      MATCH (author:Author {id: $id})
+      OPTIONAL MATCH (author)-[:WROTE]->(article:Article)
+      WITH author, count(article) AS article_count
+      RETURN author {
+        .id,
+        .orcid,
+        displayName: author.display_name,
+        imageUrl: author.url_image,
+        articleCount: article_count
+      } AS author
+      `,
+      { id },
+      (record) => toPlain(record.get('author')) as Neo4jAuthorListItem,
+    );
+
+    return result.records[0] ?? null;
   }
 
   async listJournals(
@@ -408,6 +586,69 @@ function toCursorPage<TItem>(
         ? getCursor(items[items.length - 1])
         : null,
   };
+}
+
+type KeywordCursor = {
+  keyword: string;
+  score: number;
+  articleId: string;
+};
+
+function normalizeKeyword(keyword?: string | null): string | null {
+  const normalized = keyword?.trim().toLowerCase();
+
+  return normalized || null;
+}
+
+function encodeKeywordCursor(
+  keyword: string,
+  item: Neo4jRankedArticleGraph,
+): string {
+  const payload: KeywordCursor = {
+    articleId: item.graph.article.id,
+    keyword,
+    score: item.matchScore,
+  };
+
+  return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+}
+
+function decodeKeywordCursor(
+  cursor: string | null | undefined,
+  keyword: string,
+): KeywordCursor | null {
+  if (!cursor) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(
+      Buffer.from(cursor, 'base64url').toString('utf8'),
+    ) as Partial<KeywordCursor>;
+
+    if (
+      typeof payload.keyword !== 'string' ||
+      payload.keyword !== keyword ||
+      typeof payload.articleId !== 'string' ||
+      payload.articleId.trim() === '' ||
+      typeof payload.score !== 'number' ||
+      !Number.isFinite(payload.score)
+    ) {
+      throw new InvalidArticleKeywordCursorError();
+    }
+
+    return {
+      articleId: payload.articleId,
+      keyword: payload.keyword,
+      score: payload.score,
+    };
+  } catch (error) {
+    if (error instanceof InvalidArticleKeywordCursorError) {
+      throw error;
+    }
+
+    throw new InvalidArticleKeywordCursorError();
+  }
 }
 
 function toPlain(value: unknown): unknown {
