@@ -19,6 +19,10 @@
     {
       "name": "Users",
       "description": "Authenticated user profile and admin user management."
+    },
+    {
+      "name": "Academic",
+      "description": "Public academic article and journal discovery."
     }
   ],
   "paths": {
@@ -190,6 +194,192 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/academic/articles": {
+      "get": {
+        "summary": "List academic articles with cursor pagination and keyword search",
+        "operationId": "listAcademicArticles",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AcademicKeyword"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicCursor"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Articles retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicArticleListResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/AcademicArticleListInvalid"
+          }
+        }
+      }
+    },
+    "/academic/articles/{articleId}": {
+      "get": {
+        "summary": "Return one academic article by id",
+        "operationId": "getAcademicArticleById",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ArticleId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Article retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicArticleResponseEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/ArticleNotFound"
+          }
+        }
+      }
+    },
+    "/academic/authors": {
+      "get": {
+        "summary": "List academic authors with cursor pagination",
+        "operationId": "listAcademicAuthors",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AcademicCursor"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authors retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicAuthorListResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/AcademicCursorInvalid"
+          }
+        }
+      }
+    },
+    "/academic/authors/{authorId}": {
+      "get": {
+        "summary": "Return one academic author by id",
+        "operationId": "getAcademicAuthorById",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AuthorId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Author retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicAuthorResponseEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/AuthorNotFound"
+          }
+        }
+      }
+    },
+    "/academic/journals": {
+      "get": {
+        "summary": "List academic journals with cursor pagination",
+        "operationId": "listAcademicJournals",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AcademicCursor"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Journals retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicJournalListResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/AcademicCursorInvalid"
+          }
+        }
+      }
+    },
+    "/academic/journals/{journalId}": {
+      "get": {
+        "summary": "Return one academic journal by id",
+        "operationId": "getAcademicJournalById",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/JournalId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Journal retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicJournalResponseEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/JournalNotFound"
           }
         }
       }
@@ -553,6 +743,61 @@
           "type": "string",
           "format": "uuid"
         }
+      },
+      "ArticleId": {
+        "name": "articleId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "JournalId": {
+        "name": "journalId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AcademicCursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Cursor returned by the previous page.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AcademicKeyword": {
+        "name": "keyword",
+        "in": "query",
+        "required": false,
+        "description": "Keyword text used to search articles by related keyword display name.",
+        "schema": {
+          "type": "string"
+        },
+        "example": "machine learning"
+      },
+      "AcademicLimit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Number of records to return. Defaults to 20, maximum 100.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        }
+      },
+      "AuthorId": {
+        "name": "authorId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
       }
     },
     "securitySchemes": {
@@ -749,6 +994,104 @@
                   "data": {}
                 }
               }
+            }
+          }
+        }
+      },
+      "AcademicCursorInvalid": {
+        "description": "Cursor pagination query is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "invalidLimit": {
+                "value": {
+                  "success": false,
+                  "message": "limit must be an integer between 1 and 100",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "AcademicArticleListInvalid": {
+        "description": "Article list query is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "invalidLimit": {
+                "value": {
+                  "success": false,
+                  "message": "limit must be an integer between 1 and 100",
+                  "data": {}
+                }
+              },
+              "invalidKeywordCursor": {
+                "value": {
+                  "success": false,
+                  "message": "cursor is invalid for keyword article search",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "ArticleNotFound": {
+        "description": "Article not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "articleNotFound": {
+                "value": {
+                  "success": false,
+                  "message": "Article not found",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "JournalNotFound": {
+        "description": "Journal not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "journalNotFound": {
+                "value": {
+                  "success": false,
+                  "message": "Journal not found",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "AuthorNotFound": {
+        "description": "Author not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "example": {
+              "success": false,
+              "message": "Author not found",
+              "data": {}
             }
           }
         }
@@ -1450,6 +1793,553 @@
           "MALE",
           "FEMALE",
           "OTHER"
+        ]
+      },
+      "AcademicArticleCursorPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicArticleGraph"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AcademicJournalCursorPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicJournal"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AcademicArticleListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Articles retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicArticleCursorPage"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicJournalListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Journals retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicJournalCursorPage"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicArticleResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Article retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicArticleGraph"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicJournalResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Journal retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicJournal"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicArticleGraph": {
+        "type": "object",
+        "required": [
+          "article",
+          "journal",
+          "authors",
+          "keywords",
+          "topics",
+          "citedArticleIds"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "article": {
+            "$ref": "#/components/schemas/AcademicArticle"
+          },
+          "journal": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AcademicJournal"
+              }
+            ],
+            "nullable": true
+          },
+          "authors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicAuthor"
+            }
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicKeyword"
+            }
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicTopic"
+            }
+          },
+          "citedArticleIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AcademicArticle": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "abstract",
+          "doi",
+          "publicationYear",
+          "version",
+          "volumeNumber",
+          "issueNumber",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "abstract": {
+            "type": "string",
+            "nullable": true
+          },
+          "doi": {
+            "type": "string",
+            "nullable": true
+          },
+          "publicationYear": {
+            "type": "integer",
+            "nullable": true
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          },
+          "volumeNumber": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "issueNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AcademicJournal": {
+        "type": "object",
+        "required": [
+          "id",
+          "sourceId",
+          "displayName",
+          "type",
+          "isOpenAccess",
+          "isOaDiamond",
+          "coverage",
+          "country",
+          "region",
+          "issnList",
+          "publisherName",
+          "publisherImageUrl",
+          "subjectCategories"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "isOpenAccess": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "isOaDiamond": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "coverage": {
+            "type": "string",
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
+          },
+          "region": {
+            "type": "string",
+            "nullable": true
+          },
+          "issnList": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "publisherName": {
+            "type": "string",
+            "nullable": true
+          },
+          "publisherImageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "subjectCategories": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "articleCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "AcademicAuthor": {
+        "type": "object",
+        "required": [
+          "id",
+          "orcid",
+          "displayName",
+          "imageUrl",
+          "authorPosition"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orcid": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorPosition": {
+            "type": "integer",
+            "nullable": true
+          }
+        }
+      },
+      "AcademicKeyword": {
+        "type": "object",
+        "required": [
+          "id",
+          "displayName",
+          "score"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "score": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "AcademicTopic": {
+        "type": "object",
+        "required": [
+          "id",
+          "displayName",
+          "score",
+          "isPrimary"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "score": {
+            "type": "number",
+            "nullable": true
+          },
+          "isPrimary": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "AcademicAuthorCursorPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicAuthorListItem"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AcademicAuthorListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Authors retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicAuthorCursorPage"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicAuthorListItem": {
+        "type": "object",
+        "required": [
+          "id",
+          "orcid",
+          "displayName",
+          "imageUrl",
+          "articleCount"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orcid": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "articleCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "AcademicAuthorResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Author retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicAuthorListItem"
+              }
+            }
+          }
         ]
       }
     }
