@@ -22,7 +22,6 @@ export function ArticleCard({ article }: ArticleCardProps) {
     article.article.id,
   )}` as Href;
   const journal = getArticleJournal(article);
-  const status = getArticleStatus(article);
   const publishedAt = formatPublishedAt(article);
   const citationLabel = formatCitations(article.citedArticleIds.length);
 
@@ -41,31 +40,20 @@ export function ArticleCard({ article }: ArticleCardProps) {
         ]}
       >
         <View style={styles.topRow}>
-          <View
+          <Text
+            numberOfLines={1}
+            selectable
             style={[
-              styles.statusBadge,
+              theme.typography.caption,
+              styles.yearBadge,
               {
-                backgroundColor: status.isOpenAccess
-                  ? theme.colors.primarySoft
-                  : theme.colors.successSoft,
-                borderRadius: theme.radii.sm,
+                backgroundColor: theme.colors.primarySoft,
+                color: theme.colors.primary,
               },
             ]}
           >
-            <Text
-              numberOfLines={1}
-              style={[
-                theme.typography.caption,
-                {
-                  color: status.isOpenAccess
-                    ? theme.colors.primary
-                    : theme.colors.success,
-                },
-              ]}
-            >
-              {status.label}
-            </Text>
-          </View>
+            {getArticleYear(article)}
+          </Text>
           <Ionicons
             color={theme.colors.primary}
             name="bookmark-outline"
@@ -149,17 +137,6 @@ export function ArticleCard({ article }: ArticleCardProps) {
   );
 }
 
-function getArticleStatus(article: ArticleGraph) {
-  const isOpenAccess =
-    article.journal?.isOaDiamond === true ||
-    article.journal?.isOpenAccess === true;
-
-  return {
-    isOpenAccess,
-    label: isOpenAccess ? "OPEN ACCESS" : "PEER REVIEWED",
-  };
-}
-
 function formatPublishedAt(article: ArticleGraph) {
   const timestamp = article.article.createdAt ?? article.article.updatedAt;
 
@@ -204,14 +181,6 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 12,
   },
-  metaText: {
-    maxWidth: 150,
-  },
-  statusBadge: {
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
   title: {
     fontSize: 18,
     lineHeight: 22,
@@ -219,6 +188,16 @@ const styles = StyleSheet.create({
   topRow: {
     alignItems: "center",
     flexDirection: "row",
+    gap: 12,
     justifyContent: "space-between",
+  },
+  metaText: {
+    flexShrink: 1,
+  },
+  yearBadge: {
+    borderRadius: 4,
+    overflow: "hidden",
+    paddingHorizontal: 7,
+    paddingVertical: 3,
   },
 });
