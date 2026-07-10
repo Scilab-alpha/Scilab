@@ -10,7 +10,7 @@ export class OpenAlexSyncScheduler {
     private readonly executeOpenAlexSyncUseCase: ExecuteOpenAlexSyncUseCase,
   ) {}
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleOpenAlexSyncPreparation(): Promise<void> {
     this.logger.log('OpenAlex academic synchronization cron job triggered.');
 
