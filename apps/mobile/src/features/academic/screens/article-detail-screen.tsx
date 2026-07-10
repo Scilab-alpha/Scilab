@@ -48,11 +48,22 @@ export function ArticleDetailScreen() {
       <Stack.Screen
         options={{
           headerBackVisible: false,
-          headerLeft: () => <AppBackButton />,
+          headerLeft: () => (
+            <View style={styles.headerBackSlot}>
+              <AppBackButton variant="brown" />
+            </View>
+          ),
           headerShown: true,
           headerShadowVisible: false,
+          headerStyle: { backgroundColor: theme.colors.background },
+          headerTintColor: theme.colors.primary,
           headerTitleAlign: "center",
-          title: "Article",
+          headerTitleStyle: {
+            color: theme.colors.primary,
+            fontSize: 15,
+            fontWeight: "700",
+          },
+          title: "Paper Details",
         }}
       />
       <ScrollView
@@ -679,6 +690,9 @@ const styles = StyleSheet.create({
   },
   hero: {
     paddingTop: 4,
+  },
+  headerBackSlot: {
+    marginLeft: 4,
   },
   heroMetaRow: {
     alignItems: "center",
