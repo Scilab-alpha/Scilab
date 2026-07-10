@@ -4,9 +4,15 @@ import { Pressable, StyleSheet } from "react-native";
 
 import { useAppTheme } from "@/theme";
 
-export function AppBackButton() {
+type AppBackButtonProps = {
+  variant?: "brown" | "plain" | "soft";
+};
+
+export function AppBackButton({ variant = "soft" }: AppBackButtonProps) {
   const router = useRouter();
   const theme = useAppTheme();
+  const isPlain = variant === "plain";
+  const isBrown = variant === "brown";
 
   return (
     <Pressable
@@ -16,12 +22,26 @@ export function AppBackButton() {
       style={({ pressed }) => [
         styles.button,
         {
-          backgroundColor: theme.colors.primarySoft,
+          backgroundColor: isPlain
+            ? "transparent"
+            : isBrown
+              ? "transparent"
+              : theme.colors.primarySoft,
           opacity: pressed ? 0.72 : 1,
         },
       ]}
     >
-      <Ionicons color={theme.colors.primary} name="arrow-back" size={20} />
+      <Ionicons
+        color={
+          isPlain
+            ? theme.colors.text
+            : isBrown
+              ? theme.colors.primary
+              : theme.colors.primary
+        }
+        name="chevron-back"
+        size={24}
+      />
     </Pressable>
   );
 }
