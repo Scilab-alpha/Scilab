@@ -6,10 +6,12 @@ import { useAppTheme } from "@/theme";
 export function ScreenShell({
   children,
   eyebrow,
+  showHeader = true,
   subtitle,
   title,
 }: PropsWithChildren<{
   eyebrow?: string;
+  showHeader?: boolean;
   subtitle: string;
   title: string;
 }>) {
@@ -25,28 +27,30 @@ export function ScreenShell({
       showsVerticalScrollIndicator={false}
       style={{ backgroundColor: theme.colors.background }}
     >
-      <View style={{ gap: theme.spacing.xs }}>
-        {eyebrow ? (
+      {showHeader ? (
+        <View style={{ gap: theme.spacing.xs }}>
+          {eyebrow ? (
+            <Text
+              selectable
+              style={[styles.eyebrow, { color: theme.colors.primary }]}
+            >
+              {eyebrow}
+            </Text>
+          ) : null}
           <Text
             selectable
-            style={[styles.eyebrow, { color: theme.colors.primary }]}
+            style={[theme.typography.display, { color: theme.colors.text }]}
           >
-            {eyebrow}
+            {title}
           </Text>
-        ) : null}
-        <Text
-          selectable
-          style={[theme.typography.display, { color: theme.colors.text }]}
-        >
-          {title}
-        </Text>
-        <Text
-          selectable
-          style={[theme.typography.body, { color: theme.colors.textMuted }]}
-        >
-          {subtitle}
-        </Text>
-      </View>
+          <Text
+            selectable
+            style={[theme.typography.body, { color: theme.colors.textMuted }]}
+          >
+            {subtitle}
+          </Text>
+        </View>
+      ) : null}
       {children}
     </ScrollView>
   );
