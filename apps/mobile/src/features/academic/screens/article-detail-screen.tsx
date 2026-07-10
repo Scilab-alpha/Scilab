@@ -268,10 +268,6 @@ export function ArticleDetailScreen() {
                   value={article.journal?.publisherName}
                 />
                 <InfoRow
-                  label="Open access"
-                  value={formatOpenAccess(article)}
-                />
-                <InfoRow
                   label="ISSN"
                   value={article.journal?.issnList?.join(", ")}
                 />
@@ -625,26 +621,6 @@ function MutedText({ text }: { text: string }) {
 
 function formatCount(value: number) {
   return value > 0 ? String(value) : "0";
-}
-
-function formatOpenAccess(article: ArticleGraph) {
-  if (!article.journal) {
-    return null;
-  }
-
-  if (article.journal.isOaDiamond) {
-    return "Diamond open access";
-  }
-
-  if (article.journal.isOpenAccess === true) {
-    return "Open access";
-  }
-
-  if (article.journal.isOpenAccess === false) {
-    return "Not open access";
-  }
-
-  return null;
 }
 
 function formatVolumeIssue(article: ArticleGraph) {
