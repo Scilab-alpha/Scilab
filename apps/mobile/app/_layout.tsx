@@ -26,7 +26,17 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="articles/[articleId]" />
+        <Stack.Screen
+          name="articles/[articleId]"
+          options={{
+            headerBackVisible: false,
+            headerLeft: () => <AppBackButton />,
+            headerShown: true,
+            headerShadowVisible: false,
+            headerTitleAlign: "center",
+            title: "Article",
+          }}
+        />
         <Stack.Screen
           name="profile/edit"
           options={{

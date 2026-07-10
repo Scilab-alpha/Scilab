@@ -43,37 +43,112 @@ export function SearchScreen() {
       subtitle="Search academic articles by keyword and open the works that matter."
       title="Articles"
     >
-      <View
-        style={[
-          styles.searchBox,
-          {
-            backgroundColor: theme.colors.surface,
-            borderColor: theme.colors.outlineSoft,
-          },
-        ]}
-      >
-        <Ionicons color={theme.colors.textMuted} name="search" size={20} />
-        <TextInput
-          accessibilityLabel="Search articles"
-          onChangeText={setKeyword}
-          placeholder="Keyword, topic or title"
-          placeholderTextColor={theme.colors.outline}
-          style={[styles.input, { color: theme.colors.text }]}
-          value={keyword}
-        />
-        {keyword ? (
-          <Pressable
-            accessibilityLabel="Clear search"
-            hitSlop={8}
-            onPress={() => setKeyword("")}
+      <View style={{ gap: theme.spacing.lg }}>
+        <Text
+          selectable
+          style={[
+            theme.typography.display,
+            styles.title,
+            { color: theme.colors.text },
+          ]}
+        >
+          Discover Research
+        </Text>
+
+        <View
+          style={[
+            styles.searchBox,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.outlineSoft,
+            },
+          ]}
+        >
+          <Ionicons color={theme.colors.textMuted} name="search" size={18} />
+          <TextInput
+            accessibilityLabel="Search articles"
+            onChangeText={setKeyword}
+            placeholder="Search by title, keywords, or DOI..."
+            placeholderTextColor={theme.colors.outline}
+            style={[styles.input, { color: theme.colors.text }]}
+            value={keyword}
+          />
+          {keyword ? (
+            <Pressable
+              accessibilityLabel="Clear search"
+              hitSlop={8}
+              onPress={() => setKeyword("")}
+            >
+              <Ionicons
+                color={theme.colors.textMuted}
+                name="close-circle"
+                size={20}
+              />
+            </Pressable>
+          ) : null}
+        </View>
+
+        <View style={styles.filters}>
+          {["All", "Author", "Journal", "Keywords"].map((filter, index) => (
+            <View
+              key={filter}
+              style={[
+                styles.filterChip,
+                {
+                  backgroundColor:
+                    index === 0
+                      ? theme.colors.primarySoft
+                      : theme.colors.surface,
+                  borderColor:
+                    index === 0
+                      ? theme.colors.primarySoft
+                      : theme.colors.outlineSoft,
+                  borderRadius: theme.radii.pill,
+                },
+              ]}
+            >
+              <Text
+                numberOfLines={1}
+                style={[
+                  theme.typography.caption,
+                  {
+                    color:
+                      index === 0
+                        ? theme.colors.primary
+                        : theme.colors.textMuted,
+                  },
+                ]}
+              >
+                {filter}
+              </Text>
+            </View>
+          ))}
+          <View
+            style={[
+              styles.filterChip,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.outlineSoft,
+                borderRadius: theme.radii.pill,
+              },
+            ]}
           >
             <Ionicons
               color={theme.colors.textMuted}
-              name="close-circle"
-              size={20}
+              name="options-outline"
+              size={12}
             />
-          </Pressable>
-        ) : null}
+            <Text
+              numberOfLines={1}
+              style={[
+                theme.typography.caption,
+                { color: theme.colors.textMuted },
+              ]}
+            >
+              Advanced
+            </Text>
+          </View>
+        </View>
       </View>
 
       {isError ? (
@@ -90,33 +165,36 @@ export function SearchScreen() {
       ) : articles.length === 0 && !isError ? (
         <ArticleEmptyState keyword={debouncedKeyword} />
       ) : (
-        <View style={{ gap: theme.spacing.md }}>
+        <View style={{ gap: theme.spacing.lg }}>
           <View style={styles.resultsHeader}>
             <Text
               selectable
               style={[
                 theme.typography.caption,
-                { color: theme.colors.primary },
+                { color: theme.colors.textMuted },
               ]}
             >
-              {articles.length} RESULT{articles.length === 1 ? "" : "S"}
+              Showing {articles.length} result{articles.length === 1 ? "" : "s"}
             </Text>
-            {debouncedKeyword ? (
+            <View style={styles.sortControl}>
               <Text
                 numberOfLines={1}
                 selectable
                 style={[
                   theme.typography.caption,
                   {
-                    color: theme.colors.textMuted,
-                    flex: 1,
-                    textAlign: "right",
+                    color: theme.colors.primary,
                   },
                 ]}
               >
-                {debouncedKeyword}
+                Most Relevant
               </Text>
-            ) : null}
+              <Ionicons
+                color={theme.colors.primary}
+                name="chevron-down"
+                size={12}
+              />
+            </View>
           </View>
           {articles.map((article) => (
             <ArticleCard article={article} key={article.article.id} />
@@ -166,16 +244,28 @@ export function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  searchBox: {
+  filterChip: {
     alignItems: "center",
-    borderRadius: 10,
     borderWidth: 1,
     flexDirection: "row",
-    gap: 10,
-    minHeight: 52,
-    paddingHorizontal: 14,
+    gap: 4,
+    minHeight: 30,
+    paddingHorizontal: 12,
   },
-  input: { flex: 1, fontSize: 14, paddingVertical: 12 },
+  filters: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  searchBox: {
+    alignItems: "center",
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 9,
+    minHeight: 46,
+    paddingHorizontal: 12,
+  },
+  input: { flex: 1, fontSize: 13, paddingVertical: 10 },
   loadMoreButton: {
     alignItems: "center",
     borderWidth: 1,
@@ -192,6 +282,16 @@ const styles = StyleSheet.create({
   resultsHeader: {
     alignItems: "center",
     flexDirection: "row",
-    gap: 10,
+    gap: 12,
+    justifyContent: "space-between",
+  },
+  sortControl: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 4,
+  },
+  title: {
+    fontSize: 22,
+    lineHeight: 28,
   },
 });
