@@ -3,11 +3,26 @@ import "react-native-reanimated";
 
 import { AppBackButton } from "@/features/navigation/components/app-back-button";
 import { AppProviders } from "@/lib/app-providers";
+import { useAppTheme } from "@/theme";
 
 export default function RootLayout() {
+  const theme = useAppTheme();
+
   return (
     <AppProviders>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack
+        screenOptions={{
+          contentStyle: { backgroundColor: theme.colors.background },
+          headerShown: false,
+          headerStyle: { backgroundColor: theme.colors.background },
+          headerTintColor: theme.colors.text,
+          headerTitleStyle: {
+            color: theme.colors.text,
+            fontSize: 15,
+            fontWeight: "700",
+          },
+        }}
+      >
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
@@ -19,7 +34,6 @@ export default function RootLayout() {
             headerShown: true,
             headerShadowVisible: false,
             headerTitleAlign: "center",
-            headerTitleStyle: { fontSize: 15, fontWeight: "700" },
             title: "Edit profile",
           }}
         />
