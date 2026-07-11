@@ -1,59 +1,142 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 
-import { ArticleCard } from "@/features/academic/components/article-card";
-import { ArticleEmptyState } from "@/features/academic/components/article-empty-state";
-import { ArticleErrorState } from "@/features/academic/components/article-error-state";
+import { ArticleResults } from "@/features/academic/components/article-results";
+import { AuthorResults } from "@/features/academic/components/author-results";
+import {
+  FilterDropdown,
+  SearchFilters,
+} from "@/features/academic/components/search-filters";
+import {
+  SearchModeTabs,
+  type SearchMode,
+} from "@/features/academic/components/search-mode-tabs";
+import {
+  defaultArticleFilters,
+  defaultAuthorFilters,
+} from "@/features/academic/constants/search-filters";
 import { useArticles } from "@/features/academic/hooks/use-articles";
+import { useAuthors } from "@/features/academic/hooks/use-authors";
 import { useDebouncedValue } from "@/features/academic/hooks/use-debounced-value";
+import type {
+  ArticleFilters,
+  AuthorFilters,
+  PickerConfig,
+} from "@/features/academic/types/search.type";
+import {
+  filterArticles,
+  filterAuthors,
+  formatArticlePlaceholder,
+  formatAuthorPlaceholder,
+  uniqueSorted,
+} from "@/features/academic/utils/search-filtering";
 import { ScreenShell } from "@/features/navigation/components/screen-shell";
-import { getUserFriendlyApiErrorMessage } from "@/services/api";
 import { useAppTheme } from "@/theme";
 
 export function SearchScreen() {
   const theme = useAppTheme();
   const [keyword, setKeyword] = useState("");
-  const debouncedKeyword = useDebouncedValue(keyword);
-  const {
-    data,
-    error,
-    fetchNextPage,
-    hasNextPage,
-    isError,
-    isFetchingNextPage,
-    isLoading,
-    refetch,
-  } = useArticles(debouncedKeyword);
-  const articles = useMemo(
-    () => data?.pages.flatMap((page) => page.items) ?? [],
-    [data],
+  const [mode, setMode] = useState<SearchMode>("articles");
+  const [articleFilters, setArticleFilters] = useState<ArticleFilters>(
+    defaultArticleFilters,
   );
+  const [authorFilters, setAuthorFilters] =
+    useState<AuthorFilters>(defaultAuthorFilters);
+  const [picker, setPicker] = useState<PickerConfig | null>(null);
+  const debouncedKeyword = useDebouncedValue(keyword);
+  const isShowingAuthors = mode === "authors";
+  const articlesQuery = useArticles("");
+  const authorsQuery = useAuthors({ enabled: isShowingAuthors });
+  const articles = useMemo(
+    () => articlesQuery.data?.pages.flatMap((page) => page.items) ?? [],
+    [articlesQuery.data],
+  );
+  const authors = useMemo(
+    () => authorsQuery.data?.pages.flatMap((page) => page.items) ?? [],
+    [authorsQuery.data],
+  );
+  const articleYears = useMemo(
+    () =>
+      uniqueSorted(
+        articles
+          .map((article) => article.article.publicationYear?.toString())
+          .filter((year): year is string => Boolean(year)),
+      ).sort((left, right) => Number(right) - Number(left)),
+    [articles],
+  );
+  const articleKeywords = useMemo(
+    () =>
+      uniqueSorted(
+        articles
+          .flatMap((article) => [
+            ...article.keywords.map((item) => item.displayName?.trim()),
+            ...article.topics.map((item) => item.displayName?.trim()),
+          ])
+          .filter((name): name is string => Boolean(name)),
+      ),
+    [articles],
+  );
+  const visibleArticles = useMemo(
+    () => filterArticles(articles, debouncedKeyword, articleFilters),
+    [articles, debouncedKeyword, articleFilters],
+  );
+  const visibleAuthors = useMemo(
+    () => filterAuthors(authors, debouncedKeyword, authorFilters),
+    [authors, debouncedKeyword, authorFilters],
+  );
+  const openPicker = (nextPicker: PickerConfig) => {
+    setPicker((current) =>
+      current?.mode === nextPicker.mode ? null : nextPicker,
+    );
+  };
+  const updatePickerValues = (selectedValues: string[]) => {
+    if (!picker) {
+      return;
+    }
+
+    if (picker.mode === "article-keywords") {
+      setArticleFilters((current) => ({
+        ...current,
+        keywords: selectedValues,
+      }));
+    }
+
+    if (picker.mode === "article-years") {
+      setArticleFilters((current) => ({
+        ...current,
+        years: selectedValues,
+      }));
+    }
+
+    if (picker.mode === "author-publications") {
+      setAuthorFilters((current) => ({
+        ...current,
+        minimumArticles:
+          (selectedValues[0] as AuthorFilters["minimumArticles"]) ?? "all",
+      }));
+    }
+
+    if (picker.mode === "author-sort") {
+      setAuthorFilters((current) => ({
+        ...current,
+        sort: (selectedValues[0] as AuthorFilters["sort"]) ?? "relevance",
+      }));
+    }
+
+    setPicker((current) =>
+      current ? { ...current, selectedValues } : current,
+    );
+  };
 
   return (
     <ScreenShell
       hideHeader
-      subtitle="Search academic articles by keyword and open the works that matter."
-      title="Articles"
+      subtitle="Search academic articles or indexed author profiles."
+      title={isShowingAuthors ? "Authors" : "Articles"}
     >
       <View style={{ gap: theme.spacing.lg }}>
-        <Text
-          selectable
-          style={[
-            theme.typography.display,
-            styles.title,
-            { color: theme.colors.text },
-          ]}
-        >
-          Discover Research
-        </Text>
+        <SearchModeTabs mode={mode} onModeChange={setMode} />
 
         <View
           style={[
@@ -66,9 +149,15 @@ export function SearchScreen() {
         >
           <Ionicons color={theme.colors.textMuted} name="search" size={18} />
           <TextInput
-            accessibilityLabel="Search articles"
+            accessibilityLabel={
+              isShowingAuthors ? "Search authors" : "Search articles"
+            }
             onChangeText={setKeyword}
-            placeholder="Search by title, keywords, or DOI..."
+            placeholder={
+              isShowingAuthors
+                ? formatAuthorPlaceholder(authorFilters.fields)
+                : formatArticlePlaceholder(articleFilters.fields)
+            }
             placeholderTextColor={theme.colors.outline}
             style={[styles.input, { color: theme.colors.text }]}
             value={keyword}
@@ -88,210 +177,66 @@ export function SearchScreen() {
           ) : null}
         </View>
 
-        <View style={styles.filters}>
-          {["All", "Author", "Journal", "Keywords"].map((filter, index) => (
-            <View
-              key={filter}
-              style={[
-                styles.filterChip,
-                {
-                  backgroundColor:
-                    index === 0
-                      ? theme.colors.primarySoft
-                      : theme.colors.surface,
-                  borderColor:
-                    index === 0
-                      ? theme.colors.primarySoft
-                      : theme.colors.outlineSoft,
-                  borderRadius: theme.radii.pill,
-                },
-              ]}
-            >
-              <Text
-                numberOfLines={1}
-                style={[
-                  theme.typography.caption,
-                  {
-                    color:
-                      index === 0
-                        ? theme.colors.primary
-                        : theme.colors.textMuted,
-                  },
-                ]}
-              >
-                {filter}
-              </Text>
-            </View>
-          ))}
-          <View
-            style={[
-              styles.filterChip,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.outlineSoft,
-                borderRadius: theme.radii.pill,
-              },
-            ]}
-          >
-            <Ionicons
-              color={theme.colors.textMuted}
-              name="options-outline"
-              size={12}
-            />
-            <Text
-              numberOfLines={1}
-              style={[
-                theme.typography.caption,
-                { color: theme.colors.textMuted },
-              ]}
-            >
-              Advanced
-            </Text>
-          </View>
-        </View>
+        <SearchFilters
+          articleFilters={articleFilters}
+          articleKeywords={articleKeywords}
+          articleYears={articleYears}
+          authorFilters={authorFilters}
+          mode={mode}
+          onArticleFiltersChange={setArticleFilters}
+          onAuthorFiltersChange={setAuthorFilters}
+          onOpenPicker={openPicker}
+        />
+
+        <FilterDropdown
+          onChange={updatePickerValues}
+          onClose={() => setPicker(null)}
+          picker={picker}
+        />
       </View>
 
-      {isError ? (
-        <ArticleErrorState
-          message={getUserFriendlyApiErrorMessage(error)}
-          onRetry={() => void refetch()}
+      {isShowingAuthors ? (
+        <AuthorResults
+          authors={visibleAuthors}
+          error={authorsQuery.error}
+          hasNextPage={authorsQuery.hasNextPage}
+          isError={authorsQuery.isError}
+          isFetchingNextPage={authorsQuery.isFetchingNextPage}
+          isLoading={authorsQuery.isLoading}
+          keyword={debouncedKeyword}
+          onLoadMore={() => void authorsQuery.fetchNextPage()}
+          onRetry={() => void authorsQuery.refetch()}
         />
-      ) : null}
-
-      {isLoading ? (
-        <View style={styles.loadingState}>
-          <ActivityIndicator color={theme.colors.primary} />
-        </View>
-      ) : articles.length === 0 && !isError ? (
-        <ArticleEmptyState keyword={debouncedKeyword} />
       ) : (
-        <View style={{ gap: theme.spacing.lg }}>
-          <View style={styles.resultsHeader}>
-            <Text
-              selectable
-              style={[
-                theme.typography.caption,
-                { color: theme.colors.textMuted },
-              ]}
-            >
-              Showing {articles.length} result{articles.length === 1 ? "" : "s"}
-            </Text>
-            <View style={styles.sortControl}>
-              <Text
-                numberOfLines={1}
-                selectable
-                style={[
-                  theme.typography.caption,
-                  {
-                    color: theme.colors.primary,
-                  },
-                ]}
-              >
-                Most Relevant
-              </Text>
-              <Ionicons
-                color={theme.colors.primary}
-                name="chevron-down"
-                size={12}
-              />
-            </View>
-          </View>
-          {articles.map((article) => (
-            <ArticleCard article={article} key={article.article.id} />
-          ))}
-          {hasNextPage ? (
-            <Pressable
-              accessibilityRole="button"
-              disabled={isFetchingNextPage}
-              onPress={() => void fetchNextPage()}
-              style={({ pressed }) => [
-                styles.loadMoreButton,
-                {
-                  backgroundColor: pressed
-                    ? theme.colors.surfaceMuted
-                    : theme.colors.surface,
-                  borderColor: theme.colors.outlineSoft,
-                  borderRadius: theme.radii.sm,
-                  opacity: isFetchingNextPage ? 0.7 : 1,
-                },
-              ]}
-            >
-              {isFetchingNextPage ? (
-                <ActivityIndicator color={theme.colors.primary} />
-              ) : (
-                <>
-                  <Text
-                    style={[
-                      theme.typography.label,
-                      { color: theme.colors.primary },
-                    ]}
-                  >
-                    Load more
-                  </Text>
-                  <Ionicons
-                    color={theme.colors.primary}
-                    name="chevron-down"
-                    size={16}
-                  />
-                </>
-              )}
-            </Pressable>
-          ) : null}
-        </View>
+        <ArticleResults
+          articles={visibleArticles}
+          error={articlesQuery.error}
+          hasNextPage={articlesQuery.hasNextPage}
+          isError={articlesQuery.isError}
+          isFetchingNextPage={articlesQuery.isFetchingNextPage}
+          isLoading={articlesQuery.isLoading}
+          keyword={debouncedKeyword}
+          onLoadMore={() => void articlesQuery.fetchNextPage()}
+          onRetry={() => void articlesQuery.refetch()}
+        />
       )}
     </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  filterChip: {
-    alignItems: "center",
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: 4,
-    minHeight: 30,
-    paddingHorizontal: 12,
-  },
-  filters: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+  input: {
+    flex: 1,
+    fontSize: 13,
+    paddingVertical: 10,
   },
   searchBox: {
     alignItems: "center",
+    borderCurve: "continuous",
     borderWidth: 1,
     flexDirection: "row",
     gap: 9,
     minHeight: 46,
     paddingHorizontal: 12,
-  },
-  input: { flex: 1, fontSize: 13, paddingVertical: 10 },
-  loadMoreButton: {
-    alignItems: "center",
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: 6,
-    justifyContent: "center",
-    minHeight: 44,
-  },
-  loadingState: {
-    alignItems: "center",
-    minHeight: 160,
-    justifyContent: "center",
-  },
-  resultsHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 12,
-    justifyContent: "space-between",
-  },
-  sortControl: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 4,
-  },
-  title: {
-    fontSize: 22,
-    lineHeight: 28,
   },
 });

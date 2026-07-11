@@ -1,5 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Link, Stack, type Href, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { ArticleErrorState } from "@/features/academic/components/article-error-state";
+import { DetailSection } from "@/features/academic/components/detail-section";
 import { useArticle } from "@/features/academic/hooks/use-article";
 import type {
   ArticleGraph,
@@ -178,50 +179,11 @@ export function ArticleDetailScreen() {
               </Pressable>
             </View>
 
-            <View
-              style={[
-                styles.journalCard,
-                {
-                  backgroundColor: theme.colors.primarySoft,
-                  borderRadius: theme.radii.lg,
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.journalIcon,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    borderRadius: theme.radii.pill,
-                  },
-                ]}
-              >
-                <Ionicons
-                  color={theme.colors.primary}
-                  name="journal-outline"
-                  size={20}
-                />
-              </View>
-              <View style={{ flex: 1, gap: 3 }}>
-                <Text
-                  selectable
-                  style={[
-                    theme.typography.caption,
-                    { color: theme.colors.primary },
-                  ]}
-                >
-                  JOURNAL
-                </Text>
-                <Text
-                  selectable
-                  style={[theme.typography.label, { color: theme.colors.text }]}
-                >
-                  {getArticleJournal(article)}
-                </Text>
-              </View>
-            </View>
+            <DetailSection icon="book-outline" title="Journal">
+              <JournalSummaryCard article={article} />
+            </DetailSection>
 
-            <DetailSection title="Abstract">
+            <DetailSection icon="reader-outline" title="Abstract">
               <Text
                 selectable
                 style={[
@@ -233,7 +195,7 @@ export function ArticleDetailScreen() {
               </Text>
             </DetailSection>
 
-            <DetailSection title="Authors">
+            <DetailSection icon="people-outline" title="Authors">
               <View style={{ gap: theme.spacing.sm }}>
                 {article.authors.length > 0 ? (
                   article.authors.map((author) => (
@@ -323,41 +285,6 @@ function HeroPill({
       <Text selectable style={[theme.typography.caption, { color }]}>
         {label}
       </Text>
-    </View>
-  );
-}
-
-function DetailSection({
-  children,
-  icon,
-  title,
-}: {
-  children: React.ReactNode;
-  icon?: React.ComponentProps<typeof Ionicons>["name"];
-  title: string;
-}) {
-  const theme = useAppTheme();
-
-  return (
-    <View style={[styles.section, { gap: theme.spacing.md }]}>
-      <View style={styles.sectionHeader}>
-        <View
-          style={[
-            styles.sectionRule,
-            { backgroundColor: theme.colors.primary },
-          ]}
-        />
-        {icon ? (
-          <Ionicons color={theme.colors.primary} name={icon} size={17} />
-        ) : null}
-        <Text
-          selectable
-          style={[theme.typography.heading, { color: theme.colors.text }]}
-        >
-          {title}
-        </Text>
-      </View>
-      {children}
     </View>
   );
 }
@@ -462,61 +389,136 @@ function MetricCard({
 function AuthorRow({ author }: { author: AuthorNode }) {
   const theme = useAppTheme();
   const name = getAuthorDisplayName(author);
+  const authorHref = `/authors/${encodeURIComponent(author.id)}` as Href;
 
   return (
-    <View
-      style={[
-        styles.authorRow,
-        {
-          backgroundColor: theme.colors.surfaceMuted,
-          borderColor: theme.colors.outlineSoft,
-          borderRadius: theme.radii.md,
-        },
-      ]}
-    >
-      <Text
-        numberOfLines={1}
-        selectable
-        style={[theme.typography.label, { color: theme.colors.text }]}
+    <Link asChild href={authorHref}>
+      <Pressable
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          styles.authorRow,
+          {
+            backgroundColor: theme.colors.surfaceMuted,
+            borderColor: theme.colors.outlineSoft,
+            borderRadius: theme.radii.md,
+            opacity: pressed ? 0.78 : 1,
+          },
+        ]}
       >
-        {name}
-      </Text>
-      {author.orcid ? (
-        <View style={styles.orcidRow}>
-          <View
+        <View style={styles.authorRowHeader}>
+          <Text
+            numberOfLines={1}
+            selectable
             style={[
-              styles.orcidBadge,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.outlineSoft,
-                borderRadius: theme.radii.pill,
-              },
+              theme.typography.label,
+              styles.authorRowName,
+              { color: theme.colors.text },
             ]}
           >
+            {name}
+          </Text>
+        </View>
+        {author.orcid ? (
+          <View style={styles.orcidRow}>
+            <View
+              style={[
+                styles.orcidBadge,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outlineSoft,
+                  borderRadius: theme.radii.pill,
+                },
+              ]}
+            >
+              <Text
+                numberOfLines={1}
+                selectable
+                style={[
+                  theme.typography.caption,
+                  { color: theme.colors.textMuted },
+                ]}
+              >
+                ORCID
+              </Text>
+            </View>
             <Text
               numberOfLines={1}
               selectable
               style={[
                 theme.typography.caption,
-                { color: theme.colors.textMuted },
+                { color: theme.colors.textMuted, flex: 1 },
               ]}
             >
-              ORCID
+              {author.orcid}
             </Text>
           </View>
-          <Text
-            numberOfLines={1}
-            selectable
-            style={[
-              theme.typography.caption,
-              { color: theme.colors.textMuted, flex: 1 },
-            ]}
-          >
-            {author.orcid}
-          </Text>
-        </View>
-      ) : null}
-    </View>
+        ) : null}
+      </Pressable>
+    </Link>
+  );
+}
+
+function JournalSummaryCard({ article }: { article: ArticleGraph }) {
+  const theme = useAppTheme();
+  const journalHref = article.journal
+    ? (`/journals/${encodeURIComponent(article.journal.id)}` as Href)
+    : null;
+  const content = (
+    <>
+      <View
+        style={[
+          styles.journalAccent,
+          {
+            backgroundColor: theme.colors.primary,
+            borderRadius: theme.radii.pill,
+          },
+        ]}
+      />
+      <View style={styles.journalCopy}>
+        <Text
+          selectable
+          style={[theme.typography.label, { color: theme.colors.text }]}
+        >
+          {getArticleJournal(article)}
+        </Text>
+      </View>
+    </>
+  );
+
+  if (!journalHref) {
+    return (
+      <View
+        style={[
+          styles.journalCard,
+          {
+            backgroundColor: theme.isDark ? "#463029" : "#F2E6E0",
+            borderColor: theme.isDark ? "#E2BBAE" : "#805E51",
+            borderRadius: theme.radii.lg,
+          },
+        ]}
+      >
+        {content}
+      </View>
+    );
+  }
+
+  return (
+    <Link asChild href={journalHref}>
+      <Pressable
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          styles.journalCard,
+          {
+            backgroundColor: theme.isDark ? "#463029" : "#F2E6E0",
+            borderColor: theme.isDark ? "#E2BBAE" : "#805E51",
+            borderRadius: theme.radii.lg,
+            opacity: pressed ? 0.78 : 1,
+          },
+        ]}
+      >
+        {content}
+      </Pressable>
+    </Link>
   );
 }
 
@@ -636,14 +638,7 @@ function formatVolumeIssue(article: ArticleGraph) {
 
 function formatTermLabel(item: KeywordNode | TopicNode) {
   const label = item.displayName?.trim() || "Unnamed term";
-  const score =
-    typeof item.score === "number" ? ` ${item.score.toFixed(2)}` : "";
-
-  if ("isPrimary" in item && item.isPrimary) {
-    return `${label} primary${score}`;
-  }
-
-  return `${label}${score}`;
+  return label;
 }
 
 const styles = StyleSheet.create({
@@ -652,6 +647,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 6,
     padding: 10,
+  },
+  authorRowHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  authorRowName: {
+    flex: 1,
   },
   centerState: {
     alignItems: "center",
@@ -686,16 +689,24 @@ const styles = StyleSheet.create({
   },
   journalCard: {
     alignItems: "center",
+    alignSelf: "stretch",
     borderCurve: "continuous",
+    borderWidth: 1,
+    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08)",
     flexDirection: "row",
-    gap: 12,
-    padding: 14,
+    gap: 10,
+    minHeight: 72,
+    padding: 16,
+    width: "100%",
   },
-  journalIcon: {
-    alignItems: "center",
-    height: 40,
-    justifyContent: "center",
-    width: 40,
+  journalAccent: {
+    alignSelf: "stretch",
+    width: 4,
+  },
+  journalCopy: {
+    flex: 1,
+    gap: 4,
+    minWidth: 0,
   },
   metricCard: {
     borderCurve: "continuous",
@@ -737,18 +748,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 5,
     padding: 12,
-  },
-  section: {
-    paddingVertical: 4,
-  },
-  sectionHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 10,
-  },
-  sectionRule: {
-    height: 1,
-    width: 22,
   },
   tag: {
     borderWidth: 1,

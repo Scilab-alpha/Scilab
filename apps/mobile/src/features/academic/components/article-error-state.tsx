@@ -6,11 +6,13 @@ import { useAppTheme } from "@/theme";
 type ArticleErrorStateProps = {
   message: string;
   onRetry: () => void;
+  title?: string;
 };
 
 export function ArticleErrorState({
   message,
   onRetry,
+  title = "Could not load articles",
 }: ArticleErrorStateProps) {
   const theme = useAppTheme();
 
@@ -49,7 +51,7 @@ export function ArticleErrorState({
           selectable
           style={[theme.typography.label, { color: theme.colors.text }]}
         >
-          Could not load articles
+          {title}
         </Text>
         <Text
           numberOfLines={2}
