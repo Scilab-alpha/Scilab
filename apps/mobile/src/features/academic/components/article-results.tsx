@@ -48,7 +48,7 @@ export function ArticleResults({
       ) : articles.length === 0 && !isError ? (
         <ArticleEmptyState keyword={keyword} />
       ) : (
-        <View style={{ gap: theme.spacing.lg }}>
+        <View style={{ gap: theme.spacing.sm }}>
           <AcademicResultsHeader count={articles.length} noun="result" />
           {articles.map((article) => (
             <ArticleCard article={article} key={article.article.id} />

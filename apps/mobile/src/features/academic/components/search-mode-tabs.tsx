@@ -11,20 +11,8 @@ export function SearchModeTabs({
   mode: SearchMode;
   onModeChange: (mode: SearchMode) => void;
 }) {
-  const theme = useAppTheme();
-
   return (
-    <View
-      accessibilityRole="radiogroup"
-      style={[
-        styles.tabs,
-        {
-          backgroundColor: theme.colors.surfaceMuted,
-          borderColor: theme.colors.outlineSoft,
-          borderRadius: theme.radii.md,
-        },
-      ]}
-    >
+    <View accessibilityRole="radiogroup" style={styles.tabs}>
       <ModeTab
         isSelected={mode === "articles"}
         label="Articles"
@@ -58,13 +46,7 @@ function ModeTab({
       style={({ pressed }) => [
         styles.tab,
         {
-          backgroundColor: isSelected
-            ? theme.colors.surface
-            : pressed
-              ? theme.colors.primarySoft
-              : "transparent",
-          borderColor: isSelected ? theme.colors.outlineSoft : "transparent",
-          borderRadius: theme.radii.sm,
+          borderBottomColor: isSelected ? theme.colors.primary : "transparent",
           opacity: pressed ? 0.72 : 1,
         },
       ]}
@@ -73,8 +55,9 @@ function ModeTab({
         numberOfLines={1}
         style={[
           theme.typography.caption,
+          styles.tabLabel,
           {
-            color: isSelected ? theme.colors.text : theme.colors.textMuted,
+            color: isSelected ? theme.colors.text : theme.colors.outline,
           },
         ]}
       >
@@ -87,17 +70,17 @@ function ModeTab({
 const styles = StyleSheet.create({
   tab: {
     alignItems: "center",
-    borderWidth: 1,
-    flex: 1,
+    borderBottomWidth: 2,
     justifyContent: "center",
-    minHeight: 36,
-    minWidth: 0,
-    paddingHorizontal: 10,
+    minHeight: 30,
+    paddingHorizontal: 18,
+  },
+  tabLabel: {
+    fontWeight: "700",
   },
   tabs: {
-    borderWidth: 1,
+    alignSelf: "center",
     flexDirection: "row",
-    gap: 4,
-    padding: 3,
+    gap: 6,
   },
 });
