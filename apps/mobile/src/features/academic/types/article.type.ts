@@ -26,6 +26,10 @@ export type AuthorNode = {
   orcid: string | null;
 };
 
+export type AuthorListItem = Omit<AuthorNode, "authorPosition"> & {
+  articleCount: number;
+};
+
 export type JournalNode = {
   country: string | null;
   coverage: string | null;
@@ -40,6 +44,10 @@ export type JournalNode = {
   sourceId: string | null;
   subjectCategories: string[] | null;
   type: string | null;
+};
+
+export type JournalListItem = JournalNode & {
+  articleCount: number;
 };
 
 export type KeywordNode = {

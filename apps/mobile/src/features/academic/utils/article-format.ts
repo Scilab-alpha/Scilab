@@ -57,6 +57,6 @@ export function getTagNames(items: (KeywordNode | TopicNode)[], maxCount = 4) {
     .slice(0, maxCount);
 }
 
-export function getAuthorDisplayName(author: AuthorNode) {
+export function getAuthorDisplayName(author: Pick<AuthorNode, "displayName">) {
   return author.displayName?.trim() || "Unknown author";
 }
