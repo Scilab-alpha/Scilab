@@ -1,19 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Filter,
   ChevronDown,
   Globe,
   BookOpen,
-  TrendingUp,
   Award,
   Lock,
   LockOpen,
   ChevronLeft,
   ChevronRight,
   ArrowUpDown,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
@@ -21,135 +21,15 @@ import PageContainer from "@/shared/components/layout/PageContainer";
 import StudentTopHeader from "@/shared/components/layout/StudentTopHeader";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Label } from "@/shared/components/ui/label";
-
-interface Journal {
-  id: string;
-  name: string;
-  issn: string;
-  publisher: string;
-  subjects: string[];
-  ranking: {
-    metric: string;
-    value: string;
-    quartile: "Q1" | "Q2" | "Q3" | "Q4";
-  };
-  openAccess: boolean;
-  oaDiamond: boolean;
-  country: string;
-  citations: number;
-  articles: number;
-}
-
-const mockJournals: Journal[] = [
-  {
-    id: "1",
-    name: "Nature Machine Intelligence",
-    issn: "2522-5839",
-    publisher: "Nature Publishing Group",
-    subjects: [
-      "Artificial Intelligence",
-      "Machine Learning",
-      "Computer Science",
-    ],
-    ranking: { metric: "Impact Factor", value: "25.898", quartile: "Q1" },
-    openAccess: false,
-    oaDiamond: false,
-    country: "United Kingdom",
-    citations: 12543,
-    articles: 234,
-  },
-  {
-    id: "2",
-    name: "PLOS Computational Biology",
-    issn: "1553-7358",
-    publisher: "Public Library of Science",
-    subjects: ["Computational Biology", "Bioinformatics", "Systems Biology"],
-    ranking: { metric: "Impact Factor", value: "4.428", quartile: "Q1" },
-    openAccess: true,
-    oaDiamond: true,
-    country: "United States",
-    citations: 9876,
-    articles: 456,
-  },
-  {
-    id: "3",
-    name: "Journal of Climate Science",
-    issn: "0894-8755",
-    publisher: "American Meteorological Society",
-    subjects: ["Climate Science", "Meteorology", "Environmental Science"],
-    ranking: { metric: "Impact Factor", value: "5.215", quartile: "Q1" },
-    openAccess: false,
-    oaDiamond: false,
-    country: "United States",
-    citations: 8234,
-    articles: 389,
-  },
-  {
-    id: "4",
-    name: "Quantum Science and Technology",
-    issn: "2058-9565",
-    publisher: "IOP Publishing",
-    subjects: ["Quantum Computing", "Quantum Physics", "Applied Physics"],
-    ranking: { metric: "Impact Factor", value: "6.568", quartile: "Q1" },
-    openAccess: true,
-    oaDiamond: false,
-    country: "United Kingdom",
-    citations: 7456,
-    articles: 178,
-  },
-  {
-    id: "5",
-    name: "Genome Biology",
-    issn: "1474-760X",
-    publisher: "BioMed Central",
-    subjects: ["Genomics", "Molecular Biology", "Genetics"],
-    ranking: { metric: "Impact Factor", value: "17.906", quartile: "Q1" },
-    openAccess: true,
-    oaDiamond: false,
-    country: "United Kingdom",
-    citations: 6789,
-    articles: 312,
-  },
-  {
-    id: "6",
-    name: "Neural Networks",
-    issn: "0893-6080",
-    publisher: "Elsevier",
-    subjects: ["Neural Networks", "Deep Learning", "Artificial Intelligence"],
-    ranking: { metric: "Impact Factor", value: "9.657", quartile: "Q1" },
-    openAccess: false,
-    oaDiamond: false,
-    country: "Netherlands",
-    citations: 5678,
-    articles: 267,
-  },
-  {
-    id: "7",
-    name: "Environmental Research Letters",
-    issn: "1748-9326",
-    publisher: "IOP Publishing",
-    subjects: ["Environmental Science", "Climate Change", "Sustainability"],
-    ranking: { metric: "Impact Factor", value: "6.793", quartile: "Q2" },
-    openAccess: true,
-    oaDiamond: false,
-    country: "United Kingdom",
-    citations: 4892,
-    articles: 523,
-  },
-  {
-    id: "8",
-    name: "Materials Science and Engineering",
-    issn: "0921-5093",
-    publisher: "Elsevier",
-    subjects: ["Materials Science", "Engineering", "Nanotechnology"],
-    ranking: { metric: "Impact Factor", value: "6.044", quartile: "Q2" },
-    openAccess: false,
-    oaDiamond: false,
-    country: "Netherlands",
-    citations: 3456,
-    articles: 678,
-  },
-];
+import { useJournals } from "@/features/laboratories/hooks/use-journals";
+import type { JournalListItem } from "@/features/experiments/types/journal.types";
+import {
+  getJournalCountry,
+  getJournalIssn,
+  getJournalName,
+  getJournalPublisher,
+  getJournalSubjects,
+} from "@/features/laboratories/utils/journal-format";
 
 const subjectAreas = [
   "Artificial Intelligence",
@@ -183,12 +63,75 @@ const publishers = [
 
 const rankingMetrics = ["Impact Factor", "CiteScore", "h-Index", "SJR"];
 
+function matchesJournalFilters(
+  journal: JournalListItem,
+  searchQuery: string,
+  filters: {
+    subjectAreas: string[];
+    countries: string[];
+    publishers: string[];
+    openAccess: boolean;
+    oaDiamond: boolean;
+  },
+) {
+  const query = searchQuery.trim().toLowerCase();
+
+  if (query) {
+    const haystack = [
+      getJournalName(journal),
+      getJournalIssn(journal),
+      getJournalPublisher(journal),
+      ...getJournalSubjects(journal),
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    if (!haystack.includes(query)) {
+      return false;
+    }
+  }
+
+  if (
+    filters.subjectAreas.length > 0 &&
+    !filters.subjectAreas.some((subject) =>
+      getJournalSubjects(journal).includes(subject),
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    filters.countries.length > 0 &&
+    !filters.countries.includes(getJournalCountry(journal))
+  ) {
+    return false;
+  }
+
+  if (
+    filters.publishers.length > 0 &&
+    !filters.publishers.includes(getJournalPublisher(journal))
+  ) {
+    return false;
+  }
+
+  if (filters.openAccess && !journal.isOpenAccess) {
+    return false;
+  }
+
+  if (filters.oaDiamond && !journal.isOaDiamond) {
+    return false;
+  }
+
+  return true;
+}
+
 export default function JournalSearch() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy] = useState("relevance");
+  const { items, isLoading, error, reload } = useJournals();
 
   const [filters, setFilters] = useState({
     subjectAreas: [] as string[],
@@ -200,10 +143,19 @@ export default function JournalSearch() {
   });
 
   const itemsPerPage = 8;
-  const totalPages = Math.ceil(mockJournals.length / itemsPerPage);
+
+  const filteredJournals = useMemo(
+    () =>
+      items.filter((journal) =>
+        matchesJournalFilters(journal, searchQuery, filters),
+      ),
+    [items, searchQuery, filters],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filteredJournals.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentJournals = mockJournals.slice(startIndex, endIndex);
+  const currentJournals = filteredJournals.slice(startIndex, endIndex);
 
   const handleFilterChange = (category: string, value: string) => {
     setFilters((prev) => {
@@ -243,7 +195,10 @@ export default function JournalSearch() {
       <StudentTopHeader
         searchPlaceholder="Search by journal name, ISSN, subject area, or publisher..."
         searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={(value) => {
+          setSearchQuery(value);
+          setCurrentPage(1);
+        }}
       />
 
       <main className="flex-1 overflow-auto py-8">
@@ -463,15 +418,23 @@ export default function JournalSearch() {
                     {showFilters ? "Hide Filters" : "Show Filters"}
                   </Button>
                   <p className="text-sm text-muted-foreground">
-                    Showing{" "}
-                    <span className="font-medium text-foreground">
-                      {startIndex + 1}-{Math.min(endIndex, mockJournals.length)}
-                    </span>{" "}
-                    of{" "}
-                    <span className="font-medium text-foreground">
-                      {mockJournals.length}
-                    </span>{" "}
-                    journals
+                    {isLoading ? (
+                      "Loading journals..."
+                    ) : (
+                      <>
+                        Showing{" "}
+                        <span className="font-medium text-foreground">
+                          {filteredJournals.length === 0
+                            ? 0
+                            : `${startIndex + 1}-${Math.min(endIndex, filteredJournals.length)}`}
+                        </span>{" "}
+                        of{" "}
+                        <span className="font-medium text-foreground">
+                          {filteredJournals.length}
+                        </span>{" "}
+                        journals
+                      </>
+                    )}
                   </p>
                 </div>
 
@@ -487,9 +450,34 @@ export default function JournalSearch() {
                 </div>
               </div>
 
+              {error && (
+                <Card className="p-6 border-border mb-4">
+                  <p className="text-sm text-destructive mb-4">{error}</p>
+                  <Button variant="outline" size="sm" onClick={() => void reload()}>
+                    Try again
+                  </Button>
+                </Card>
+              )}
+
+              {isLoading && (
+                <div className="flex items-center justify-center py-16 text-muted-foreground">
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Loading journals from API...
+                </div>
+              )}
+
+              {!isLoading && !error && currentJournals.length === 0 && (
+                <Card className="p-8 border-border text-center text-muted-foreground">
+                  No journals found. Try another search or clear your filters.
+                </Card>
+              )}
+
               {/* Journal Cards */}
               <div className="space-y-4">
-                {currentJournals.map((journal) => (
+                {currentJournals.map((journal) => {
+                  const subjects = getJournalSubjects(journal);
+
+                  return (
                   <Card
                     key={journal.id}
                     onClick={() =>
@@ -507,30 +495,30 @@ export default function JournalSearch() {
                         <div className="flex items-start justify-between gap-4 mb-3">
                           <div className="flex-1 min-w-0">
                             <h3 className="font-heading text-lg text-foreground mb-1 hover:text-primary transition-colors line-clamp-1">
-                              {journal.name}
+                              {getJournalName(journal)}
                             </h3>
                             <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
                               <span className="flex-shrink-0">
-                                ISSN: {journal.issn}
+                                ISSN: {getJournalIssn(journal)}
                               </span>
                               <span className="text-border flex-shrink-0">
                                 •
                               </span>
                               <span className="truncate max-w-[200px]">
-                                {journal.publisher}
+                                {getJournalPublisher(journal)}
                               </span>
                               <span className="text-border flex-shrink-0">
                                 •
                               </span>
                               <div className="flex items-center gap-1 flex-shrink-0">
                                 <Globe className="w-3.5 h-3.5" />
-                                <span>{journal.country}</span>
+                                <span>{getJournalCountry(journal)}</span>
                               </div>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            {journal.openAccess && (
+                            {journal.isOpenAccess && (
                               <div className="px-2.5 py-1 bg-teal/10 text-teal rounded-md flex items-center gap-1">
                                 <LockOpen className="w-3.5 h-3.5" />
                                 <span className="text-xs font-medium">
@@ -538,7 +526,7 @@ export default function JournalSearch() {
                                 </span>
                               </div>
                             )}
-                            {journal.oaDiamond && (
+                            {journal.isOaDiamond && (
                               <div className="px-2.5 py-1 bg-accent text-tag rounded-md flex items-center gap-1">
                                 <Award className="w-3.5 h-3.5" />
                                 <span className="text-xs font-medium">
@@ -546,7 +534,7 @@ export default function JournalSearch() {
                                 </span>
                               </div>
                             )}
-                            {!journal.openAccess && (
+                            {!journal.isOpenAccess && (
                               <div className="px-2.5 py-1 bg-surface-raised text-muted-foreground rounded-md flex items-center gap-1">
                                 <Lock className="w-3.5 h-3.5" />
                                 <span className="text-xs font-medium">
@@ -557,9 +545,8 @@ export default function JournalSearch() {
                           </div>
                         </div>
 
-                        {/* Subject Categories */}
                         <div className="flex flex-wrap gap-2 mb-4">
-                          {journal.subjects.slice(0, 3).map((subject) => (
+                          {subjects.slice(0, 3).map((subject) => (
                             <span
                               key={subject}
                               className="px-3 py-1 bg-accent text-tag text-xs font-medium rounded-full"
@@ -567,70 +554,41 @@ export default function JournalSearch() {
                               {subject}
                             </span>
                           ))}
-                          {journal.subjects.length > 3 && (
+                          {subjects.length > 3 && (
                             <span className="px-3 py-1 bg-surface-raised text-muted-foreground text-xs font-medium rounded-full">
-                              +{journal.subjects.length - 3} more
+                              +{subjects.length - 3} more
                             </span>
                           )}
                         </div>
 
-                        {/* Metrics */}
                         <div className="flex items-center gap-6">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`px-3 py-1.5 rounded-lg font-bold text-sm ${
-                                journal.ranking.quartile === "Q1"
-                                  ? "bg-teal/10 text-teal"
-                                  : journal.ranking.quartile === "Q2"
-                                    ? "bg-accent text-blue-800"
-                                    : journal.ranking.quartile === "Q3"
-                                      ? "bg-yellow-100 text-yellow-800"
-                                      : "bg-surface-raised text-foreground"
-                              }`}
-                            >
-                              {journal.ranking.quartile}
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground">
-                                {journal.ranking.metric}
-                              </p>
-                              <p className="text-sm font-semibold text-foreground">
-                                {journal.ranking.value}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="h-8 w-px bg-gray-200" />
-
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <TrendingUp className="w-4 h-4" />
-                            <span className="text-sm">
-                              <span className="font-semibold text-foreground">
-                                {journal.citations.toLocaleString()}
-                              </span>{" "}
-                              citations
-                            </span>
-                          </div>
-
-                          <div className="h-8 w-px bg-gray-200" />
-
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <BookOpen className="w-4 h-4" />
                             <span className="text-sm">
                               <span className="font-semibold text-foreground">
-                                {journal.articles.toLocaleString()}
+                                {journal.articleCount.toLocaleString()}
                               </span>{" "}
-                              articles
+                              articles in graph
                             </span>
                           </div>
+                          {journal.coverage && (
+                            <>
+                              <div className="h-8 w-px bg-gray-200" />
+                              <span className="text-sm text-muted-foreground">
+                                Coverage: {journal.coverage}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Pagination */}
+              {!isLoading && filteredJournals.length > 0 && (
               <div className="flex items-center justify-between mt-8">
                 <Button
                   variant="outline"
@@ -676,6 +634,7 @@ export default function JournalSearch() {
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               </div>
+              )}
             </div>
           </div>
         </PageContainer>
