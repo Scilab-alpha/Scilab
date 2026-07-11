@@ -32,28 +32,26 @@ export function ArticleCard({ article }: ArticleCardProps) {
         style={({ pressed }) => [
           styles.card,
           {
-            backgroundColor: theme.colors.surface,
-            borderColor: theme.colors.outlineSoft,
-            borderRadius: theme.radii.lg,
-            opacity: pressed ? 0.82 : 1,
+            backgroundColor: pressed
+              ? theme.colors.surfaceMuted
+              : "transparent",
           },
         ]}
       >
         <View style={styles.topRow}>
-          <Text
-            numberOfLines={1}
-            selectable
-            style={[
-              theme.typography.caption,
-              styles.yearBadge,
-              {
-                backgroundColor: theme.colors.primarySoft,
-                color: theme.colors.primary,
-              },
-            ]}
-          >
-            {getArticleYear(article)}
-          </Text>
+          <View style={styles.topMetaRow}>
+            <Text
+              numberOfLines={1}
+              selectable
+              style={[
+                theme.typography.caption,
+                styles.primaryMeta,
+                { color: theme.colors.primary },
+              ]}
+            >
+              {publishedAt}
+            </Text>
+          </View>
           <Ionicons
             color={theme.colors.primary}
             name="bookmark-outline"
@@ -61,7 +59,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
           />
         </View>
 
-        <View style={{ gap: 7 }}>
+        <View style={styles.copyBlock}>
           <Text
             numberOfLines={3}
             selectable
@@ -105,33 +103,29 @@ export function ArticleCard({ article }: ArticleCardProps) {
               {journal}
             </Text>
           </View>
-          <View style={styles.metaItem}>
-            <Ionicons
-              color={theme.colors.textMuted}
-              name="calendar-outline"
-              size={12}
-            />
-            <Text
-              numberOfLines={1}
-              selectable
-              style={[
-                theme.typography.caption,
-                styles.metaText,
-                { color: theme.colors.textMuted },
-              ]}
-            >
-              {publishedAt}
-            </Text>
-          </View>
+          <View
+            style={[
+              styles.metaDot,
+              { backgroundColor: theme.colors.outlineSoft },
+            ]}
+          />
+          <Text
+            numberOfLines={1}
+            selectable
+            style={[
+              theme.typography.caption,
+              { color: theme.colors.textMuted },
+            ]}
+          >
+            {citationLabel}
+          </Text>
         </View>
-
-        <Text
-          numberOfLines={1}
-          selectable
-          style={[theme.typography.caption, { color: theme.colors.primary }]}
-        >
-          {citationLabel}
-        </Text>
+        <View
+          style={[
+            styles.divider,
+            { backgroundColor: theme.colors.outlineSoft },
+          ]}
+        />
       </Pressable>
     </Link>
   );
@@ -160,10 +154,17 @@ function formatCitations(count: number) {
 
 const styles = StyleSheet.create({
   card: {
-    borderCurve: "continuous",
-    borderWidth: 1,
-    gap: 12,
-    padding: 18,
+    gap: 10,
+    paddingBottom: 0,
+    paddingTop: 12,
+  },
+  copyBlock: {
+    gap: 7,
+  },
+  divider: {
+    height: 1,
+    marginTop: 7,
+    width: "100%",
   },
   authors: {
     fontStyle: "italic",
@@ -179,7 +180,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    gap: 9,
   },
   title: {
     fontSize: 18,
@@ -188,16 +189,25 @@ const styles = StyleSheet.create({
   topRow: {
     alignItems: "center",
     flexDirection: "row",
-    gap: 12,
+    gap: 8,
     justifyContent: "space-between",
+  },
+  topMetaRow: {
+    alignItems: "center",
+    flex: 1,
+    flexDirection: "row",
+    gap: 7,
+    minWidth: 0,
   },
   metaText: {
     flexShrink: 1,
   },
-  yearBadge: {
-    borderRadius: 4,
-    overflow: "hidden",
-    paddingHorizontal: 7,
-    paddingVertical: 3,
+  metaDot: {
+    borderRadius: 2,
+    height: 4,
+    width: 4,
+  },
+  primaryMeta: {
+    fontWeight: "700",
   },
 });

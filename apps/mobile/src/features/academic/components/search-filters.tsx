@@ -383,9 +383,7 @@ function FilterChip({
       style={({ pressed }) => [
         styles.filterChip,
         {
-          backgroundColor: selected
-            ? theme.colors.primarySoft
-            : theme.colors.surface,
+          backgroundColor: selected ? theme.colors.primarySoft : "transparent",
           borderColor: selected
             ? theme.colors.primarySoft
             : theme.colors.outlineSoft,
@@ -435,10 +433,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     flexDirection: "row",
-    gap: 5,
+    gap: 4,
     maxWidth: 180,
-    minHeight: 30,
-    paddingHorizontal: 12,
+    minHeight: 28,
+    paddingHorizontal: 10,
   },
   filterLabel: {
     flexShrink: 1,

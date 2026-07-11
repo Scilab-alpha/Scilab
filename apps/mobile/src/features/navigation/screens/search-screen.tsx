@@ -1,6 +1,14 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  Animated,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
 
 import { ArticleResults } from "@/features/academic/components/article-results";
 import { AuthorResults } from "@/features/academic/components/author-results";
@@ -31,7 +39,6 @@ import {
   formatAuthorPlaceholder,
   uniqueSorted,
 } from "@/features/academic/utils/search-filtering";
-import { ScreenShell } from "@/features/navigation/components/screen-shell";
 import { useAppTheme } from "@/theme";
 
 export function SearchScreen() {
@@ -44,7 +51,11 @@ export function SearchScreen() {
   const [authorFilters, setAuthorFilters] =
     useState<AuthorFilters>(defaultAuthorFilters);
   const [picker, setPicker] = useState<PickerConfig | null>(null);
+  const [controlsHeight, setControlsHeight] = useState(0);
   const debouncedKeyword = useDebouncedValue(keyword);
+  const controlsProgress = useRef(new Animated.Value(1)).current;
+  const controlsVisible = useRef(true);
+  const lastScrollY = useRef(0);
   const isShowingAuthors = mode === "authors";
   const articlesQuery = useArticles("");
   const authorsQuery = useAuthors({ enabled: isShowingAuthors });
@@ -128,14 +139,62 @@ export function SearchScreen() {
       current ? { ...current, selectedValues } : current,
     );
   };
+  const setControlsVisible = useCallback(
+    (isVisible: boolean) => {
+      if (controlsVisible.current === isVisible) {
+        return;
+      }
+
+      controlsVisible.current = isVisible;
+      Animated.timing(controlsProgress, {
+        duration: 180,
+        toValue: isVisible ? 1 : 0,
+        useNativeDriver: true,
+      }).start();
+    },
+    [controlsProgress],
+  );
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const nextY = Math.max(event.nativeEvent.contentOffset.y, 0);
+      const deltaY = nextY - lastScrollY.current;
+
+      if (Math.abs(deltaY) > 8) {
+        if (deltaY > 0 && nextY > 48) {
+          setControlsVisible(false);
+        }
+
+        if (deltaY < 0) {
+          setControlsVisible(true);
+        }
+      }
+
+      lastScrollY.current = nextY;
+    },
+    [setControlsVisible],
+  );
+  const controlsTranslateY = controlsProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-(controlsHeight || 180), 0],
+  });
 
   return (
-    <ScreenShell
-      hideHeader
-      subtitle="Search academic articles or indexed author profiles."
-      title={isShowingAuthors ? "Authors" : "Articles"}
-    >
-      <View style={{ gap: theme.spacing.lg }}>
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
+      <Animated.View
+        onLayout={(event) => setControlsHeight(event.nativeEvent.layout.height)}
+        style={[
+          styles.controls,
+          {
+            backgroundColor: theme.colors.background,
+            gap: theme.spacing.sm,
+            opacity: controlsProgress,
+            paddingBottom: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.xl,
+            paddingTop: theme.spacing.lg,
+            transform: [{ translateY: controlsTranslateY }],
+          },
+        ]}
+      >
         <SearchModeTabs mode={mode} onModeChange={setMode} />
 
         <View
@@ -144,6 +203,7 @@ export function SearchScreen() {
             {
               backgroundColor: theme.colors.surface,
               borderColor: theme.colors.outlineSoft,
+              borderRadius: theme.radii.pill,
             },
           ]}
         >
@@ -193,38 +253,64 @@ export function SearchScreen() {
           onClose={() => setPicker(null)}
           picker={picker}
         />
-      </View>
+      </Animated.View>
 
-      {isShowingAuthors ? (
-        <AuthorResults
-          authors={visibleAuthors}
-          error={authorsQuery.error}
-          hasNextPage={authorsQuery.hasNextPage}
-          isError={authorsQuery.isError}
-          isFetchingNextPage={authorsQuery.isFetchingNextPage}
-          isLoading={authorsQuery.isLoading}
-          keyword={debouncedKeyword}
-          onLoadMore={() => void authorsQuery.fetchNextPage()}
-          onRetry={() => void authorsQuery.refetch()}
-        />
-      ) : (
-        <ArticleResults
-          articles={visibleArticles}
-          error={articlesQuery.error}
-          hasNextPage={articlesQuery.hasNextPage}
-          isError={articlesQuery.isError}
-          isFetchingNextPage={articlesQuery.isFetchingNextPage}
-          isLoading={articlesQuery.isLoading}
-          keyword={debouncedKeyword}
-          onLoadMore={() => void articlesQuery.fetchNextPage()}
-          onRetry={() => void articlesQuery.refetch()}
-        />
-      )}
-    </ScreenShell>
+      <Animated.ScrollView
+        contentContainerStyle={[
+          styles.content,
+          {
+            gap: theme.spacing.xl,
+            padding: theme.spacing.xl,
+            paddingTop: (controlsHeight || 180) + theme.spacing.lg,
+          },
+        ]}
+        contentInsetAdjustmentBehavior="automatic"
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+        style={{ backgroundColor: theme.colors.background }}
+      >
+        {isShowingAuthors ? (
+          <AuthorResults
+            authors={visibleAuthors}
+            error={authorsQuery.error}
+            hasNextPage={authorsQuery.hasNextPage}
+            isError={authorsQuery.isError}
+            isFetchingNextPage={authorsQuery.isFetchingNextPage}
+            isLoading={authorsQuery.isLoading}
+            keyword={debouncedKeyword}
+            onLoadMore={() => void authorsQuery.fetchNextPage()}
+            onRetry={() => void authorsQuery.refetch()}
+          />
+        ) : (
+          <ArticleResults
+            articles={visibleArticles}
+            error={articlesQuery.error}
+            hasNextPage={articlesQuery.hasNextPage}
+            isError={articlesQuery.isError}
+            isFetchingNextPage={articlesQuery.isFetchingNextPage}
+            isLoading={articlesQuery.isLoading}
+            keyword={debouncedKeyword}
+            onLoadMore={() => void articlesQuery.fetchNextPage()}
+            onRetry={() => void articlesQuery.refetch()}
+          />
+        )}
+      </Animated.ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  content: {
+    paddingBottom: 112,
+  },
+  controls: {
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
+    zIndex: 2,
+  },
   input: {
     flex: 1,
     fontSize: 13,
@@ -236,7 +322,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: "row",
     gap: 9,
-    minHeight: 46,
-    paddingHorizontal: 12,
+    minHeight: 44,
+    paddingHorizontal: 14,
+  },
+  screen: {
+    flex: 1,
   },
 });
