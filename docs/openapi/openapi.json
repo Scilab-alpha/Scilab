@@ -29,6 +29,10 @@
       "description": "Authenticated user article bookmarks."
     },
     {
+      "name": "Follows",
+      "description": "Authenticated user follow targets and notification modes."
+    },
+    {
       "name": "Events",
       "description": "Authenticated realtime user event stream."
     }
@@ -855,6 +859,147 @@
         }
       }
     },
+    "/follows": {
+      "get": {
+        "summary": "List current user follows",
+        "operationId": "listFollows",
+        "tags": [
+          "Follows"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/FollowTypeQuery"
+          },
+          {
+            "$ref": "#/components/parameters/PageQuery"
+          },
+          {
+            "$ref": "#/components/parameters/LimitQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Follows retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowListResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/FollowInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/follows/toggle": {
+      "post": {
+        "summary": "Toggle follow for a journal, keyword, or topic",
+        "operationId": "toggleFollow",
+        "tags": [
+          "Follows"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToggleFollowRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Follow toggled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToggleFollowResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/FollowInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/FollowTargetNotFound"
+          }
+        }
+      }
+    },
+    "/follows/{objectType}/{objectId}/notify-mode": {
+      "patch": {
+        "summary": "Update notification mode for a followed target",
+        "operationId": "updateFollowNotifyMode",
+        "tags": [
+          "Follows"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/FollowObjectTypePath"
+          },
+          {
+            "$ref": "#/components/parameters/FollowObjectIdPath"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFollowNotifyModeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Follow notification mode updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowUpdatedResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/FollowInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/FollowNotFound"
+          }
+        }
+      }
+    },
     "/events": {
       "get": {
         "summary": "Subscribe to current user realtime events",
@@ -949,6 +1094,31 @@
           "minimum": 1,
           "maximum": 100,
           "default": 20
+        }
+      },
+      "FollowTypeQuery": {
+        "name": "type",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/FollowObjectType"
+        }
+      },
+      "FollowObjectTypePath": {
+        "name": "objectType",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/FollowObjectType"
+        }
+      },
+      "FollowObjectIdPath": {
+        "name": "objectId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
         }
       },
       "ArticleId": {
@@ -1318,6 +1488,63 @@
                 "value": {
                   "success": false,
                   "message": "articleId is invalid",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "FollowInputInvalid": {
+        "description": "Follow request input is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "error": {
+                "value": {
+                  "success": false,
+                  "message": "Follow input is invalid",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "FollowTargetNotFound": {
+        "description": "Follow target node was not found in Neo4j.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "error": {
+                "value": {
+                  "success": false,
+                  "message": "Follow target not found",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "FollowNotFound": {
+        "description": "Follow record was not found for the current user.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "error": {
+                "value": {
+                  "success": false,
+                  "message": "Follow not found",
                   "data": {}
                 }
               }
@@ -2254,6 +2481,281 @@
               },
               "data": {
                 "$ref": "#/components/schemas/ToggleBookmarkData"
+              }
+            }
+          }
+        ]
+      },
+      "FollowObjectType": {
+        "type": "string",
+        "enum": [
+          "JOURNAL",
+          "KEYWORD",
+          "TOPIC"
+        ]
+      },
+      "FollowNotifyMode": {
+        "type": "string",
+        "enum": [
+          "IN_APP",
+          "DAILY_EMAIL",
+          "WEEKLY_EMAIL",
+          "OFF"
+        ]
+      },
+      "FollowTarget": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "id",
+          "displayName"
+        ],
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/FollowObjectType"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "journalType": {
+            "type": "string",
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
+          },
+          "region": {
+            "type": "string",
+            "nullable": true
+          },
+          "score": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "FollowItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "followId",
+          "objectType",
+          "objectId",
+          "notifyMode",
+          "followedAt",
+          "target"
+        ],
+        "properties": {
+          "followId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "objectType": {
+            "$ref": "#/components/schemas/FollowObjectType"
+          },
+          "objectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "notifyMode": {
+            "$ref": "#/components/schemas/FollowNotifyMode"
+          },
+          "followedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "target": {
+            "$ref": "#/components/schemas/FollowTarget"
+          }
+        }
+      },
+      "FollowListData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "page",
+          "limit",
+          "hasMore"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FollowItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "limit": {
+            "type": "integer",
+            "example": 20
+          },
+          "hasMore": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "FollowListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Follows retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/FollowListData"
+              }
+            }
+          }
+        ]
+      },
+      "ToggleFollowRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "objectType",
+          "objectId"
+        ],
+        "properties": {
+          "objectType": {
+            "$ref": "#/components/schemas/FollowObjectType"
+          },
+          "objectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "notifyMode": {
+            "$ref": "#/components/schemas/FollowNotifyMode"
+          }
+        }
+      },
+      "ToggleFollowData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "objectType",
+          "objectId",
+          "followed"
+        ],
+        "properties": {
+          "objectType": {
+            "$ref": "#/components/schemas/FollowObjectType"
+          },
+          "objectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "followed": {
+            "type": "boolean"
+          },
+          "notifyMode": {
+            "$ref": "#/components/schemas/FollowNotifyMode"
+          },
+          "followedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "ToggleFollowResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Follow toggled"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ToggleFollowData"
+              }
+            }
+          }
+        ]
+      },
+      "UpdateFollowNotifyModeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "notifyMode"
+        ],
+        "properties": {
+          "notifyMode": {
+            "$ref": "#/components/schemas/FollowNotifyMode"
+          }
+        }
+      },
+      "FollowUpdatedResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Follow notification mode updated"
+              },
+              "data": {
+                "$ref": "#/components/schemas/FollowItem"
               }
             }
           }

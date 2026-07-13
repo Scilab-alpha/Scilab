@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import neo4j from 'neo4j-driver';
-import { AcademicGraphRepository } from '@/academic/application/ports/academic-graph.port';
+import {
+  AcademicGraphRepository,
+  ArticleFollowMatch,
+  FollowedTargetGroups,
+  FollowTargetRecord,
+  FollowTargetReference,
+} from '@/academic/application/ports/academic-graph.port';
 import {
   AcademicNodeType,
   ArticleListInput,
@@ -667,6 +673,170 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
     );
   }
 
+  async findFollowTargetsByReferences(
+    refs: FollowTargetReference[],
+  ): Promise<FollowTargetRecord[]> {
+    if (refs.length === 0) {
+      return [];
+    }
+
+    const groups = groupFollowReferences(refs);
+    const result = await this.neo4j.executeRead<FollowTargetRecord>(
+      `
+      CALL {
+        WITH $journals AS ids
+        MATCH (node:Journal)
+        WHERE node.id IN ids
+        RETURN 'JOURNAL' AS type,
+               node.id AS id,
+               node.display_name AS display_name,
+               node.source_id AS source_id,
+               node.type AS journal_type,
+               node.country AS country,
+               node.region AS region,
+               null AS score
+        UNION
+        WITH $keywords AS ids
+        MATCH (node:Keyword)
+        WHERE node.id IN ids
+        RETURN 'KEYWORD' AS type,
+               node.id AS id,
+               node.display_name AS display_name,
+               null AS source_id,
+               null AS journal_type,
+               null AS country,
+               null AS region,
+               null AS score
+        UNION
+        WITH $topics AS ids
+        MATCH (node:Topic)
+        WHERE node.id IN ids
+        RETURN 'TOPIC' AS type,
+               node.id AS id,
+               node.display_name AS display_name,
+               null AS source_id,
+               null AS journal_type,
+               null AS country,
+               null AS region,
+               node.score AS score
+      }
+      RETURN type, id, display_name, source_id, journal_type, country, region, score
+      `,
+      { ...groups },
+      (record) => ({
+        type: String(record.get('type')) as FollowTargetRecord['type'],
+        id: String(record.get('id')),
+        displayName: nullableString(record.get('display_name')),
+        sourceId: nullableString(record.get('source_id')),
+        journalType: nullableString(record.get('journal_type')),
+        country: nullableString(record.get('country')),
+        region: nullableString(record.get('region')),
+        score: nullableNumber(record.get('score')),
+      }),
+    );
+
+    const byKey = new Map(
+      result.records.map((target) => [targetKey(target), target] as const),
+    );
+
+    return refs.flatMap((ref) => {
+      const target = byKey.get(targetKey(ref));
+      return target ? [target] : [];
+    });
+  }
+
+  async findArticlesMatchingFollowedTargets(
+    groups: FollowedTargetGroups,
+    since: Date,
+  ): Promise<ArticleFollowMatch[]> {
+    if (
+      groups.journals.length === 0 &&
+      groups.keywords.length === 0 &&
+      groups.topics.length === 0
+    ) {
+      return [];
+    }
+
+    const result = await this.neo4j.executeRead<ArticleFollowMatch>(
+      `
+      MATCH (article:Article)
+      WITH article,
+           CASE
+             WHEN article.created_at IS NULL THEN NULL
+             ELSE datetime(toString(article.created_at))
+           END AS article_created_at
+      WHERE article_created_at IS NULL OR article_created_at >= datetime($since)
+      OPTIONAL MATCH (article)-[:PUBLISHED_IN]->(matched_journal:Journal)
+      WHERE matched_journal.id IN $journals
+      WITH article,
+           collect(DISTINCT {type: 'JOURNAL', id: matched_journal.id}) AS journal_matches
+      OPTIONAL MATCH (article)-[:HAS_KEYWORD]->(matched_keyword:Keyword)
+      WHERE matched_keyword.id IN $keywords
+      WITH article, journal_matches,
+           collect(DISTINCT {type: 'KEYWORD', id: matched_keyword.id}) AS keyword_matches
+      OPTIONAL MATCH (article)-[:BELONGS_TO]->(matched_topic:Topic)
+      WHERE matched_topic.id IN $topics
+      WITH article, journal_matches, keyword_matches,
+           collect(DISTINCT {type: 'TOPIC', id: matched_topic.id}) AS topic_matches
+      WITH article,
+           [row IN journal_matches + keyword_matches + topic_matches WHERE row.id IS NOT NULL] AS matches
+      WHERE size(matches) > 0
+      OPTIONAL MATCH (article)-[:PUBLISHED_IN]->(journal:Journal)
+      OPTIONAL MATCH (author:Author)-[wrote:WROTE]->(article)
+      WITH article, journal, matches,
+           collect(DISTINCT author {
+             .id,
+             .orcid,
+             displayName: author.display_name,
+             imageUrl: author.url_image,
+             authorPosition: wrote.author_position
+           }) AS author_rows
+      OPTIONAL MATCH (article)-[has_keyword:HAS_KEYWORD]->(keyword:Keyword)
+      WITH article, journal, matches, author_rows,
+           collect(DISTINCT keyword {
+             .id,
+             displayName: keyword.display_name,
+             score: has_keyword.score
+           }) AS keyword_rows
+      OPTIONAL MATCH (article)-[belongs_to:BELONGS_TO]->(topic:Topic)
+      WITH article, journal, matches, author_rows, keyword_rows,
+           collect(DISTINCT topic {
+             .id,
+             displayName: topic.display_name,
+             score: belongs_to.score,
+             isPrimary: belongs_to.is_primary
+           }) AS topic_rows
+      OPTIONAL MATCH (article)-[:CITES]->(cited:Article)
+      WITH article, journal, matches, author_rows, keyword_rows, topic_rows,
+           collect(DISTINCT cited.id) AS cited_article_ids
+      RETURN {
+        article: ${ARTICLE_GRAPH_PROJECTION},
+        matches: matches
+      } AS row
+      `,
+      {
+        ...groups,
+        since: since.toISOString(),
+      },
+      (record) => {
+        const row = record.get('row') as {
+          article: ArticleGraph;
+          matches: FollowTargetReference[];
+        };
+
+        return {
+          article: toPlain(row.article) as ArticleGraph,
+          matches: row.matches.map((match) => ({
+            type: String(match.type) as FollowTargetReference['type'],
+            id: String(match.id),
+          })),
+        };
+      },
+    );
+
+    return result.records;
+  }
+
   async findExistingReferenceIds(
     type: AcademicNodeType,
     ids: string[],
@@ -944,6 +1114,68 @@ function toPlain(value: unknown): unknown {
   }
 
   return value;
+}
+
+function groupFollowReferences(
+  refs: FollowTargetReference[],
+): FollowedTargetGroups {
+  const groups: FollowedTargetGroups = {
+    journals: [],
+    keywords: [],
+    topics: [],
+  };
+
+  for (const ref of refs) {
+    if (ref.type === 'JOURNAL') {
+      groups.journals.push(ref.id);
+    } else if (ref.type === 'KEYWORD') {
+      groups.keywords.push(ref.id);
+    } else {
+      groups.topics.push(ref.id);
+    }
+  }
+
+  return {
+    journals: unique(groups.journals),
+    keywords: unique(groups.keywords),
+    topics: unique(groups.topics),
+  };
+}
+
+function unique(values: string[]): string[] {
+  return [...new Set(values)];
+}
+
+function targetKey(ref: FollowTargetReference): string {
+  return `${ref.type}:${ref.id}`;
+}
+
+function nullableString(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function nullableNumber(value: unknown): number | null {
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  if (isNeo4jNumber(value)) {
+    return value.toNumber();
+  }
+
+  return null;
+}
+
+interface Neo4jNumberLike {
+  toNumber(): number;
+}
+
+function isNeo4jNumber(value: unknown): value is Neo4jNumberLike {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  return typeof (value as { toNumber?: unknown }).toNumber === 'function';
 }
 
 function labelFor(type: AcademicNodeType): string {

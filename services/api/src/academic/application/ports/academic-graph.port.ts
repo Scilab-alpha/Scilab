@@ -10,6 +10,35 @@ import {
 
 export const ACADEMIC_GRAPH_REPOSITORY = Symbol('ACADEMIC_GRAPH_REPOSITORY');
 
+export type FollowableAcademicNodeType = 'JOURNAL' | 'KEYWORD' | 'TOPIC';
+
+export interface FollowTargetReference {
+  type: FollowableAcademicNodeType;
+  id: string;
+}
+
+export interface FollowTargetRecord {
+  type: FollowableAcademicNodeType;
+  id: string;
+  displayName: string | null;
+  sourceId?: string | null;
+  journalType?: string | null;
+  country?: string | null;
+  region?: string | null;
+  score?: number | null;
+}
+
+export interface ArticleFollowMatch {
+  article: ArticleGraph;
+  matches: FollowTargetReference[];
+}
+
+export interface FollowedTargetGroups {
+  journals: string[];
+  keywords: string[];
+  topics: string[];
+}
+
 export interface AcademicGraphRepository {
   ensureSchema(): Promise<void>;
   upsertArticleGraph(graph: ArticleGraph): Promise<void>;
@@ -24,6 +53,13 @@ export interface AcademicGraphRepository {
   ): Promise<CursorPage<JournalListItem>>;
   getJournalById(id: string): Promise<JournalListItem | null>;
   findArticlesByIds(ids: string[]): Promise<ArticleGraph[]>;
+  findFollowTargetsByReferences(
+    refs: FollowTargetReference[],
+  ): Promise<FollowTargetRecord[]>;
+  findArticlesMatchingFollowedTargets(
+    groups: FollowedTargetGroups,
+    since: Date,
+  ): Promise<ArticleFollowMatch[]>;
   findExistingReferenceIds(
     type: AcademicNodeType,
     ids: string[],

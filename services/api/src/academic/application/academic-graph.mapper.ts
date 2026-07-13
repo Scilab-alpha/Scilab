@@ -6,6 +6,7 @@ import {
   KeywordNode,
   TopicNode,
 } from '@/academic/domain/academic-graph.model';
+import { FollowTargetRecord } from '@/academic/application/ports/academic-graph.port';
 
 export interface ArticleGraphOutput {
   id: string;
@@ -24,6 +25,17 @@ export interface ArticleGraphOutput {
   keywords: KeywordOutput[];
   topics: TopicOutput[];
   citedArticleIds: string[];
+}
+
+export interface FollowTargetOutput {
+  type: FollowTargetRecord['type'];
+  id: string;
+  displayName: string | null;
+  sourceId: string | null;
+  journalType: string | null;
+  country: string | null;
+  region: string | null;
+  score: number | null;
 }
 
 interface JournalOutput {
@@ -70,6 +82,21 @@ export function toArticleGraphOutput(graph: ArticleGraph): ArticleGraphOutput {
     keywords: (graph.keywords ?? []).map(toKeywordOutput),
     topics: (graph.topics ?? []).map(toTopicOutput),
     citedArticleIds: graph.citedArticleIds ?? [],
+  };
+}
+
+export function toFollowTargetOutput(
+  target: FollowTargetRecord,
+): FollowTargetOutput {
+  return {
+    type: target.type,
+    id: target.id,
+    displayName: target.displayName,
+    sourceId: target.sourceId ?? null,
+    journalType: target.journalType ?? null,
+    country: target.country ?? null,
+    region: target.region ?? null,
+    score: target.score ?? null,
   };
 }
 

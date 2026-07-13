@@ -35,6 +35,8 @@ function createGraphRepository(): jest.Mocked<AcademicGraphRepository> {
     listJournals: jest.fn(),
     getJournalById: jest.fn(),
     findArticlesByIds: jest.fn(),
+    findFollowTargetsByReferences: jest.fn(),
+    findArticlesMatchingFollowedTargets: jest.fn(),
     findExistingReferenceIds: jest.fn(),
     backfillHydrationStateAndRemoveRegion: jest.fn(),
     listJournalsForPublisherNormalization: jest.fn(),
