@@ -189,6 +189,33 @@ describe('Neo4jAcademicGraphRepository', () => {
     );
     expect(parameters.article).toMatchObject({ citation_count: 3 });
   });
+
+  it('uses legacy string-safe datetime conversion for alert article matching', async () => {
+    const executeRead = jest.fn().mockResolvedValue({
+      records: [],
+      summary: {},
+    });
+    const repository = new Neo4jAcademicGraphRepository({
+      executeRead,
+    } as never);
+    const since = new Date('2026-06-01T00:00:00.000Z');
+
+    await repository.findArticlesMatchingFollowedTargets(
+      {
+        journals: ['journal-1'],
+        keywords: [],
+        topics: [],
+      },
+      since,
+    );
+
+    const { cypher, parameters } = firstExecuteReadCall(executeRead);
+    expect(cypher).toContain('datetime(toString(article.created_at))');
+    expect(parameters).toMatchObject({
+      journals: ['journal-1'],
+      since: since.toISOString(),
+    });
+  });
 });
 
 function firstExecuteReadCall(executeRead: { mock: { calls: unknown[][] } }): {
