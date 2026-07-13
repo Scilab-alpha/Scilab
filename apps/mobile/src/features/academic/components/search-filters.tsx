@@ -12,13 +12,15 @@ import type { SearchMode } from "@/features/academic/components/search-mode-tabs
 import type {
   ArticleFilters,
   AuthorFilters,
+  FilterOption,
   PickerConfig,
 } from "@/features/academic/types/search.type";
 import {
   formatAuthorSort,
+  formatArticleTermFilterValue,
   formatMinimumArticles,
   formatMultiValueLabel,
-  formatPickerOption,
+  toFilterOptions,
   toggleValue,
 } from "@/features/academic/utils/search-filtering";
 import { useAppTheme } from "@/theme";
@@ -34,7 +36,7 @@ export function SearchFilters({
   onOpenPicker,
 }: {
   articleFilters: ArticleFilters;
-  articleKeywords: string[];
+  articleKeywords: FilterOption[];
   articleYears: string[];
   authorFilters: AuthorFilters;
   mode: SearchMode;
@@ -86,7 +88,7 @@ export function SearchFilters({
           onPress={() =>
             onOpenPicker({
               mode: "author-publications",
-              options: ["all", "10", "50"],
+              options: toFilterOptions(["all", "10", "50"]),
               selectedValues: [authorFilters.minimumArticles],
               title: "Publication count",
             })
@@ -99,7 +101,7 @@ export function SearchFilters({
           onPress={() =>
             onOpenPicker({
               mode: "author-sort",
-              options: ["relevance", "name", "articles"],
+              options: toFilterOptions(["relevance", "name", "articles"]),
               selectedValues: [authorFilters.sort],
               title: "Sort authors",
             })
@@ -146,7 +148,10 @@ export function SearchFilters({
       ))}
       <FilterChip
         icon="pricetag-outline"
-        label={formatMultiValueLabel("Keywords", articleFilters.keywords)}
+        label={formatMultiValueLabel(
+          "Keywords",
+          articleFilters.keywords.map(formatArticleTermFilterValue),
+        )}
         onPress={() =>
           onOpenPicker({
             mode: "article-keywords",
@@ -163,7 +168,7 @@ export function SearchFilters({
         onPress={() =>
           onOpenPicker({
             mode: "article-years",
-            options: articleYears,
+            options: toFilterOptions(articleYears),
             selectedValues: articleFilters.years,
             title: "Publication year",
           })
@@ -199,6 +204,11 @@ export function FilterDropdown({
     return null;
   }
 
+  const pickerTitle =
+    picker.selectedValues.length > 0 && !isSingleSelect
+      ? `${picker.title} (${picker.selectedValues.length})`
+      : picker.title;
+
   return (
     <View
       style={[
@@ -212,17 +222,22 @@ export function FilterDropdown({
     >
       <View style={styles.pickerHeader}>
         <Text
+          numberOfLines={1}
           selectable
-          style={[theme.typography.label, { color: theme.colors.text }]}
+          style={[
+            theme.typography.label,
+            styles.pickerTitle,
+            { color: theme.colors.text },
+          ]}
         >
-          {picker.title}
+          {pickerTitle}
         </Text>
         <Pressable
           accessibilityLabel="Close filter"
           hitSlop={8}
           onPress={onClose}
         >
-          <Ionicons color={theme.colors.textMuted} name="close" size={18} />
+          <Ionicons color={theme.colors.textMuted} name="close" size={16} />
         </Pressable>
       </View>
 
@@ -234,7 +249,7 @@ export function FilterDropdown({
       >
         {picker.options.length ? (
           picker.options.map((option) => {
-            const value = String(option);
+            const value = option.value;
             const selected = picker.selectedValues.includes(value);
 
             return (
@@ -244,13 +259,15 @@ export function FilterDropdown({
                   isSingleSelect ? { selected } : { checked: selected }
                 }
                 key={value}
-                onPress={() =>
-                  onChange(
-                    isSingleSelect
-                      ? [value]
-                      : toggleValue(picker.selectedValues, value),
-                  )
-                }
+                onPress={() => {
+                  if (isSingleSelect) {
+                    onChange([value]);
+                    onClose();
+                    return;
+                  }
+
+                  onChange(toggleValue(picker.selectedValues, value));
+                }}
                 style={({ pressed }) => [
                   styles.pickerOption,
                   {
@@ -258,11 +275,11 @@ export function FilterDropdown({
                       ? theme.colors.primarySoft
                       : pressed
                         ? theme.colors.surfaceMuted
-                        : theme.colors.surface,
+                        : theme.colors.background,
                     borderColor: selected
-                      ? theme.colors.primarySoft
+                      ? theme.colors.primary
                       : theme.colors.outlineSoft,
-                    borderRadius: theme.radii.md,
+                    borderRadius: theme.radii.pill,
                   },
                 ]}
               >
@@ -270,21 +287,21 @@ export function FilterDropdown({
                   numberOfLines={1}
                   style={[
                     theme.typography.label,
+                    styles.pickerOptionLabel,
                     {
                       color: selected
                         ? theme.colors.primary
                         : theme.colors.text,
-                      flex: 1,
                     },
                   ]}
                 >
-                  {formatPickerOption(value, picker.mode)}
+                  {option.label}
                 </Text>
                 {selected ? (
                   <Ionicons
                     color={theme.colors.primary}
-                    name="checkmark"
-                    size={17}
+                    name="checkmark-circle"
+                    size={14}
                   />
                 ) : null}
               </Pressable>
@@ -300,51 +317,53 @@ export function FilterDropdown({
         )}
       </ScrollView>
 
-      <View style={styles.dropdownFooter}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => onChange([])}
-          style={({ pressed }) => [
-            styles.dropdownAction,
-            {
-              backgroundColor: pressed
-                ? theme.colors.surfaceMuted
-                : theme.colors.surface,
-              borderColor: theme.colors.outlineSoft,
-              borderRadius: theme.radii.md,
-            },
-          ]}
-        >
-          <Text
-            style={[theme.typography.caption, { color: theme.colors.text }]}
-          >
-            Clear
-          </Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          onPress={onClose}
-          style={({ pressed }) => [
-            styles.dropdownAction,
-            {
-              backgroundColor: pressed
-                ? theme.colors.primaryPressed
-                : theme.colors.primary,
-              borderColor: theme.colors.primary,
-              borderRadius: theme.radii.md,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              theme.typography.caption,
-              { color: theme.colors.onPrimary },
+      {!isSingleSelect ? (
+        <View style={styles.dropdownFooter}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => onChange([])}
+            style={({ pressed }) => [
+              styles.dropdownAction,
+              {
+                backgroundColor: pressed
+                  ? theme.colors.surfaceMuted
+                  : theme.colors.surface,
+                borderColor: theme.colors.outlineSoft,
+                borderRadius: theme.radii.pill,
+              },
             ]}
           >
-            Done
-          </Text>
-        </Pressable>
-      </View>
+            <Text
+              style={[theme.typography.caption, { color: theme.colors.text }]}
+            >
+              Clear
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onClose}
+            style={({ pressed }) => [
+              styles.dropdownAction,
+              {
+                backgroundColor: pressed
+                  ? theme.colors.primaryPressed
+                  : theme.colors.primary,
+                borderColor: theme.colors.primary,
+                borderRadius: theme.radii.pill,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                theme.typography.caption,
+                { color: theme.colors.onPrimary },
+              ]}
+            >
+              Done
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -415,19 +434,22 @@ const styles = StyleSheet.create({
   dropdown: {
     borderCurve: "continuous",
     borderWidth: 1,
-    gap: 12,
+    gap: 10,
     padding: 12,
+    width: "100%",
   },
   dropdownAction: {
     alignItems: "center",
     borderWidth: 1,
     justifyContent: "center",
-    minHeight: 34,
-    paddingHorizontal: 12,
+    minHeight: 30,
+    minWidth: 64,
+    paddingHorizontal: 10,
   },
   dropdownFooter: {
+    alignSelf: "flex-end",
     flexDirection: "row",
-    gap: 10,
+    gap: 8,
   },
   filterChip: {
     alignItems: "center",
@@ -447,20 +469,31 @@ const styles = StyleSheet.create({
   pickerHeader: {
     alignItems: "center",
     flexDirection: "row",
+    gap: 12,
     justifyContent: "space-between",
   },
   pickerOption: {
     alignItems: "center",
     borderWidth: 1,
     flexDirection: "row",
-    gap: 10,
-    minHeight: 44,
-    paddingHorizontal: 12,
+    gap: 5,
+    minHeight: 30,
+    maxWidth: "100%",
+    paddingHorizontal: 9,
+  },
+  pickerOptionLabel: {
+    maxWidth: 220,
   },
   pickerOptions: {
-    gap: 8,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 7,
   },
   pickerOptionsScroll: {
-    maxHeight: 240,
+    maxHeight: 154,
+  },
+  pickerTitle: {
+    flex: 1,
+    maxWidth: 260,
   },
 });

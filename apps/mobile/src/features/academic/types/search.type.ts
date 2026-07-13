@@ -2,28 +2,33 @@ export type ArticleSearchField = "title" | "author" | "journal";
 
 export type AuthorSearchField = "name" | "orcid";
 
+export type FilterOption = {
+  label: string;
+  value: string;
+};
+
 export type PickerConfig =
   | {
       mode: "article-keywords";
-      options: string[];
+      options: FilterOption[];
       selectedValues: string[];
       title: string;
     }
   | {
       mode: "article-years";
-      options: string[];
+      options: FilterOption[];
       selectedValues: string[];
       title: string;
     }
   | {
       mode: "author-publications";
-      options: string[];
+      options: FilterOption[];
       selectedValues: string[];
       title: string;
     }
   | {
       mode: "author-sort";
-      options: string[];
+      options: FilterOption[];
       selectedValues: string[];
       title: string;
     };

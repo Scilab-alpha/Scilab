@@ -13,12 +13,18 @@ import type {
   ArticleSearchField,
   AuthorFilters,
   AuthorSearchField,
-  PickerConfig,
+  FilterOption,
 } from "@/features/academic/types/search.type";
 import {
   getArticleJournal,
   getArticleTitle,
 } from "@/features/academic/utils/article-format";
+
+type ArticleTermFilter = {
+  id: string;
+  kind: "keyword" | "topic";
+  label: string;
+};
 
 export function filterArticles(
   articles: ArticleGraph[],
@@ -117,21 +123,9 @@ export function formatMultiValueLabel(label: string, values: string[]) {
   return `${label} (${values.length})`;
 }
 
-export function formatPickerOption(value: string, mode: PickerConfig["mode"]) {
-  if (mode === "author-publications") {
-    return formatMinimumArticles(value as AuthorFilters["minimumArticles"]);
-  }
-
-  if (mode === "author-sort") {
-    return formatAuthorSort(value as AuthorFilters["sort"]);
-  }
-
-  return value;
-}
-
 export function formatArticlePlaceholder(fields: ArticleSearchField[]) {
   if (fields.length === 1 && fields[0] === "title") {
-    return "Search article title, abstract, or DOI...";
+    return "Search title, abstract, keywords, or DOI...";
   }
 
   if (fields.length === 1 && fields[0] === "author") {
@@ -146,7 +140,7 @@ export function formatArticlePlaceholder(fields: ArticleSearchField[]) {
     return "Search within selected article fields...";
   }
 
-  return "Search articles by title, author, or journal...";
+  return "Search articles by title, abstract, keywords, or topics...";
 }
 
 export function formatAuthorPlaceholder(fields: AuthorSearchField[]) {
@@ -176,6 +170,80 @@ export function uniqueSorted(values: string[]) {
   );
 }
 
+export function toFilterOptions(values: string[]): FilterOption[] {
+  return values.map((value) => ({
+    label: formatPickerOptionLabel(value),
+    value,
+  }));
+}
+
+export function uniqueFilterOptions(options: FilterOption[]) {
+  const optionsByValue = new Map<string, FilterOption>();
+
+  for (const option of options) {
+    if (!optionsByValue.has(option.value)) {
+      optionsByValue.set(option.value, option);
+    }
+  }
+
+  return Array.from(optionsByValue.values()).sort((left, right) =>
+    left.label.localeCompare(right.label),
+  );
+}
+
+export function createArticleTermFilterValue({
+  id,
+  kind,
+  label,
+}: {
+  id: string;
+  kind: "keyword" | "topic";
+  label: string;
+}) {
+  return [kind, encodeURIComponent(id), encodeURIComponent(label)].join("|");
+}
+
+export function parseArticleTermFilterValue(
+  value: string,
+): ArticleTermFilter | null {
+  const [kind, encodedId, encodedLabel] = value.split("|");
+
+  if ((kind !== "keyword" && kind !== "topic") || !encodedId || !encodedLabel) {
+    return null;
+  }
+
+  try {
+    return {
+      id: decodeURIComponent(encodedId),
+      kind,
+      label: decodeURIComponent(encodedLabel),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function formatArticleTermFilterValue(value: string) {
+  return parseArticleTermFilterValue(value)?.label ?? value;
+}
+
+function formatPickerOptionLabel(value: string) {
+  const publicationCount =
+    value === "all" || value === "10" || value === "50"
+      ? formatMinimumArticles(value as AuthorFilters["minimumArticles"])
+      : null;
+
+  if (publicationCount) {
+    return publicationCount;
+  }
+
+  if (value === "relevance" || value === "name" || value === "articles") {
+    return formatAuthorSort(value as AuthorFilters["sort"]);
+  }
+
+  return value;
+}
+
 function articleMatchesFields(
   article: ArticleGraph,
   keyword: string,
@@ -185,6 +253,7 @@ function articleMatchesFields(
     getArticleTitle(article),
     article.article.abstract,
     article.article.doi,
+    ...getArticleTerms(article),
   ];
   const authorFields = article.authors.map((author) => author.displayName);
   const journalFields = [
@@ -211,6 +280,20 @@ function articleMatchesFields(
 }
 
 function articleHasSelectedKeyword(article: ArticleGraph, keywords: string[]) {
+  const selectedTerms = keywords
+    .map(parseArticleTermFilterValue)
+    .filter((term): term is ArticleTermFilter => Boolean(term));
+
+  if (selectedTerms.length > 0) {
+    return selectedTerms.some((term) => {
+      if (term.kind === "keyword") {
+        return article.keywords.some((keyword) => keyword.id === term.id);
+      }
+
+      return article.topics.some((topic) => topic.id === term.id);
+    });
+  }
+
   const articleKeywords = getArticleTerms(article);
 
   return keywords.some((keyword) => articleKeywords.includes(keyword));

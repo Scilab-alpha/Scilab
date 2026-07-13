@@ -27,16 +27,21 @@ import {
 import { useArticles } from "@/features/academic/hooks/use-articles";
 import { useAuthors } from "@/features/academic/hooks/use-authors";
 import { useDebouncedValue } from "@/features/academic/hooks/use-debounced-value";
+import type { ArticleListParams } from "@/features/academic/types/article.type";
 import type {
   ArticleFilters,
   AuthorFilters,
+  FilterOption,
   PickerConfig,
 } from "@/features/academic/types/search.type";
 import {
+  createArticleTermFilterValue,
   filterArticles,
   filterAuthors,
   formatArticlePlaceholder,
   formatAuthorPlaceholder,
+  parseArticleTermFilterValue,
+  uniqueFilterOptions,
   uniqueSorted,
 } from "@/features/academic/utils/search-filtering";
 import { useAppTheme } from "@/theme";
@@ -57,7 +62,11 @@ export function SearchScreen() {
   const controlsVisible = useRef(true);
   const lastScrollY = useRef(0);
   const isShowingAuthors = mode === "authors";
-  const articlesQuery = useArticles("");
+  const articleQueryParams = useMemo(
+    () => getArticleQueryParams(debouncedKeyword, articleFilters),
+    [debouncedKeyword, articleFilters],
+  );
+  const articlesQuery = useArticles(articleQueryParams);
   const authorsQuery = useAuthors({ enabled: isShowingAuthors });
   const articles = useMemo(
     () => articlesQuery.data?.pages.flatMap((page) => page.items) ?? [],
@@ -78,13 +87,17 @@ export function SearchScreen() {
   );
   const articleKeywords = useMemo(
     () =>
-      uniqueSorted(
+      uniqueFilterOptions(
         articles
           .flatMap((article) => [
-            ...article.keywords.map((item) => item.displayName?.trim()),
-            ...article.topics.map((item) => item.displayName?.trim()),
+            ...article.keywords.map((item) =>
+              createArticleTermOption("keyword", item.id, item.displayName),
+            ),
+            ...article.topics.map((item) =>
+              createArticleTermOption("topic", item.id, item.displayName),
+            ),
           ])
-          .filter((name): name is string => Boolean(name)),
+          .filter((option): option is FilterOption => Boolean(option)),
       ),
     [articles],
   );
@@ -298,6 +311,76 @@ export function SearchScreen() {
       </Animated.ScrollView>
     </View>
   );
+}
+
+function getArticleQueryParams(
+  keyword: string,
+  filters: ArticleFilters,
+): Omit<ArticleListParams, "cursor" | "limit"> {
+  return {
+    q: keyword.trim() || null,
+    ...getServerTermFilter(filters.keywords),
+    ...getServerYearFilter(filters.years),
+  };
+}
+
+function getServerTermFilter(
+  selectedTerms: string[],
+): Pick<ArticleListParams, "keywordId" | "topicId"> {
+  if (selectedTerms.length !== 1) {
+    return {};
+  }
+
+  const selectedTerm = parseArticleTermFilterValue(selectedTerms[0] ?? "");
+
+  if (!selectedTerm) {
+    return {};
+  }
+
+  return selectedTerm.kind === "keyword"
+    ? { keywordId: selectedTerm.id }
+    : { topicId: selectedTerm.id };
+}
+
+function getServerYearFilter(
+  selectedYears: string[],
+): Pick<
+  ArticleListParams,
+  "publicationYear" | "publicationYearFrom" | "publicationYearTo"
+> {
+  const years = selectedYears
+    .map((year) => Number(year))
+    .filter((year) => Number.isInteger(year));
+
+  if (years.length === 1) {
+    return { publicationYear: years[0] };
+  }
+
+  if (years.length > 1) {
+    return {
+      publicationYearFrom: Math.min(...years),
+      publicationYearTo: Math.max(...years),
+    };
+  }
+
+  return {};
+}
+
+function createArticleTermOption(
+  kind: "keyword" | "topic",
+  id: string,
+  displayName: string | null,
+): FilterOption | null {
+  const label = displayName?.trim();
+
+  if (!label) {
+    return null;
+  }
+
+  return {
+    label,
+    value: createArticleTermFilterValue({ id, kind, label }),
+  };
 }
 
 const styles = StyleSheet.create({
