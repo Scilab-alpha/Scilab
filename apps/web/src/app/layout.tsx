@@ -3,7 +3,8 @@ import { ThemeProvider } from "@/providers/theme-provider";
 import { AuthProvider } from "@/providers/auth-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import { Toaster } from "@/shared/components/ui/sonner";
-import "./globals.css"
+import "./globals.css";
+
 export const metadata: Metadata = {
   title: "ScholarTrend",
   description: "Research Intelligence Platform",
