@@ -18,10 +18,21 @@ function createGraphRepository(): jest.Mocked<AcademicGraphRepository> {
   return {
     ensureSchema: jest.fn(),
     upsertArticleGraph: jest.fn(),
+    listArticles: jest.fn(),
+    getArticleById: jest.fn(),
+    listAuthors: jest.fn(),
+    getAuthorById: jest.fn(),
+    listJournals: jest.fn(),
+    getJournalById: jest.fn(),
     findArticlesByIds: jest.fn(),
     findFollowTargetsByReferences: jest.fn(),
     findArticlesMatchingFollowedTargets: jest.fn(),
     findExistingReferenceIds: jest.fn(),
+    backfillHydrationStateAndRemoveRegion: jest.fn(),
+    listJournalsForPublisherNormalization: jest.fn(),
+    updatePublisherNameNormalizations: jest.fn(),
+    listHydratedArticleIdsMissingCitation: jest.fn(),
+    updateArticleCitationCounts: jest.fn(),
   };
 }
 

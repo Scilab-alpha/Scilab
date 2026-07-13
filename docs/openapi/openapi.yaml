@@ -13,6 +13,8 @@ tags:
     description: Authenticated user profile and admin user management.
   - name: Academic
     description: Public academic article and journal discovery.
+  - name: Bookmarks
+    description: Authenticated user article bookmarks.
   - name: Follows
     description: Authenticated user follow targets and notification modes.
   - name: Notifications
@@ -448,6 +450,55 @@ paths:
           $ref: "#/components/responses/AdminRequired"
         "404":
           $ref: "#/components/responses/UserNotFound"
+  /bookmarks:
+    get:
+      summary: List current user bookmarks
+      operationId: listBookmarks
+      tags:
+        - Bookmarks
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PageQuery"
+        - $ref: "#/components/parameters/LimitQuery"
+      responses:
+        "200":
+          description: Bookmarks retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookmarkListResponseEnvelope"
+        "400":
+          $ref: "#/components/responses/BookmarkInputInvalid"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /bookmarks/toggle:
+    post:
+      summary: Toggle a bookmark for one article
+      operationId: toggleBookmark
+      tags:
+        - Bookmarks
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ToggleBookmarkRequest"
+      responses:
+        "200":
+          description: Bookmark toggled.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ToggleBookmarkResponseEnvelope"
+        "400":
+          $ref: "#/components/responses/BookmarkInputInvalid"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/ArticleNotFound"
   /follows:
     get:
       summary: List current user follows
@@ -1008,6 +1059,18 @@ components:
               value:
                 success: false
                 message: User not found
+                data: {}
+    BookmarkInputInvalid:
+      description: Bookmark request input is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponseEnvelope"
+          examples:
+            error:
+              value:
+                success: false
+                message: articleId is invalid
                 data: {}
     FollowInputInvalid:
       description: Follow request input is invalid.
@@ -1581,90 +1644,45 @@ components:
               type: object
               additionalProperties: false
               example: {}
-    PushProvider:
-      type: string
-      enum:
-        - EXPO
-        - FCM
-    PushPlatform:
-      type: string
-      enum:
-        - IOS
-        - ANDROID
-        - WEB
-        - UNKNOWN
-    RegisterPushDeviceRequest:
+    BookmarkItem:
       type: object
       additionalProperties: false
       required:
-        - token
-        - platform
+        - articleId
+        - bookmarkedAt
+        - article
       properties:
-        token:
-          type: string
-          maxLength: 2048
-        platform:
-          $ref: "#/components/schemas/PushPlatform"
-        clientDeviceId:
-          type: string
-          maxLength: 255
-    UnregisterPushDeviceRequest:
-      type: object
-      additionalProperties: false
-      required:
-        - token
-      properties:
-        token:
-          type: string
-          maxLength: 2048
-    PushDeviceRegisteredData:
-      type: object
-      additionalProperties: false
-      required:
-        - deviceId
-        - provider
-        - platform
-        - isActive
-      properties:
-        deviceId:
+        articleId:
           type: string
           format: uuid
-        provider:
-          $ref: "#/components/schemas/PushProvider"
-        platform:
-          $ref: "#/components/schemas/PushPlatform"
-        isActive:
-          type: boolean
-    PushDeviceRegisteredResponseEnvelope:
-      allOf:
-        - $ref: "#/components/schemas/ApiResponseBase"
-        - type: object
-          required:
-            - success
-            - message
-            - data
-          properties:
-            success:
-              type: boolean
-              enum:
-                - true
-            message:
-              type: string
-              example: Push device registered
-            data:
-              $ref: "#/components/schemas/PushDeviceRegisteredData"
-    PushDeviceUnregisteredData:
+        bookmarkedAt:
+          type: string
+          format: date-time
+        article:
+          $ref: "#/components/schemas/AcademicArticleGraph"
+    BookmarkListData:
       type: object
       additionalProperties: false
       required:
-        - token
-        - unregistered
+        - items
+        - page
+        - limit
+        - hasMore
       properties:
-        token:
-          type: string
-        unregistered:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/BookmarkItem"
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        hasMore:
           type: boolean
-    PushDeviceUnregisteredResponseEnvelope:
+          example: false
+    BookmarkListResponseEnvelope:
       allOf:
         - $ref: "#/components/schemas/ApiResponseBase"
         - type: object
@@ -1679,9 +1697,52 @@ components:
                 - true
             message:
               type: string
-              example: Push device unregistered
+              example: Bookmarks retrieved
             data:
-              $ref: "#/components/schemas/PushDeviceUnregisteredData"
+              $ref: "#/components/schemas/BookmarkListData"
+    ToggleBookmarkRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - articleId
+      properties:
+        articleId:
+          type: string
+          format: uuid
+    ToggleBookmarkData:
+      type: object
+      additionalProperties: false
+      required:
+        - articleId
+        - bookmarked
+      properties:
+        articleId:
+          type: string
+          format: uuid
+        bookmarked:
+          type: boolean
+        bookmarkedAt:
+          type: string
+          format: date-time
+          nullable: true
+    ToggleBookmarkResponseEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/ApiResponseBase"
+        - type: object
+          required:
+            - success
+            - message
+            - data
+          properties:
+            success:
+              type: boolean
+              enum:
+                - true
+            message:
+              type: string
+              example: Bookmark toggled
+            data:
+              $ref: "#/components/schemas/ToggleBookmarkData"
     NotificationItem:
       type: object
       additionalProperties: true
@@ -1990,6 +2051,107 @@ components:
               example: Follow notification mode updated
             data:
               $ref: "#/components/schemas/FollowItem"
+    PushProvider:
+      type: string
+      enum:
+        - EXPO
+        - FCM
+    PushPlatform:
+      type: string
+      enum:
+        - IOS
+        - ANDROID
+        - WEB
+        - UNKNOWN
+    RegisterPushDeviceRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - token
+        - platform
+      properties:
+        token:
+          type: string
+          maxLength: 2048
+        platform:
+          $ref: "#/components/schemas/PushPlatform"
+        clientDeviceId:
+          type: string
+          maxLength: 255
+    UnregisterPushDeviceRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          maxLength: 2048
+    PushDeviceRegisteredData:
+      type: object
+      additionalProperties: false
+      required:
+        - deviceId
+        - provider
+        - platform
+        - isActive
+      properties:
+        deviceId:
+          type: string
+          format: uuid
+        provider:
+          $ref: "#/components/schemas/PushProvider"
+        platform:
+          $ref: "#/components/schemas/PushPlatform"
+        isActive:
+          type: boolean
+    PushDeviceRegisteredResponseEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/ApiResponseBase"
+        - type: object
+          required:
+            - success
+            - message
+            - data
+          properties:
+            success:
+              type: boolean
+              enum:
+                - true
+            message:
+              type: string
+              example: Push device registered
+            data:
+              $ref: "#/components/schemas/PushDeviceRegisteredData"
+    PushDeviceUnregisteredData:
+      type: object
+      additionalProperties: false
+      required:
+        - token
+        - unregistered
+      properties:
+        token:
+          type: string
+        unregistered:
+          type: boolean
+    PushDeviceUnregisteredResponseEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/ApiResponseBase"
+        - type: object
+          required:
+            - success
+            - message
+            - data
+          properties:
+            success:
+              type: boolean
+              enum:
+                - true
+            message:
+              type: string
+              example: Push device unregistered
+            data:
+              $ref: "#/components/schemas/PushDeviceUnregisteredData"
     TokenPairData:
       type: object
       required:
