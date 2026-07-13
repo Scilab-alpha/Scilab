@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import axios, { type AxiosInstance } from 'axios';
 import {
   FetchOpenAlexWorksInput,
+  FetchOpenAlexWorksByIdsInput,
   OpenAlexWorksPage,
   OpenAlexWorkSource,
 } from '@/academic/application/ports/openalex-work-source.port';
@@ -23,6 +24,37 @@ export class AxiosOpenAlexWorksClient implements OpenAlexWorkSource {
       meta: response.data.meta,
       results: response.data.results ?? [],
     };
+  }
+
+  async fetchWorksByIds(
+    input: FetchOpenAlexWorksByIdsInput,
+  ): Promise<OpenAlexWorksPage> {
+    if (input.ids.length === 0) {
+      return { results: [] };
+    }
+
+    if (input.ids.length > 100) {
+      throw new Error('OpenAlex work id batches must not exceed 100 ids');
+    }
+
+    try {
+      const response = await this.http.get<OpenAlexWorksPage>('/works', {
+        baseURL: input.config.baseUrl,
+        params: {
+          api_key: input.config.apiKey,
+          filter: `openalex_id:${input.ids.join('|')}`,
+          per_page: input.ids.length,
+          select: 'id,cited_by_count',
+        },
+      });
+
+      return {
+        meta: response.data.meta,
+        results: response.data.results ?? [],
+      };
+    } catch (error) {
+      throw new Error(formatOpenAlexError(error));
+    }
   }
 
   private async getWorksPage(config: FetchOpenAlexWorksInput['config']) {

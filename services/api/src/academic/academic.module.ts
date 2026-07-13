@@ -5,6 +5,7 @@ import {
   AcademicGraphRepository,
 } from '@/academic/application/ports/academic-graph.port';
 import { ExecuteOpenAlexSyncUseCase } from '@/academic/application/use-cases/execute-openalex-sync/execute-openalex-sync.use-case';
+import { BackfillAcademicSearchDataUseCase } from '@/academic/application/use-cases/backfill-academic-search-data/backfill-academic-search-data.use-case';
 import { GetArticleByIdUseCase } from '@/academic/application/use-cases/get-article-by-id/get-article-by-id.use-case';
 import { GetAuthorByIdUseCase } from '@/academic/application/use-cases/get-author-by-id/get-author-by-id.use-case';
 import { GetJournalByIdUseCase } from '@/academic/application/use-cases/get-journal-by-id/get-journal-by-id.use-case';
@@ -17,6 +18,7 @@ import { Neo4jAcademicGraphRepository } from '@/academic/infrastructure/neo4j/ne
 import { AxiosOpenAlexWorksClient } from '@/academic/infrastructure/openalex/axios-openalex-works.client';
 import { PrismaAcademicSyncLogRepository } from '@/academic/infrastructure/persistence/prisma-academic-sync-log.repository';
 import { AcademicController } from '@/academic/interfaces/http/academic.controller';
+import { AcademicBackfillScheduler } from '@/academic/interfaces/schedulers/academic-backfill.scheduler';
 import { OpenAlexSyncScheduler } from '@/academic/interfaces/schedulers/openalex-sync.scheduler';
 import { Neo4jModule } from '@/neo4j/neo4j.module';
 import { PrismaModule } from '@/prisma/prisma.module';
@@ -27,10 +29,29 @@ import { PrismaModule } from '@/prisma/prisma.module';
   providers: [
     AxiosOpenAlexWorksClient,
     OpenAlexEnvConfigReader,
+    AcademicBackfillScheduler,
     OpenAlexSyncScheduler,
     PrismaAcademicSyncLogRepository,
     Neo4jAcademicGraphRepository,
     AcademicGraphSchemaInitializer,
+    {
+      provide: BackfillAcademicSearchDataUseCase,
+      useFactory: (
+        configReader: OpenAlexEnvConfigReader,
+        worksClient: AxiosOpenAlexWorksClient,
+        graphRepository: AcademicGraphRepository,
+      ) =>
+        new BackfillAcademicSearchDataUseCase(
+          configReader,
+          worksClient,
+          graphRepository,
+        ),
+      inject: [
+        OpenAlexEnvConfigReader,
+        AxiosOpenAlexWorksClient,
+        ACADEMIC_GRAPH_REPOSITORY,
+      ],
+    },
     {
       provide: ExecuteOpenAlexSyncUseCase,
       useFactory: (

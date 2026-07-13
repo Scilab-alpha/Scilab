@@ -5,6 +5,16 @@ export const ACADEMIC_GRAPH_SCHEMA_CYPHER = [
    FOR (a:Article) ON (a.doi)`,
   `CREATE INDEX article_publication_year_index IF NOT EXISTS
    FOR (a:Article) ON (a.publication_year)`,
+  `CREATE INDEX article_hydration_state_index IF NOT EXISTS
+   FOR (a:Article) ON (a.hydration_state)`,
+  `CREATE INDEX article_citation_count_index IF NOT EXISTS
+   FOR (a:Article) ON (a.citation_count)`,
+  `CREATE FULLTEXT INDEX article_title_abstract_fulltext IF NOT EXISTS
+   FOR (a:Article) ON EACH [a.title, a.abstract]
+   OPTIONS {indexConfig: {
+     \`fulltext.analyzer\`: 'standard-no-stop-words',
+     \`fulltext.eventually_consistent\`: false
+   }}`,
   `CREATE CONSTRAINT author_id_unique IF NOT EXISTS
    FOR (a:Author) REQUIRE a.id IS UNIQUE`,
   `CREATE INDEX author_orcid_index IF NOT EXISTS
@@ -17,6 +27,8 @@ export const ACADEMIC_GRAPH_SCHEMA_CYPHER = [
    FOR (j:Journal) ON (j.source_id)`,
   `CREATE TEXT INDEX journal_display_name_text IF NOT EXISTS
    FOR (j:Journal) ON (j.display_name)`,
+  `CREATE INDEX journal_publisher_name_normalized_index IF NOT EXISTS
+   FOR (j:Journal) ON (j.publisher_name_normalized)`,
   `CREATE CONSTRAINT keyword_id_unique IF NOT EXISTS
    FOR (k:Keyword) REQUIRE k.id IS UNIQUE`,
   `CREATE TEXT INDEX keyword_display_name_text IF NOT EXISTS

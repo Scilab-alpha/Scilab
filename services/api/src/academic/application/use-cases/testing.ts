@@ -14,6 +14,17 @@ export function createAcademicGraphRepositoryDouble(
     getJournalById: jest.fn().mockResolvedValue(null),
     findArticlesByIds: jest.fn().mockResolvedValue([]),
     findExistingReferenceIds: jest.fn().mockResolvedValue(new Set()),
+    backfillHydrationStateAndRemoveRegion: jest
+      .fn()
+      .mockResolvedValue(undefined),
+    listJournalsForPublisherNormalization: jest
+      .fn()
+      .mockResolvedValue({ items: [], nextCursor: null }),
+    updatePublisherNameNormalizations: jest.fn().mockResolvedValue(undefined),
+    listHydratedArticleIdsMissingCitation: jest
+      .fn()
+      .mockResolvedValue({ items: [], nextCursor: null }),
+    updateArticleCitationCounts: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }

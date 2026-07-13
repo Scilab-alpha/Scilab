@@ -50,7 +50,6 @@ const journalSchema = {
     'isOaDiamond',
     'coverage',
     'country',
-    'region',
     'issnList',
     'publisherName',
     'publisherImageUrl',
@@ -67,7 +66,6 @@ const journalSchema = {
     isOaDiamond: { type: 'boolean', nullable: true },
     coverage: nullableStringSchema,
     country: nullableStringSchema,
-    region: nullableStringSchema,
     issnList: {
       type: 'array',
       nullable: true,
@@ -95,6 +93,7 @@ const articleNodeSchema = {
     'version',
     'volumeNumber',
     'issueNumber',
+    'citationCount',
     'createdAt',
     'updatedAt',
   ],
@@ -111,6 +110,7 @@ const articleNodeSchema = {
       nullable: true,
     },
     issueNumber: nullableStringSchema,
+    citationCount: { type: 'integer', nullable: true, minimum: 0 },
     createdAt: nullableStringSchema,
     updatedAt: nullableStringSchema,
   },
@@ -250,11 +250,11 @@ const journalResponseSchema = envelopeSchema(
 const invalidCursorSchema = errorEnvelopeSchema(
   'limit must be an integer between 1 and 100',
 );
-const invalidArticleKeywordCursorSchema = errorEnvelopeSchema(
-  'cursor is invalid for keyword article search',
+const invalidArticleListCursorSchema = errorEnvelopeSchema(
+  'cursor is invalid for this article query',
 );
 const invalidArticleListQuerySchema = {
-  oneOf: [invalidCursorSchema, invalidArticleKeywordCursorSchema],
+  oneOf: [invalidCursorSchema, invalidArticleListCursorSchema],
 };
 const articleNotFoundSchema = errorEnvelopeSchema('Article not found');
 const authorNotFoundSchema = errorEnvelopeSchema('Author not found');
@@ -284,15 +284,78 @@ function ApiCursorQuery() {
 export function ApiListArticles() {
   return applyDecorators(
     ApiOperation({
-      summary:
-        'List academic articles with cursor pagination and keyword search',
+      summary: 'Search and filter academic articles with cursor pagination',
     }),
     ApiQuery({
-      name: 'keyword',
+      name: 'q',
+      required: false,
+      schema: { type: 'string', maxLength: 200 },
+      description: 'Search article titles, abstracts, keywords, and topics.',
+    }),
+    ApiQuery({
+      name: 'keywordId',
       required: false,
       schema: { type: 'string' },
+      description: 'Require an exact related keyword id.',
+    }),
+    ApiQuery({
+      name: 'topicId',
+      required: false,
+      schema: { type: 'string' },
+      description: 'Require an exact related topic id.',
+    }),
+    ApiQuery({
+      name: 'authorId',
+      required: false,
+      schema: { type: 'string' },
+      description: 'Require an exact author id.',
+    }),
+    ApiQuery({
+      name: 'journalId',
+      required: false,
+      schema: { type: 'string' },
+      description: 'Require an exact journal id.',
+    }),
+    ApiQuery({
+      name: 'publicationYear',
+      required: false,
+      schema: { type: 'integer', minimum: 1000 },
       description:
-        'Keyword text used to search articles by related keyword display name.',
+        'Exact publication year; mutually exclusive with year range.',
+    }),
+    ApiQuery({
+      name: 'publicationYearFrom',
+      required: false,
+      schema: { type: 'integer', minimum: 1000 },
+      description: 'Inclusive publication year lower bound.',
+    }),
+    ApiQuery({
+      name: 'publicationYearTo',
+      required: false,
+      schema: { type: 'integer', minimum: 1000 },
+      description: 'Inclusive publication year upper bound.',
+    }),
+    ApiQuery({
+      name: 'publisher',
+      required: false,
+      schema: { type: 'string', maxLength: 255 },
+      description: 'Publisher name matched exactly after normalization.',
+    }),
+    ApiQuery({
+      name: 'country',
+      required: false,
+      schema: { type: 'string', minLength: 2, maxLength: 2 },
+      description: 'ISO 3166-1 alpha-2 journal country code.',
+    }),
+    ApiQuery({
+      name: 'sort',
+      required: false,
+      schema: {
+        type: 'string',
+        enum: ['relevant', 'newest', 'most_cited'],
+      },
+      description:
+        'Defaults to relevant for research queries and newest otherwise.',
     }),
     ApiCursorQuery(),
     ApiOkResponse({
