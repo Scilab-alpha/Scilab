@@ -28,6 +28,13 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/shared/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
 import { routes } from "@/shared/constants/routes";
 import { useAuth } from "@/providers/auth-provider";
 import {
@@ -42,7 +49,10 @@ interface RegisterScreenProps {
 
 const defaultValues: RegisterFormValues = {
   email: "",
-  displayName: "",
+  firstName: "",
+  lastName: "",
+  gender: "OTHER",
+  dateOfBirth: "",
   password: "",
   confirmPassword: "",
 };
@@ -82,6 +92,7 @@ export default function RegisterScreen({
     handleSubmit,
     register,
     setError,
+    setValue,
     control,
   } = useForm<RegisterFormValues>({ defaultValues, mode: "onBlur" });
 
@@ -119,11 +130,8 @@ export default function RegisterScreen({
     }
 
     try {
-      await registerAccount(values);
-      registerSession({
-        email: values.email,
-        displayName: values.displayName,
-      });
+      const result = await registerAccount(values);
+      await registerSession(result.session);
       setStatusMessage("Account created. Opening your dashboard.");
       toast.success("ScholarTrend account created.");
 
@@ -150,13 +158,11 @@ export default function RegisterScreen({
     setGlobalError("");
     setStatusMessage("Google registration is waiting for backend support.");
 
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
     const message =
-      "Google registration is pending backend integration. Please create an account with email for now.";
+      "Google registration is not available yet. Please create an account with email for now.";
     setGlobalError(message);
     setStatusMessage(message);
-    toast.info("Google registration is pending backend integration.");
+    toast.info("Google registration is not available yet.");
     setIsGoogleLoading(false);
   };
 
@@ -310,35 +316,146 @@ export default function RegisterScreen({
                   ) : null}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="displayName">Display name</Label>
-                  <Input
-                    id="displayName"
-                    type="text"
-                    autoComplete="name"
-                    placeholder="Jane Smith"
-                    className="h-11"
-                    aria-invalid={!!errors.displayName}
-                    aria-describedby={
-                      errors.displayName ? "displayName-error" : undefined
-                    }
-                    disabled={isBusy}
-                    {...register("displayName", {
-                      onChange: () => {
-                        clearErrors("displayName");
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First name</Label>
+                    <Input
+                      id="firstName"
+                      type="text"
+                      autoComplete="given-name"
+                      placeholder="Jane"
+                      className="h-11"
+                      aria-invalid={!!errors.firstName}
+                      aria-describedby={
+                        errors.firstName ? "firstName-error" : undefined
+                      }
+                      disabled={isBusy}
+                      {...register("firstName", {
+                        onChange: () => {
+                          clearErrors("firstName");
+                          setGlobalError("");
+                        },
+                      })}
+                    />
+                    {errors.firstName ? (
+                      <p
+                        id="firstName-error"
+                        className="flex items-center gap-1 text-sm text-destructive"
+                      >
+                        <X className="h-4 w-4" strokeWidth={1.75} />
+                        {errors.firstName.message}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last name</Label>
+                    <Input
+                      id="lastName"
+                      type="text"
+                      autoComplete="family-name"
+                      placeholder="Smith"
+                      className="h-11"
+                      aria-invalid={!!errors.lastName}
+                      aria-describedby={
+                        errors.lastName ? "lastName-error" : undefined
+                      }
+                      disabled={isBusy}
+                      {...register("lastName", {
+                        onChange: () => {
+                          clearErrors("lastName");
+                          setGlobalError("");
+                        },
+                      })}
+                    />
+                    {errors.lastName ? (
+                      <p
+                        id="lastName-error"
+                        className="flex items-center gap-1 text-sm text-destructive"
+                      >
+                        <X className="h-4 w-4" strokeWidth={1.75} />
+                        {errors.lastName.message}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="gender">Gender</Label>
+                    <Select
+                      defaultValue={defaultValues.gender}
+                      disabled={isBusy}
+                      onValueChange={(value) => {
+                        setValue(
+                          "gender",
+                          value as RegisterFormValues["gender"],
+                          {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          },
+                        );
+                        clearErrors("gender");
                         setGlobalError("");
-                      },
-                    })}
-                  />
-                  {errors.displayName ? (
-                    <p
-                      id="displayName-error"
-                      className="flex items-center gap-1 text-sm text-destructive"
+                      }}
                     >
-                      <X className="h-4 w-4" strokeWidth={1.75} />
-                      {errors.displayName.message}
-                    </p>
-                  ) : null}
+                      <SelectTrigger
+                        id="gender"
+                        className="h-11"
+                        aria-invalid={!!errors.gender}
+                        aria-describedby={
+                          errors.gender ? "gender-error" : undefined
+                        }
+                      >
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="FEMALE">Female</SelectItem>
+                        <SelectItem value="MALE">Male</SelectItem>
+                        <SelectItem value="OTHER">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <input type="hidden" {...register("gender")} />
+                    {errors.gender ? (
+                      <p
+                        id="gender-error"
+                        className="flex items-center gap-1 text-sm text-destructive"
+                      >
+                        <X className="h-4 w-4" strokeWidth={1.75} />
+                        {errors.gender.message}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="dateOfBirth">Date of birth</Label>
+                    <Input
+                      id="dateOfBirth"
+                      type="date"
+                      autoComplete="bday"
+                      className="h-11"
+                      aria-invalid={!!errors.dateOfBirth}
+                      aria-describedby={
+                        errors.dateOfBirth ? "dateOfBirth-error" : undefined
+                      }
+                      disabled={isBusy}
+                      {...register("dateOfBirth", {
+                        onChange: () => {
+                          clearErrors("dateOfBirth");
+                          setGlobalError("");
+                        },
+                      })}
+                    />
+                    {errors.dateOfBirth ? (
+                      <p
+                        id="dateOfBirth-error"
+                        className="flex items-center gap-1 text-sm text-destructive"
+                      >
+                        <X className="h-4 w-4" strokeWidth={1.75} />
+                        {errors.dateOfBirth.message}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
