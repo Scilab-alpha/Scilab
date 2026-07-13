@@ -1,0 +1,59 @@
+import { AcademicGraphRepository } from '@/academic/application/ports/academic-graph.port';
+import { BookmarkRepository } from '@/bookmark/application/ports/bookmark.ports';
+import {
+  ToggleBookmarkInput,
+  ToggleBookmarkOutput,
+} from '@/bookmark/application/use-cases/toggle-bookmark/toggle-bookmark.dto';
+import {
+  BookmarkFailureReason,
+  BookmarkUseCaseError,
+} from '@/bookmark/domain/bookmark.errors';
+import { parseUuid } from '@/shared/validation/request-input';
+
+export class ToggleBookmarkUseCase {
+  constructor(
+    private readonly bookmarks: BookmarkRepository,
+    private readonly graph: AcademicGraphRepository,
+  ) {}
+
+  async execute(input: ToggleBookmarkInput): Promise<ToggleBookmarkOutput> {
+    const articleId = this.parseArticleId(input.articleId);
+    const existing = await this.bookmarks.findByUserAndArticle(
+      input.userId,
+      articleId,
+    );
+
+    if (existing) {
+      await this.bookmarks.deleteByUserAndArticle(input.userId, articleId);
+      return { articleId, bookmarked: false };
+    }
+
+    const existingIds = await this.graph.findExistingReferenceIds('ARTICLE', [
+      articleId,
+    ]);
+    if (!existingIds.has(articleId)) {
+      throw new BookmarkUseCaseError(
+        BookmarkFailureReason.ArticleMissing,
+        'Article not found',
+      );
+    }
+
+    const created = await this.bookmarks.create(input.userId, articleId);
+    return {
+      articleId,
+      bookmarked: true,
+      bookmarkedAt: created.createdAt,
+    };
+  }
+
+  private parseArticleId(value: unknown): string {
+    try {
+      return parseUuid(value, 'articleId');
+    } catch {
+      throw new BookmarkUseCaseError(
+        BookmarkFailureReason.InvalidInput,
+        'articleId is invalid',
+      );
+    }
+  }
+}
