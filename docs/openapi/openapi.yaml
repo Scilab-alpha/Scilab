@@ -13,6 +13,8 @@ tags:
     description: Authenticated user profile and admin user management.
   - name: Academic
     description: Public academic article and journal discovery.
+  - name: Bookmarks
+    description: Authenticated user article bookmarks.
   - name: Follows
     description: Authenticated user follow targets and notification modes.
   - name: Events
@@ -444,6 +446,55 @@ paths:
           $ref: "#/components/responses/AdminRequired"
         "404":
           $ref: "#/components/responses/UserNotFound"
+  /bookmarks:
+    get:
+      summary: List current user bookmarks
+      operationId: listBookmarks
+      tags:
+        - Bookmarks
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PageQuery"
+        - $ref: "#/components/parameters/LimitQuery"
+      responses:
+        "200":
+          description: Bookmarks retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookmarkListResponseEnvelope"
+        "400":
+          $ref: "#/components/responses/BookmarkInputInvalid"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /bookmarks/toggle:
+    post:
+      summary: Toggle a bookmark for one article
+      operationId: toggleBookmark
+      tags:
+        - Bookmarks
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ToggleBookmarkRequest"
+      responses:
+        "200":
+          description: Bookmark toggled.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ToggleBookmarkResponseEnvelope"
+        "400":
+          $ref: "#/components/responses/BookmarkInputInvalid"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/ArticleNotFound"
   /follows:
     get:
       summary: List current user follows
@@ -861,6 +912,18 @@ components:
               value:
                 success: false
                 message: User not found
+                data: {}
+    BookmarkInputInvalid:
+      description: Bookmark request input is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponseEnvelope"
+          examples:
+            error:
+              value:
+                success: false
+                message: articleId is invalid
                 data: {}
     FollowInputInvalid:
       description: Follow request input is invalid.
@@ -1398,6 +1461,105 @@ components:
               type: object
               additionalProperties: false
               example: {}
+    BookmarkItem:
+      type: object
+      additionalProperties: false
+      required:
+        - articleId
+        - bookmarkedAt
+        - article
+      properties:
+        articleId:
+          type: string
+          format: uuid
+        bookmarkedAt:
+          type: string
+          format: date-time
+        article:
+          $ref: "#/components/schemas/AcademicArticleGraph"
+    BookmarkListData:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - page
+        - limit
+        - hasMore
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/BookmarkItem"
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        hasMore:
+          type: boolean
+          example: false
+    BookmarkListResponseEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/ApiResponseBase"
+        - type: object
+          required:
+            - success
+            - message
+            - data
+          properties:
+            success:
+              type: boolean
+              enum:
+                - true
+            message:
+              type: string
+              example: Bookmarks retrieved
+            data:
+              $ref: "#/components/schemas/BookmarkListData"
+    ToggleBookmarkRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - articleId
+      properties:
+        articleId:
+          type: string
+          format: uuid
+    ToggleBookmarkData:
+      type: object
+      additionalProperties: false
+      required:
+        - articleId
+        - bookmarked
+      properties:
+        articleId:
+          type: string
+          format: uuid
+        bookmarked:
+          type: boolean
+        bookmarkedAt:
+          type: string
+          format: date-time
+          nullable: true
+    ToggleBookmarkResponseEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/ApiResponseBase"
+        - type: object
+          required:
+            - success
+            - message
+            - data
+          properties:
+            success:
+              type: boolean
+              enum:
+                - true
+            message:
+              type: string
+              example: Bookmark toggled
+            data:
+              $ref: "#/components/schemas/ToggleBookmarkData"
     FollowObjectType:
       type: string
       enum:

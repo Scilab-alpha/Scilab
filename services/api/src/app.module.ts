@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AcademicModule } from '@/academic/academic.module';
 import { AuthModule } from '@/auth/auth.module';
+import { BookmarkModule } from '@/bookmark/bookmark.module';
 import { EventsModule } from '@/events/events.module';
 import { FollowModule } from '@/follow/follow.module';
 import { Neo4jModule } from '@/neo4j/neo4j.module';
@@ -22,6 +23,7 @@ import { UserModule } from '@/user/user.module';
     UserModule,
     EventsModule,
     FollowModule,
+    BookmarkModule,
   ],
 })
 export class AppModule {}
