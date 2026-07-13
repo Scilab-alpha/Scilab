@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Node.js 22.x available locally.
-- pnpm 9.0.0 available through Corepack or a local pnpm install.
+- pnpm 11.7.0 available through Corepack or a local pnpm install.
 - Docker available when validating API database migration locally.
 
 ## Local Validation Flow

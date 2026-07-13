@@ -11,11 +11,21 @@ export function createRegisterSuccessFixture(
     user: {
       id: "fixture-user-001",
       email: request.email.trim().toLowerCase(),
-      displayName: request.displayName.trim(),
+      status: "ACTIVE",
+      role: "student",
+      firstName: request.firstName.trim(),
+      lastName: request.lastName.trim(),
+      name: `${request.firstName.trim()} ${request.lastName.trim()}`,
+      displayName: `${request.firstName.trim()} ${request.lastName.trim()}`,
+      imageUrl: null,
+      initials: `${request.firstName[0] ?? ""}${request.lastName[0] ?? ""}`
+        .toUpperCase()
+        .slice(0, 2),
     },
-    role: "Lecturer/Student",
+    role: "student",
     session: {
       accessToken: "fixture-access-token",
+      refreshToken: "fixture-refresh-token",
       expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     },
   };

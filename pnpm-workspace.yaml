@@ -10,13 +10,16 @@ allowBuilds:
   "@prisma/engines": true
   "@scarf/scarf": false
   argon2: true
+  esbuild: true
   prisma: true
+  sharp: true
   unrs-resolver: true
 
 onlyBuiltDependencies:
   - "@prisma/engines"
   - argon2
   - prisma
+  - sharp
   - unrs-resolver
 
 ignoredBuiltDependencies:

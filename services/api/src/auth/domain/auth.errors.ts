@@ -6,6 +6,8 @@ export enum AuthFailureReason {
   TokenMalformed = 'TOKEN_MALFORMED',
   RefreshReused = 'REFRESH_REUSED',
   UserMissing = 'USER_MISSING',
+  EmailAlreadyRegistered = 'EMAIL_ALREADY_REGISTERED',
+  InvalidRegistrationInput = 'INVALID_REGISTRATION_INPUT',
 }
 
 export class AuthUseCaseError extends Error {

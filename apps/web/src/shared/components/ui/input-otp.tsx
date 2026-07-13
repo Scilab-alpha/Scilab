@@ -2,28 +2,31 @@
 
 import * as React from "react";
 import { OTPInput, OTPInputContext } from "input-otp";
+import type { OTPInputProps } from "input-otp";
 import { MinusIcon } from "lucide-react";
 
 import { cn } from "./utils";
+
+type WithoutKey<T> = Omit<T, "key">;
 
 function InputOTP({
   className,
   containerClassName,
   ...props
-}: React.ComponentProps<typeof OTPInput> & {
+}: WithoutKey<React.ComponentProps<typeof OTPInput>> & {
   containerClassName?: string;
 }) {
-  return (
-    <OTPInput
-      data-slot="input-otp"
-      containerClassName={cn(
-        "flex items-center gap-2 has-disabled:opacity-50",
-        containerClassName,
-      )}
-      className={cn("disabled:cursor-not-allowed", className)}
-      {...props}
-    />
-  );
+  const inputProps = {
+    ...props,
+    "data-slot": "input-otp",
+    containerClassName: cn(
+      "flex items-center gap-2 has-disabled:opacity-50",
+      containerClassName,
+    ),
+    className: cn("disabled:cursor-not-allowed", className),
+  } as OTPInputProps & { "data-slot": string };
+
+  return <OTPInput {...inputProps} />;
 }
 
 function InputOTPGroup({ className, ...props }: React.ComponentProps<"div">) {

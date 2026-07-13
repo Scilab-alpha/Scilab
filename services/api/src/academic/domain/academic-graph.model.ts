@@ -5,6 +5,9 @@ export type AcademicNodeType =
   | 'KEYWORD'
   | 'TOPIC';
 
+export type ArticleHydrationState = 'PLACEHOLDER' | 'HYDRATED';
+export type ArticleSort = 'relevant' | 'newest' | 'most_cited';
+
 export interface ArticleNode {
   id: string;
   title: string;
@@ -14,6 +17,8 @@ export interface ArticleNode {
   version?: string | null;
   volumeNumber?: number | string | null;
   issueNumber?: string | null;
+  citationCount?: number | null;
+  hydrationState?: ArticleHydrationState;
   createdAt?: string | Date | null;
   updatedAt?: string | Date | null;
 }
@@ -35,7 +40,6 @@ export interface JournalNode {
   isOaDiamond?: boolean | null;
   coverage?: string | null;
   country?: string | null;
-  region?: string | null;
   issnList?: string[] | null;
   publisherName?: string | null;
   publisherImageUrl?: string | null;
@@ -62,4 +66,43 @@ export interface ArticleGraph {
   keywords?: KeywordNode[];
   topics?: TopicNode[];
   citedArticleIds?: string[];
+}
+
+export interface CursorPaginationInput {
+  cursor?: string | null;
+  limit: number;
+}
+
+export interface ArticleListInput extends CursorPaginationInput {
+  q?: string | null;
+  keywordId?: string | null;
+  topicId?: string | null;
+  authorId?: string | null;
+  journalId?: string | null;
+  publicationYear?: number | null;
+  publicationYearFrom?: number | null;
+  publicationYearTo?: number | null;
+  publisher?: string | null;
+  country?: string | null;
+  sort: ArticleSort;
+}
+
+export interface CursorPage<TItem> {
+  items: TItem[];
+  nextCursor: string | null;
+}
+
+export type AuthorListItem = Omit<AuthorNode, 'authorPosition'> & {
+  articleCount: number;
+};
+
+export interface JournalListItem extends JournalNode {
+  articleCount: number;
+}
+
+export class InvalidArticleListCursorError extends Error {
+  constructor() {
+    super('cursor is invalid for this article query');
+    this.name = 'InvalidArticleListCursorError';
+  }
 }

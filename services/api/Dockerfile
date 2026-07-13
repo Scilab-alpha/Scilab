@@ -4,7 +4,7 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 
 RUN corepack enable
-RUN corepack prepare pnpm@9.0.0 --activate
+RUN corepack prepare pnpm@11.7.0 --activate
 
 FROM base AS build
 
@@ -27,7 +27,7 @@ FROM base AS runtime
 
 WORKDIR /app/services/api
 
-ENV PORT="6011"
+ENV PORT="6003"
 
 COPY --from=build /app/package.json /app/package.json
 COPY --from=build /app/pnpm-lock.yaml /app/pnpm-lock.yaml
@@ -39,6 +39,6 @@ COPY --from=build /app/services/api/prisma.config.ts ./prisma.config.ts
 COPY --from=build /app/services/api/dist ./dist
 COPY --from=build /app/services/api/prisma ./prisma
 
-EXPOSE 6011
+EXPOSE 6003
 
-CMD ["node", "dist/main.js"]
+CMD ["sh", "-c", "pnpm prisma migrate deploy && node dist/main.js"]

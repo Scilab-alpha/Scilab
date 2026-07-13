@@ -26,8 +26,6 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false
   },
-  "types": ["jest"],
-  "typeRoots": ["./src/types", "./node_modules/@types"],
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "generated"],
+  "exclude": ["node_modules", "dist", "generated"]
 }

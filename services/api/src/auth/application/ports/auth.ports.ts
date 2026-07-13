@@ -1,5 +1,7 @@
 import { AuthEvent } from '@/auth/domain/auth-event';
 
+export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
+
 export interface UserAuthRecord {
   id: string;
   email: string;
@@ -9,6 +11,31 @@ export interface UserAuthRecord {
   firstName: string | null;
   lastName: string | null;
   imageUrl: string | null;
+}
+
+export interface UserRegistrationRecord {
+  id: string;
+  email: string;
+  status: string;
+  role: string;
+  firstName: string | null;
+  lastName: string | null;
+  gender: Gender | null;
+  dateOfBirth: Date | null;
+}
+
+export interface CreateUserInput {
+  email: string;
+  passwordHash: string;
+  firstName: string;
+  lastName: string;
+  gender: Gender;
+  dateOfBirth: Date;
+}
+
+export interface CreateAdminInput {
+  email: string;
+  passwordHash: string;
 }
 
 export interface AuthSessionRecord {
@@ -69,6 +96,8 @@ export interface IssuedAccessToken {
 export interface UserRepository {
   findByEmail(email: string): Promise<UserAuthRecord | null>;
   findById(id: string): Promise<UserAuthRecord | null>;
+  createStudent(input: CreateUserInput): Promise<UserRegistrationRecord>;
+  ensureAdmin(input: CreateAdminInput): Promise<UserAuthRecord>;
 }
 
 export interface SessionRepository {

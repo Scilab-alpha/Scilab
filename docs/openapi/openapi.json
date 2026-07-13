@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Scilab API",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": "API documentation for the Scilab backend."
   },
   "servers": [
@@ -13,30 +13,56 @@
   ],
   "tags": [
     {
-      "name": "Health",
-      "description": "API availability checks."
-    },
-    {
       "name": "Auth",
       "description": "JWT-backed authentication sessions."
+    },
+    {
+      "name": "Users",
+      "description": "Authenticated user profile and admin user management."
+    },
+    {
+      "name": "Academic",
+      "description": "Public academic article and journal discovery."
+    },
+    {
+      "name": "Events",
+      "description": "Authenticated realtime user event stream."
     }
   ],
   "paths": {
-    "/": {
-      "get": {
-        "summary": "Check API availability",
-        "operationId": "getHealth",
-        "tags": ["Health"],
+    "/auth/register": {
+      "post": {
+        "summary": "Register a student account",
+        "operationId": "register",
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": {
-            "description": "The API is running.",
+          "201": {
+            "description": "Registration successful.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthResponseEnvelope"
+                  "$ref": "#/components/schemas/RegisteredUserResponseEnvelope"
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRegistrationInput"
+          },
+          "409": {
+            "$ref": "#/components/responses/EmailAlreadyRegistered"
           }
         }
       }
@@ -45,7 +71,9 @@
       "post": {
         "summary": "Sign in with credentials",
         "operationId": "login",
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -58,7 +86,7 @@
         },
         "responses": {
           "200": {
-            "description": "Sign-in succeeded and an authenticated session was issued.",
+            "description": "Authentication successful.",
             "content": {
               "application/json": {
                 "schema": {
@@ -68,7 +96,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "$ref": "#/components/responses/LoginBadRequest"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -83,7 +111,9 @@
       "post": {
         "summary": "Refresh access and refresh tokens",
         "operationId": "refreshTokens",
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -96,17 +126,17 @@
         },
         "responses": {
           "200": {
-            "description": "Refresh succeeded and a new token pair was issued.",
+            "description": "Authentication refreshed.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenPairResponseEnvelope"
+                  "$ref": "#/components/schemas/RefreshTokenPairResponseEnvelope"
                 }
               }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "$ref": "#/components/responses/RefreshBadRequest"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -118,7 +148,9 @@
       "get": {
         "summary": "Return the authenticated user",
         "operationId": "getCurrentUser",
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -126,7 +158,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Current authenticated user.",
+            "description": "Current user retrieved.",
             "content": {
               "application/json": {
                 "schema": {
@@ -145,7 +177,9 @@
       "post": {
         "summary": "Revoke the current authenticated session",
         "operationId": "logout",
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -153,7 +187,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Current session was revoked.",
+            "description": "Logout successful.",
             "content": {
               "application/json": {
                 "schema": {
@@ -167,9 +201,803 @@
           }
         }
       }
+    },
+    "/academic/articles": {
+      "get": {
+        "summary": "Search and filter academic articles with cursor pagination",
+        "operationId": "listAcademicArticles",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AcademicQuery"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicKeywordId"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicTopicId"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicAuthorFilterId"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicJournalFilterId"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicPublicationYear"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicPublicationYearFrom"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicPublicationYearTo"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicPublisher"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicCountry"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicSort"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicCursor"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Articles retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicArticleListResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/AcademicArticleListInvalid"
+          }
+        }
+      }
+    },
+    "/academic/articles/{articleId}": {
+      "get": {
+        "summary": "Return one academic article by id",
+        "operationId": "getAcademicArticleById",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ArticleId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Article retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicArticleResponseEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/ArticleNotFound"
+          }
+        }
+      }
+    },
+    "/academic/authors": {
+      "get": {
+        "summary": "List academic authors with cursor pagination",
+        "operationId": "listAcademicAuthors",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AcademicCursor"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authors retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicAuthorListResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/AcademicCursorInvalid"
+          }
+        }
+      }
+    },
+    "/academic/authors/{authorId}": {
+      "get": {
+        "summary": "Return one academic author by id",
+        "operationId": "getAcademicAuthorById",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AuthorId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Author retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicAuthorResponseEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/AuthorNotFound"
+          }
+        }
+      }
+    },
+    "/academic/journals": {
+      "get": {
+        "summary": "List academic journals with cursor pagination",
+        "operationId": "listAcademicJournals",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AcademicCursor"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Journals retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicJournalListResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/AcademicCursorInvalid"
+          }
+        }
+      }
+    },
+    "/academic/journals/{journalId}": {
+      "get": {
+        "summary": "Return one academic journal by id",
+        "operationId": "getAcademicJournalById",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/JournalId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Journal retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicJournalResponseEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/JournalNotFound"
+          }
+        }
+      }
+    },
+    "/users/me": {
+      "get": {
+        "summary": "Return the authenticated user profile",
+        "operationId": "getMyUser",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update the authenticated user profile",
+        "operationId": "patchMyUser",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserUpdatedResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/UserInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/EmailAlreadyUsed"
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "summary": "List users for admin management",
+        "operationId": "listUsers",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminRequired"
+          }
+        }
+      }
+    },
+    "/users/{userId}": {
+      "get": {
+        "summary": "Return one user for admin management",
+        "operationId": "getUserById",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminRequired"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update one user profile for admin management",
+        "operationId": "patchUserById",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserUpdatedResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/UserInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminRequired"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/EmailAlreadyUsed"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete one user for admin management",
+        "operationId": "deleteUserById",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDeletedResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminRequired"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          }
+        }
+      }
+    },
+    "/users/{userId}/role": {
+      "patch": {
+        "summary": "Update one user role for admin management",
+        "operationId": "patchUserRole",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRolePatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User role updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRoleUpdatedResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/UserInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminRequired"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          }
+        }
+      }
+    },
+    "/users/{userId}/status": {
+      "patch": {
+        "summary": "Update one user status for admin management",
+        "operationId": "patchUserStatus",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserStatusPatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User status updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserStatusUpdatedResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/UserInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminRequired"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          }
+        }
+      }
+    },
+    "/events": {
+      "get": {
+        "summary": "Subscribe to current user realtime events",
+        "operationId": "subscribeEvents",
+        "tags": [
+          "Events"
+        ],
+        "description": "Bearer-authenticated Server-Sent Events stream for current-user activity. Events are best-effort and are not replayed after reconnect.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User event stream opened.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "eventId",
+                    "occurredAt",
+                    "type",
+                    "data"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "eventId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "occurredAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "notification.created",
+                        "notification.read",
+                        "notification.read_all",
+                        "bookmark.toggled",
+                        "follow.toggled",
+                        "follow.updated",
+                        "ping"
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
     }
   },
   "components": {
+    "parameters": {
+      "UserId": {
+        "name": "userId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "ArticleId": {
+        "name": "articleId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "JournalId": {
+        "name": "journalId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AuthorId": {
+        "name": "authorId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AcademicCursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Cursor returned by the previous page.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AcademicQuery": {
+        "name": "q",
+        "in": "query",
+        "required": false,
+        "description": "Search article titles, abstracts, keywords, and topics.",
+        "schema": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "AcademicKeywordId": {
+        "name": "keywordId",
+        "in": "query",
+        "required": false,
+        "description": "Require an exact related keyword id.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AcademicTopicId": {
+        "name": "topicId",
+        "in": "query",
+        "required": false,
+        "description": "Require an exact related topic id.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AcademicAuthorFilterId": {
+        "name": "authorId",
+        "in": "query",
+        "required": false,
+        "description": "Require an exact author id.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AcademicJournalFilterId": {
+        "name": "journalId",
+        "in": "query",
+        "required": false,
+        "description": "Require an exact journal id.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AcademicPublicationYear": {
+        "name": "publicationYear",
+        "in": "query",
+        "required": false,
+        "description": "Exact publication year; mutually exclusive with year range.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1000
+        }
+      },
+      "AcademicPublicationYearFrom": {
+        "name": "publicationYearFrom",
+        "in": "query",
+        "required": false,
+        "description": "Inclusive publication year lower bound.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1000
+        }
+      },
+      "AcademicPublicationYearTo": {
+        "name": "publicationYearTo",
+        "in": "query",
+        "required": false,
+        "description": "Inclusive publication year upper bound.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1000
+        }
+      },
+      "AcademicPublisher": {
+        "name": "publisher",
+        "in": "query",
+        "required": false,
+        "description": "Publisher name matched exactly after normalization.",
+        "schema": {
+          "type": "string",
+          "maxLength": 255
+        }
+      },
+      "AcademicCountry": {
+        "name": "country",
+        "in": "query",
+        "required": false,
+        "description": "ISO 3166-1 alpha-2 journal country code.",
+        "schema": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 2
+        }
+      },
+      "AcademicSort": {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "description": "Defaults to relevant for research queries and newest otherwise.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "relevant",
+            "newest",
+            "most_cited"
+          ]
+        }
+      },
+      "AcademicLimit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Number of records to return. Defaults to 20, maximum 100.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        }
+      }
+    },
     "securitySchemes": {
       "bearerAuth": {
         "type": "http",
@@ -178,8 +1006,46 @@
       }
     },
     "responses": {
-      "BadRequest": {
-        "description": "The request body is missing required fields or is malformed.",
+      "InvalidRegistrationInput": {
+        "description": "Registration input is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "invalidRegistrationInput": {
+                "value": {
+                  "success": false,
+                  "message": "Registration input is invalid",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "EmailAlreadyRegistered": {
+        "description": "Email is already registered.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "emailAlreadyRegistered": {
+                "value": {
+                  "success": false,
+                  "message": "Email is already registered",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "LoginBadRequest": {
+        "description": "Email and password are required.",
         "content": {
           "application/json": {
             "schema": {
@@ -190,6 +1056,25 @@
                 "value": {
                   "success": false,
                   "message": "Email and password are required",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "RefreshBadRequest": {
+        "description": "Refresh token is required.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "missingRefreshToken": {
+                "value": {
+                  "success": false,
+                  "message": "Refresh token is required",
                   "data": {}
                 }
               }
@@ -234,12 +1119,202 @@
             }
           }
         }
+      },
+      "AdminRequired": {
+        "description": "Authenticated user must have the ADMIN role.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "adminRequired": {
+                "value": {
+                  "success": false,
+                  "message": "Admin role is required",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "UserInputInvalid": {
+        "description": "User input is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "userInputInvalid": {
+                "value": {
+                  "success": false,
+                  "message": "User input is invalid",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "EmailAlreadyUsed": {
+        "description": "Email is already used.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "emailAlreadyUsed": {
+                "value": {
+                  "success": false,
+                  "message": "Email is already used",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "UserNotFound": {
+        "description": "User not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "userNotFound": {
+                "value": {
+                  "success": false,
+                  "message": "User not found",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "AcademicCursorInvalid": {
+        "description": "Cursor pagination query is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "invalidLimit": {
+                "value": {
+                  "success": false,
+                  "message": "limit must be an integer between 1 and 100",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "AcademicArticleListInvalid": {
+        "description": "Article list query is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "invalidLimit": {
+                "value": {
+                  "success": false,
+                  "message": "limit must be an integer between 1 and 100",
+                  "data": {}
+                }
+              },
+              "invalidCursor": {
+                "value": {
+                  "success": false,
+                  "message": "cursor is invalid for this article query",
+                  "data": {}
+                }
+              },
+              "invalidArticleQuery": {
+                "value": {
+                  "success": false,
+                  "message": "publicationYear cannot be combined with publicationYearFrom or publicationYearTo",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "ArticleNotFound": {
+        "description": "Article not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "articleNotFound": {
+                "value": {
+                  "success": false,
+                  "message": "Article not found",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "AuthorNotFound": {
+        "description": "Author not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "authorNotFound": {
+                "value": {
+                  "success": false,
+                  "message": "Author not found",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "JournalNotFound": {
+        "description": "Journal not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "journalNotFound": {
+                "value": {
+                  "success": false,
+                  "message": "Journal not found",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
       }
     },
     "schemas": {
       "ApiResponseBase": {
         "type": "object",
-        "required": ["success", "message", "data"],
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "additionalProperties": false,
         "properties": {
           "success": {
             "type": "boolean"
@@ -252,9 +1327,59 @@
           }
         }
       },
+      "RegisterRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "firstname",
+          "lastname",
+          "gender",
+          "dataofbirth"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255,
+            "example": "new.user@example.com"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 1024,
+            "format": "password",
+            "example": "Password123!"
+          },
+          "firstname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "example": "New"
+          },
+          "lastname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "example": "User"
+          },
+          "gender": {
+            "$ref": "#/components/schemas/Gender"
+          },
+          "dataofbirth": {
+            "type": "string",
+            "format": "date",
+            "example": "2001-04-12"
+          }
+        }
+      },
       "LoginRequest": {
         "type": "object",
-        "required": ["email", "password"],
+        "required": [
+          "email",
+          "password"
+        ],
         "additionalProperties": false,
         "properties": {
           "email": {
@@ -274,7 +1399,9 @@
       },
       "RefreshRequest": {
         "type": "object",
-        "required": ["refreshToken"],
+        "required": [
+          "refreshToken"
+        ],
         "additionalProperties": false,
         "properties": {
           "refreshToken": {
@@ -283,26 +1410,88 @@
           }
         }
       },
-      "HealthResponseEnvelope": {
+      "UserPatchRequest": {
+        "type": "object",
+        "minProperties": 1,
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255,
+            "example": "updated.user@example.com"
+          },
+          "firstname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "example": "Updated"
+          },
+          "lastname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "example": "User"
+          },
+          "gender": {
+            "$ref": "#/components/schemas/Gender"
+          },
+          "dateofbirth": {
+            "type": "string",
+            "format": "date",
+            "example": "2001-04-12"
+          }
+        }
+      },
+      "UserRolePatchRequest": {
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/PatchableRoleAccount"
+          }
+        }
+      },
+      "UserStatusPatchRequest": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/StatusAccount"
+          }
+        }
+      },
+      "RegisteredUserResponseEnvelope": {
         "allOf": [
           {
             "$ref": "#/components/schemas/ApiResponseBase"
           },
           {
             "type": "object",
-            "required": ["success", "message", "data"],
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [true]
+                "enum": [
+                  true
+                ]
               },
               "message": {
                 "type": "string",
-                "example": "OK"
+                "example": "Registration successful"
               },
               "data": {
-                "type": "string",
-                "example": "Hello World!"
+                "$ref": "#/components/schemas/RegisteredUser"
               }
             }
           }
@@ -315,15 +1504,51 @@
           },
           {
             "type": "object",
-            "required": ["success", "message", "data"],
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [true]
+                "enum": [
+                  true
+                ]
               },
               "message": {
                 "type": "string",
                 "example": "Authentication successful"
+              },
+              "data": {
+                "$ref": "#/components/schemas/TokenPairData"
+              }
+            }
+          }
+        ]
+      },
+      "RefreshTokenPairResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Authentication refreshed"
               },
               "data": {
                 "$ref": "#/components/schemas/TokenPairData"
@@ -339,11 +1564,17 @@
           },
           {
             "type": "object",
-            "required": ["success", "message", "data"],
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [true]
+                "enum": [
+                  true
+                ]
               },
               "message": {
                 "type": "string",
@@ -356,6 +1587,338 @@
           }
         ]
       },
+      "UserProfileResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "User retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/UserProfile"
+              }
+            }
+          }
+        ]
+      },
+      "UserUpdatedResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserProfileResponseEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string",
+                "example": "User updated"
+              }
+            }
+          }
+        ]
+      },
+      "UserRoleUpdatedResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserProfileResponseEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string",
+                "example": "User role updated"
+              }
+            }
+          }
+        ]
+      },
+      "UserStatusUpdatedResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserProfileResponseEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string",
+                "example": "User status updated"
+              }
+            }
+          }
+        ]
+      },
+      "UserListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Users retrieved"
+              },
+              "data": {
+                "type": "object",
+                "required": [
+                  "users"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "users": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/UserProfile"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "UserDeletedResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "User deleted"
+              },
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "example": {}
+              }
+            }
+          }
+        ]
+      },
+      "AcademicArticleListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Articles retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicArticleCursorPage"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicAuthorListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Authors retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicAuthorCursorPage"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicJournalListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Journals retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicJournalCursorPage"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicArticleResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Article retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicArticleGraph"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicAuthorResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Author retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicAuthorListItem"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicJournalResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Journal retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicJournal"
+              }
+            }
+          }
+        ]
+      },
       "EmptyResponseEnvelope": {
         "allOf": [
           {
@@ -363,11 +1926,17 @@
           },
           {
             "type": "object",
-            "required": ["success", "message", "data"],
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [true]
+                "enum": [
+                  true
+                ]
               },
               "message": {
                 "type": "string",
@@ -389,11 +1958,17 @@
           },
           {
             "type": "object",
-            "required": ["success", "message", "data"],
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [false]
+                "enum": [
+                  false
+                ]
               },
               "message": {
                 "type": "string",
@@ -410,16 +1985,74 @@
       },
       "TokenPairData": {
         "type": "object",
-        "required": ["accessToken", "refreshToken"],
+        "required": [
+          "accessToken",
+          "refreshToken"
+        ],
         "additionalProperties": false,
         "properties": {
           "accessToken": {
             "type": "string",
-            "description": "JWT access token for bearer authentication. Expires 30 minutes after issue."
+            "description": "JWT access token for bearer authentication."
           },
           "refreshToken": {
             "type": "string",
-            "description": "Refresh token for obtaining a new token pair. Expires 30 days after issue."
+            "description": "Refresh token for obtaining a new token pair."
+          }
+        }
+      },
+      "RegisteredUser": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "status",
+          "role",
+          "firstName",
+          "lastName",
+          "gender",
+          "dateOfBirth"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusAccount"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "STUDENT"
+            ],
+            "description": "Public registration always creates STUDENT accounts."
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "gender": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Gender"
+              }
+            ],
+            "nullable": true
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         }
       },
@@ -445,12 +2078,10 @@
             "format": "email"
           },
           "status": {
-            "type": "string",
-            "enum": ["ACTIVE", "INACTIVE", "BANNED"]
+            "$ref": "#/components/schemas/StatusAccount"
           },
           "role": {
-            "type": "string",
-            "enum": ["USER", "ADMIN"]
+            "$ref": "#/components/schemas/RoleAccount"
           },
           "firstName": {
             "type": "string",
@@ -465,6 +2096,462 @@
             "nullable": true
           }
         }
+      },
+      "UserProfile": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "status",
+          "role",
+          "firstName",
+          "lastName",
+          "imageUrl",
+          "gender",
+          "dateOfBirth"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusAccount"
+          },
+          "role": {
+            "$ref": "#/components/schemas/RoleAccount"
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "gender": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Gender"
+              }
+            ],
+            "nullable": true
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "AcademicArticleCursorPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicArticleGraph"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AcademicAuthorCursorPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicAuthorListItem"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AcademicJournalCursorPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicJournal"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AcademicArticleGraph": {
+        "type": "object",
+        "required": [
+          "article",
+          "journal",
+          "authors",
+          "keywords",
+          "topics",
+          "citedArticleIds"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "article": {
+            "$ref": "#/components/schemas/AcademicArticle"
+          },
+          "journal": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AcademicJournal"
+              }
+            ],
+            "nullable": true
+          },
+          "authors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicAuthor"
+            }
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicKeyword"
+            }
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicTopic"
+            }
+          },
+          "citedArticleIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AcademicArticle": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "abstract",
+          "doi",
+          "publicationYear",
+          "version",
+          "volumeNumber",
+          "issueNumber",
+          "citationCount",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "abstract": {
+            "type": "string",
+            "nullable": true
+          },
+          "doi": {
+            "type": "string",
+            "nullable": true
+          },
+          "publicationYear": {
+            "type": "integer",
+            "nullable": true
+          },
+          "version": {
+            "type": "string",
+            "nullable": true
+          },
+          "volumeNumber": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "issueNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "citationCount": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AcademicJournal": {
+        "type": "object",
+        "required": [
+          "id",
+          "sourceId",
+          "displayName",
+          "type",
+          "isOpenAccess",
+          "isOaDiamond",
+          "coverage",
+          "country",
+          "issnList",
+          "publisherName",
+          "publisherImageUrl",
+          "subjectCategories",
+          "articleCount"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "isOpenAccess": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "isOaDiamond": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "coverage": {
+            "type": "string",
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
+          },
+          "issnList": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "publisherName": {
+            "type": "string",
+            "nullable": true
+          },
+          "publisherImageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "subjectCategories": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "articleCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "AcademicAuthor": {
+        "type": "object",
+        "required": [
+          "id",
+          "orcid",
+          "displayName",
+          "imageUrl",
+          "authorPosition"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orcid": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "authorPosition": {
+            "type": "integer",
+            "nullable": true
+          }
+        }
+      },
+      "AcademicAuthorListItem": {
+        "type": "object",
+        "required": [
+          "id",
+          "orcid",
+          "displayName",
+          "imageUrl",
+          "articleCount"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orcid": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "articleCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "AcademicKeyword": {
+        "type": "object",
+        "required": [
+          "id",
+          "displayName",
+          "score"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "score": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "AcademicTopic": {
+        "type": "object",
+        "required": [
+          "id",
+          "displayName",
+          "score",
+          "isPrimary"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "score": {
+            "type": "number",
+            "nullable": true
+          },
+          "isPrimary": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "StatusAccount": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "INACTIVE",
+          "BANNED"
+        ]
+      },
+      "RoleAccount": {
+        "type": "string",
+        "enum": [
+          "STUDENT",
+          "RESEARCHER",
+          "ADMIN"
+        ]
+      },
+      "PatchableRoleAccount": {
+        "type": "string",
+        "enum": [
+          "STUDENT",
+          "RESEARCHER"
+        ]
+      },
+      "Gender": {
+        "type": "string",
+        "enum": [
+          "MALE",
+          "FEMALE",
+          "OTHER"
+        ]
       }
     }
   }
