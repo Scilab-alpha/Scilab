@@ -13,6 +13,8 @@ tags:
     description: Authenticated user profile and admin user management.
   - name: Academic
     description: Public academic article and journal discovery.
+  - name: Events
+    description: Authenticated realtime user event stream.
 paths:
   /auth/register:
     post:
@@ -440,6 +442,50 @@ paths:
           $ref: "#/components/responses/AdminRequired"
         "404":
           $ref: "#/components/responses/UserNotFound"
+  /events:
+    get:
+      summary: Subscribe to current user realtime events
+      operationId: subscribeEvents
+      tags:
+        - Events
+      description: Bearer-authenticated Server-Sent Events stream for current-user activity. Events are best-effort and are not replayed after reconnect.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User event stream opened.
+          content:
+            text/event-stream:
+              schema:
+                type: object
+                required:
+                  - eventId
+                  - occurredAt
+                  - type
+                  - data
+                additionalProperties: false
+                properties:
+                  eventId:
+                    type: string
+                    format: uuid
+                  occurredAt:
+                    type: string
+                    format: date-time
+                  type:
+                    type: string
+                    enum:
+                      - notification.created
+                      - notification.read
+                      - notification.read_all
+                      - bookmark.toggled
+                      - follow.toggled
+                      - follow.updated
+                      - ping
+                  data:
+                    type: object
+                    additionalProperties: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 components:
   parameters:
     UserId:

@@ -23,6 +23,10 @@
     {
       "name": "Academic",
       "description": "Public academic article and journal discovery."
+    },
+    {
+      "name": "Events",
+      "description": "Authenticated realtime user event stream."
     }
   ],
   "paths": {
@@ -761,6 +765,69 @@
           }
         }
       }
+    },
+    "/events": {
+      "get": {
+        "summary": "Subscribe to current user realtime events",
+        "operationId": "subscribeEvents",
+        "tags": [
+          "Events"
+        ],
+        "description": "Bearer-authenticated Server-Sent Events stream for current-user activity. Events are best-effort and are not replayed after reconnect.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User event stream opened.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "eventId",
+                    "occurredAt",
+                    "type",
+                    "data"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "eventId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "occurredAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "notification.created",
+                        "notification.read",
+                        "notification.read_all",
+                        "bookmark.toggled",
+                        "follow.toggled",
+                        "follow.updated",
+                        "ping"
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -784,6 +851,14 @@
       },
       "JournalId": {
         "name": "journalId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AuthorId": {
+        "name": "authorId",
         "in": "path",
         "required": true,
         "schema": {
@@ -920,14 +995,6 @@
           "minimum": 1,
           "maximum": 100,
           "default": 20
-        }
-      },
-      "AuthorId": {
-        "name": "authorId",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string"
         }
       }
     },
@@ -1200,6 +1267,25 @@
           }
         }
       },
+      "AuthorNotFound": {
+        "description": "Author not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "authorNotFound": {
+                "value": {
+                  "success": false,
+                  "message": "Author not found",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
       "JournalNotFound": {
         "description": "Journal not found.",
         "content": {
@@ -1215,21 +1301,6 @@
                   "data": {}
                 }
               }
-            }
-          }
-        }
-      },
-      "AuthorNotFound": {
-        "description": "Author not found.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponseEnvelope"
-            },
-            "example": {
-              "success": false,
-              "message": "Author not found",
-              "data": {}
             }
           }
         }
@@ -1668,6 +1739,186 @@
           }
         ]
       },
+      "AcademicArticleListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Articles retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicArticleCursorPage"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicAuthorListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Authors retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicAuthorCursorPage"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicJournalListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Journals retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicJournalCursorPage"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicArticleResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Article retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicArticleGraph"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicAuthorResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Author retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicAuthorListItem"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicJournalResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Journal retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicJournal"
+              }
+            }
+          }
+        ]
+      },
       "EmptyResponseEnvelope": {
         "allOf": [
           {
@@ -1902,37 +2153,6 @@
           }
         }
       },
-      "StatusAccount": {
-        "type": "string",
-        "enum": [
-          "ACTIVE",
-          "INACTIVE",
-          "BANNED"
-        ]
-      },
-      "RoleAccount": {
-        "type": "string",
-        "enum": [
-          "STUDENT",
-          "RESEARCHER",
-          "ADMIN"
-        ]
-      },
-      "PatchableRoleAccount": {
-        "type": "string",
-        "enum": [
-          "STUDENT",
-          "RESEARCHER"
-        ]
-      },
-      "Gender": {
-        "type": "string",
-        "enum": [
-          "MALE",
-          "FEMALE",
-          "OTHER"
-        ]
-      },
       "AcademicArticleCursorPage": {
         "type": "object",
         "required": [
@@ -1945,6 +2165,26 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/AcademicArticleGraph"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AcademicAuthorCursorPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicAuthorListItem"
             }
           },
           "nextCursor": {
@@ -1972,126 +2212,6 @@
             "nullable": true
           }
         }
-      },
-      "AcademicArticleListResponseEnvelope": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/ApiResponseBase"
-          },
-          {
-            "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
-            "properties": {
-              "success": {
-                "type": "boolean",
-                "enum": [
-                  true
-                ]
-              },
-              "message": {
-                "type": "string",
-                "example": "Articles retrieved"
-              },
-              "data": {
-                "$ref": "#/components/schemas/AcademicArticleCursorPage"
-              }
-            }
-          }
-        ]
-      },
-      "AcademicJournalListResponseEnvelope": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/ApiResponseBase"
-          },
-          {
-            "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
-            "properties": {
-              "success": {
-                "type": "boolean",
-                "enum": [
-                  true
-                ]
-              },
-              "message": {
-                "type": "string",
-                "example": "Journals retrieved"
-              },
-              "data": {
-                "$ref": "#/components/schemas/AcademicJournalCursorPage"
-              }
-            }
-          }
-        ]
-      },
-      "AcademicArticleResponseEnvelope": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/ApiResponseBase"
-          },
-          {
-            "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
-            "properties": {
-              "success": {
-                "type": "boolean",
-                "enum": [
-                  true
-                ]
-              },
-              "message": {
-                "type": "string",
-                "example": "Article retrieved"
-              },
-              "data": {
-                "$ref": "#/components/schemas/AcademicArticleGraph"
-              }
-            }
-          }
-        ]
-      },
-      "AcademicJournalResponseEnvelope": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/ApiResponseBase"
-          },
-          {
-            "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
-            "properties": {
-              "success": {
-                "type": "boolean",
-                "enum": [
-                  true
-                ]
-              },
-              "message": {
-                "type": "string",
-                "example": "Journal retrieved"
-              },
-              "data": {
-                "$ref": "#/components/schemas/AcademicJournal"
-              }
-            }
-          }
-        ]
       },
       "AcademicArticleGraph": {
         "type": "object",
@@ -2321,6 +2441,38 @@
           }
         }
       },
+      "AcademicAuthorListItem": {
+        "type": "object",
+        "required": [
+          "id",
+          "orcid",
+          "displayName",
+          "imageUrl",
+          "articleCount"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "orcid": {
+            "type": "string",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "articleCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
       "AcademicKeyword": {
         "type": "object",
         "required": [
@@ -2370,116 +2522,35 @@
           }
         }
       },
-      "AcademicAuthorCursorPage": {
-        "type": "object",
-        "required": [
-          "items",
-          "nextCursor"
-        ],
-        "additionalProperties": false,
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AcademicAuthorListItem"
-            }
-          },
-          "nextCursor": {
-            "type": "string",
-            "nullable": true
-          }
-        }
-      },
-      "AcademicAuthorListResponseEnvelope": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/ApiResponseBase"
-          },
-          {
-            "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
-            "properties": {
-              "success": {
-                "type": "boolean",
-                "enum": [
-                  true
-                ]
-              },
-              "message": {
-                "type": "string",
-                "example": "Authors retrieved"
-              },
-              "data": {
-                "$ref": "#/components/schemas/AcademicAuthorCursorPage"
-              }
-            }
-          }
+      "StatusAccount": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "INACTIVE",
+          "BANNED"
         ]
       },
-      "AcademicAuthorListItem": {
-        "type": "object",
-        "required": [
-          "id",
-          "orcid",
-          "displayName",
-          "imageUrl",
-          "articleCount"
-        ],
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "orcid": {
-            "type": "string",
-            "nullable": true
-          },
-          "displayName": {
-            "type": "string",
-            "nullable": true
-          },
-          "imageUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "articleCount": {
-            "type": "integer",
-            "minimum": 0
-          }
-        }
+      "RoleAccount": {
+        "type": "string",
+        "enum": [
+          "STUDENT",
+          "RESEARCHER",
+          "ADMIN"
+        ]
       },
-      "AcademicAuthorResponseEnvelope": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/ApiResponseBase"
-          },
-          {
-            "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
-            "properties": {
-              "success": {
-                "type": "boolean",
-                "enum": [
-                  true
-                ]
-              },
-              "message": {
-                "type": "string",
-                "example": "Author retrieved"
-              },
-              "data": {
-                "$ref": "#/components/schemas/AcademicAuthorListItem"
-              }
-            }
-          }
+      "PatchableRoleAccount": {
+        "type": "string",
+        "enum": [
+          "STUDENT",
+          "RESEARCHER"
+        ]
+      },
+      "Gender": {
+        "type": "string",
+        "enum": [
+          "MALE",
+          "FEMALE",
+          "OTHER"
         ]
       }
     }

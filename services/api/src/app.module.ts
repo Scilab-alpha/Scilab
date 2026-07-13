@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AcademicModule } from '@/academic/academic.module';
 import { AuthModule } from '@/auth/auth.module';
+import { EventsModule } from '@/events/events.module';
 import { Neo4jModule } from '@/neo4j/neo4j.module';
 import { PrismaModule } from '@/prisma/prisma.module';
 import { UserModule } from '@/user/user.module';
@@ -18,6 +19,7 @@ import { UserModule } from '@/user/user.module';
     AcademicModule,
     AuthModule,
     UserModule,
+    EventsModule,
   ],
 })
 export class AppModule {}
