@@ -15,6 +15,8 @@ tags:
     description: Public academic article and journal discovery.
   - name: Events
     description: Authenticated realtime user event stream.
+  - name: Push
+    description: Authenticated push notification device registration.
 paths:
   /auth/register:
     post:
@@ -486,6 +488,56 @@ paths:
                     additionalProperties: true
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /push/devices/register:
+    post:
+      summary: Register current user push device
+      operationId: registerPushDevice
+      tags:
+        - Push
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterPushDeviceRequest"
+      responses:
+        "200":
+          description: Push device registered.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushDeviceRegisteredResponseEnvelope"
+        "400":
+          $ref: "#/components/responses/PushInputInvalid"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /push/devices/unregister:
+    post:
+      summary: Unregister current user push device
+      operationId: unregisterPushDevice
+      tags:
+        - Push
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UnregisterPushDeviceRequest"
+      responses:
+        "200":
+          description: Push device unregistered.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushDeviceUnregisteredResponseEnvelope"
+        "400":
+          $ref: "#/components/responses/PushInputInvalid"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 components:
   parameters:
     UserId:
@@ -743,6 +795,18 @@ components:
               value:
                 success: false
                 message: User not found
+                data: {}
+    PushInputInvalid:
+      description: Push request input is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponseEnvelope"
+          examples:
+            error:
+              value:
+                success: false
+                message: token is invalid
                 data: {}
     AcademicCursorInvalid:
       description: Cursor pagination query is invalid.
@@ -1244,6 +1308,107 @@ components:
               type: object
               additionalProperties: false
               example: {}
+    PushProvider:
+      type: string
+      enum:
+        - EXPO
+        - FCM
+    PushPlatform:
+      type: string
+      enum:
+        - IOS
+        - ANDROID
+        - WEB
+        - UNKNOWN
+    RegisterPushDeviceRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - token
+        - platform
+      properties:
+        token:
+          type: string
+          maxLength: 2048
+        platform:
+          $ref: "#/components/schemas/PushPlatform"
+        clientDeviceId:
+          type: string
+          maxLength: 255
+    UnregisterPushDeviceRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          maxLength: 2048
+    PushDeviceRegisteredData:
+      type: object
+      additionalProperties: false
+      required:
+        - deviceId
+        - provider
+        - platform
+        - isActive
+      properties:
+        deviceId:
+          type: string
+          format: uuid
+        provider:
+          $ref: "#/components/schemas/PushProvider"
+        platform:
+          $ref: "#/components/schemas/PushPlatform"
+        isActive:
+          type: boolean
+    PushDeviceRegisteredResponseEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/ApiResponseBase"
+        - type: object
+          required:
+            - success
+            - message
+            - data
+          properties:
+            success:
+              type: boolean
+              enum:
+                - true
+            message:
+              type: string
+              example: Push device registered
+            data:
+              $ref: "#/components/schemas/PushDeviceRegisteredData"
+    PushDeviceUnregisteredData:
+      type: object
+      additionalProperties: false
+      required:
+        - token
+        - unregistered
+      properties:
+        token:
+          type: string
+        unregistered:
+          type: boolean
+    PushDeviceUnregisteredResponseEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/ApiResponseBase"
+        - type: object
+          required:
+            - success
+            - message
+            - data
+          properties:
+            success:
+              type: boolean
+              enum:
+                - true
+            message:
+              type: string
+              example: Push device unregistered
+            data:
+              $ref: "#/components/schemas/PushDeviceUnregisteredData"
     TokenPairData:
       type: object
       required:
