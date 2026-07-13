@@ -29,6 +29,10 @@
       "description": "Authenticated user follow targets and notification modes."
     },
     {
+      "name": "Notifications",
+      "description": "Authenticated user in-app notifications."
+    },
+    {
       "name": "Events",
       "description": "Authenticated realtime user event stream."
     },
@@ -978,6 +982,147 @@
         }
       }
     },
+    "/notifications": {
+      "get": {
+        "summary": "List current user notifications",
+        "operationId": "listNotifications",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/NotificationReadQuery"
+          },
+          {
+            "$ref": "#/components/parameters/PageQuery"
+          },
+          {
+            "$ref": "#/components/parameters/LimitQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notifications retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationListResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/NotificationInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/notifications/unread-count": {
+      "get": {
+        "summary": "Get current user unread notification count",
+        "operationId": "getUnreadNotificationCount",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unread notification count retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadNotificationCountResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/notifications/{notificationId}/read": {
+      "patch": {
+        "summary": "Mark one notification as read",
+        "operationId": "markNotificationRead",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/NotificationIdPath"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification marked as read.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationReadResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/NotificationInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotificationNotFound"
+          }
+        }
+      }
+    },
+    "/notifications/read-all": {
+      "patch": {
+        "summary": "Mark all current user notifications as read",
+        "operationId": "markAllNotificationsRead",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notifications marked as read.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkAllNotificationsReadResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
     "/push/devices/register": {
       "post": {
         "summary": "Register current user push device",
@@ -1113,6 +1258,23 @@
       },
       "FollowObjectIdPath": {
         "name": "objectId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "NotificationReadQuery": {
+        "name": "isRead",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "boolean"
+        }
+      },
+      "NotificationIdPath": {
+        "name": "notificationId",
         "in": "path",
         "required": true,
         "schema": {
@@ -1544,6 +1706,44 @@
                 "value": {
                   "success": false,
                   "message": "token is invalid",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "NotificationInputInvalid": {
+        "description": "Notification request input is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "error": {
+                "value": {
+                  "success": false,
+                  "message": "Notification input is invalid",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "NotificationNotFound": {
+        "description": "Notification was not found for the current user.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "error": {
+                "value": {
+                  "success": false,
+                  "message": "Notification not found",
                   "data": {}
                 }
               }
@@ -2484,6 +2684,193 @@
               },
               "data": {
                 "$ref": "#/components/schemas/PushDeviceUnregisteredData"
+              }
+            }
+          }
+        ]
+      },
+      "NotificationItem": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "notificationId",
+          "type",
+          "title",
+          "isRead",
+          "createdAt"
+        ],
+        "properties": {
+          "notificationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string",
+            "nullable": true
+          },
+          "isRead": {
+            "type": "boolean"
+          },
+          "readAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "NotificationListData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "page",
+          "limit",
+          "hasMore"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "limit": {
+            "type": "integer",
+            "example": 20
+          },
+          "hasMore": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "NotificationListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Notifications retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/NotificationListData"
+              }
+            }
+          }
+        ]
+      },
+      "UnreadNotificationCountResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Unread notification count retrieved"
+              },
+              "data": {
+                "type": "object",
+                "required": [
+                  "unreadCount"
+                ],
+                "properties": {
+                  "unreadCount": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "NotificationReadResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Notification marked as read"
+              },
+              "data": {
+                "$ref": "#/components/schemas/NotificationItem"
+              }
+            }
+          }
+        ]
+      },
+      "MarkAllNotificationsReadResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Notifications marked as read"
+              },
+              "data": {
+                "type": "object",
+                "required": [
+                  "markedReadCount"
+                ],
+                "properties": {
+                  "markedReadCount": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
               }
             }
           }
