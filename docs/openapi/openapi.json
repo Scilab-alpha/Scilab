@@ -200,14 +200,44 @@
     },
     "/academic/articles": {
       "get": {
-        "summary": "List academic articles with cursor pagination and keyword search",
+        "summary": "Search and filter academic articles with cursor pagination",
         "operationId": "listAcademicArticles",
         "tags": [
           "Academic"
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/AcademicKeyword"
+            "$ref": "#/components/parameters/AcademicQuery"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicKeywordId"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicTopicId"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicAuthorFilterId"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicJournalFilterId"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicPublicationYear"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicPublicationYearFrom"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicPublicationYearTo"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicPublisher"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicCountry"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicSort"
           },
           {
             "$ref": "#/components/parameters/AcademicCursor"
@@ -769,15 +799,116 @@
           "type": "string"
         }
       },
-      "AcademicKeyword": {
-        "name": "keyword",
+      "AcademicQuery": {
+        "name": "q",
         "in": "query",
         "required": false,
-        "description": "Keyword text used to search articles by related keyword display name.",
+        "description": "Search article titles, abstracts, keywords, and topics.",
+        "schema": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "AcademicKeywordId": {
+        "name": "keywordId",
+        "in": "query",
+        "required": false,
+        "description": "Require an exact related keyword id.",
         "schema": {
           "type": "string"
-        },
-        "example": "machine learning"
+        }
+      },
+      "AcademicTopicId": {
+        "name": "topicId",
+        "in": "query",
+        "required": false,
+        "description": "Require an exact related topic id.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AcademicAuthorFilterId": {
+        "name": "authorId",
+        "in": "query",
+        "required": false,
+        "description": "Require an exact author id.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AcademicJournalFilterId": {
+        "name": "journalId",
+        "in": "query",
+        "required": false,
+        "description": "Require an exact journal id.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AcademicPublicationYear": {
+        "name": "publicationYear",
+        "in": "query",
+        "required": false,
+        "description": "Exact publication year; mutually exclusive with year range.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1000
+        }
+      },
+      "AcademicPublicationYearFrom": {
+        "name": "publicationYearFrom",
+        "in": "query",
+        "required": false,
+        "description": "Inclusive publication year lower bound.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1000
+        }
+      },
+      "AcademicPublicationYearTo": {
+        "name": "publicationYearTo",
+        "in": "query",
+        "required": false,
+        "description": "Inclusive publication year upper bound.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1000
+        }
+      },
+      "AcademicPublisher": {
+        "name": "publisher",
+        "in": "query",
+        "required": false,
+        "description": "Publisher name matched exactly after normalization.",
+        "schema": {
+          "type": "string",
+          "maxLength": 255
+        }
+      },
+      "AcademicCountry": {
+        "name": "country",
+        "in": "query",
+        "required": false,
+        "description": "ISO 3166-1 alpha-2 journal country code.",
+        "schema": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 2
+        }
+      },
+      "AcademicSort": {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "description": "Defaults to relevant for research queries and newest otherwise.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "relevant",
+            "newest",
+            "most_cited"
+          ]
+        }
       },
       "AcademicLimit": {
         "name": "limit",
@@ -1032,10 +1163,17 @@
                   "data": {}
                 }
               },
-              "invalidKeywordCursor": {
+              "invalidCursor": {
                 "value": {
                   "success": false,
-                  "message": "cursor is invalid for keyword article search",
+                  "message": "cursor is invalid for this article query",
+                  "data": {}
+                }
+              },
+              "invalidArticleQuery": {
+                "value": {
+                  "success": false,
+                  "message": "publicationYear cannot be combined with publicationYearFrom or publicationYearTo",
                   "data": {}
                 }
               }
@@ -2015,6 +2153,7 @@
           "version",
           "volumeNumber",
           "issueNumber",
+          "citationCount",
           "createdAt",
           "updatedAt"
         ],
@@ -2057,6 +2196,11 @@
             "type": "string",
             "nullable": true
           },
+          "citationCount": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true
+          },
           "createdAt": {
             "type": "string",
             "nullable": true
@@ -2078,11 +2222,11 @@
           "isOaDiamond",
           "coverage",
           "country",
-          "region",
           "issnList",
           "publisherName",
           "publisherImageUrl",
-          "subjectCategories"
+          "subjectCategories",
+          "articleCount"
         ],
         "additionalProperties": false,
         "properties": {
@@ -2114,10 +2258,6 @@
             "nullable": true
           },
           "country": {
-            "type": "string",
-            "nullable": true
-          },
-          "region": {
             "type": "string",
             "nullable": true
           },

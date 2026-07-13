@@ -4,6 +4,10 @@ export interface FetchOpenAlexWorksInput {
   config: OpenAlexSyncConfig;
 }
 
+export interface FetchOpenAlexWorksByIdsInput extends FetchOpenAlexWorksInput {
+  ids: string[];
+}
+
 export interface OpenAlexWorksPage {
   meta?: {
     count?: number;
@@ -15,6 +19,9 @@ export interface OpenAlexWorksPage {
 
 export interface OpenAlexWorkSource {
   fetchWorks(input: FetchOpenAlexWorksInput): Promise<OpenAlexWorksPage>;
+  fetchWorksByIds(
+    input: FetchOpenAlexWorksByIdsInput,
+  ): Promise<OpenAlexWorksPage>;
 }
 
 export interface OpenAlexWorkRecord {
@@ -23,6 +30,7 @@ export interface OpenAlexWorkRecord {
   title?: string | null;
   display_name?: string | null;
   publication_year?: number | null;
+  cited_by_count?: number | null;
   abstract_inverted_index?: Record<string, number[]> | null;
   type?: string | null;
   version?: string | null;

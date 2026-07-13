@@ -24,6 +24,7 @@ describe('ExecuteOpenAlexSyncUseCase', () => {
               },
             ],
           }),
+        fetchWorksByIds: jest.fn(),
       },
       createAcademicGraphRepositoryDouble({
         ensureSchema: () => Promise.resolve(),

@@ -28,4 +28,17 @@ export interface AcademicGraphRepository {
     type: AcademicNodeType,
     ids: string[],
   ): Promise<Set<string>>;
+  backfillHydrationStateAndRemoveRegion(): Promise<void>;
+  listJournalsForPublisherNormalization(
+    input: CursorPaginationInput,
+  ): Promise<CursorPage<{ id: string; publisherName: string }>>;
+  updatePublisherNameNormalizations(
+    updates: Array<{ id: string; normalizedName: string }>,
+  ): Promise<void>;
+  listHydratedArticleIdsMissingCitation(
+    input: CursorPaginationInput,
+  ): Promise<CursorPage<string>>;
+  updateArticleCitationCounts(
+    updates: Array<{ id: string; citationCount: number }>,
+  ): Promise<void>;
 }
