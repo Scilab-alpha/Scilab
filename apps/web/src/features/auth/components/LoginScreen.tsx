@@ -47,30 +47,23 @@ export default function LoginScreen() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 600));
-
-    const result = login(email, password);
-    setIsLoading(false);
+    const result = await login(email, password);
 
     if (!result.ok) {
+      setIsLoading(false);
       toast.error(result.message);
       return;
     }
 
+    setIsLoading(false);
     toast.success(`Signed in as ${result.user.name}`);
     router.push(result.redirectTo);
   };
 
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    const result = login("student@demo.com", "123456");
+    toast.info("Google sign-in is not available yet.");
     setIsGoogleLoading(false);
-
-    if (result.ok) {
-      toast.success("Signed in with Google (demo student account)");
-      router.push(result.redirectTo);
-    }
   };
 
   if (showRegister) {
