@@ -7,6 +7,7 @@ import { EventsModule } from '@/events/events.module';
 import { FollowModule } from '@/follow/follow.module';
 import { Neo4jModule } from '@/neo4j/neo4j.module';
 import { PrismaModule } from '@/prisma/prisma.module';
+import { PushModule } from '@/push/push.module';
 import { UserModule } from '@/user/user.module';
 
 @Module({
@@ -22,6 +23,7 @@ import { UserModule } from '@/user/user.module';
     UserModule,
     EventsModule,
     FollowModule,
+    PushModule,
   ],
 })
 export class AppModule {}
