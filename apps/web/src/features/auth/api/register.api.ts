@@ -2,37 +2,42 @@ import type {
   RegisterRequest,
   RegisterResponse,
 } from "@/features/auth/types/register.types";
-import { AuthApiError } from "./auth-errors";
 import {
-  createRegisterSuccessFixture,
-  duplicateEmailRegisterFixture,
-  weakPasswordRegisterFixture,
-} from "./register.fixtures";
-
-const NETWORK_DELAY_MS = 650;
-
-function wait(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+  getCurrentUser,
+  login as loginWithApi,
+  register as registerWithApi,
+} from "@/features/auth/api/auth.api";
+import { AuthApiError } from "@/features/auth/types/auth.types";
 
 export async function registerAccount(
   request: RegisterRequest,
 ): Promise<RegisterResponse> {
-  await wait(NETWORK_DELAY_MS);
+  const registeredUser = await registerWithApi(request);
+  const session = await loginAfterRegistration(request, registeredUser.email);
+  const user = await getCurrentUser().catch(() => registeredUser);
 
-  const email = request.email.trim().toLowerCase();
+  return {
+    user,
+    role: user.role,
+    session,
+  };
+}
 
-  if (
-    email === "existing@ScholarTrend.edu" ||
-    email.includes("duplicate") ||
-    email.includes("taken")
-  ) {
-    throw new AuthApiError(duplicateEmailRegisterFixture);
+async function loginAfterRegistration(
+  request: RegisterRequest,
+  registeredEmail: string,
+) {
+  try {
+    return await loginWithApi({
+      email: request.email,
+      password: request.password,
+    });
+  } catch (error) {
+    throw new AuthApiError({
+      code: "ACCOUNT_CREATED_SIGN_IN_FAILED",
+      message: `Your account (${registeredEmail}) was created, but automatic sign-in failed. Please sign in manually.`,
+      status: error instanceof AuthApiError ? error.status : undefined,
+      retryable: true,
+    });
   }
-
-  if (request.password.toLowerCase().includes("password")) {
-    throw new AuthApiError(weakPasswordRegisterFixture);
-  }
-
-  return createRegisterSuccessFixture({ ...request, email });
 }

@@ -7,15 +7,18 @@ export function ScreenShell({
   children,
   eyebrow,
   showHeader = true,
+  hideHeader,
   subtitle,
   title,
 }: PropsWithChildren<{
   eyebrow?: string;
   showHeader?: boolean;
+  hideHeader?: boolean;
   subtitle: string;
   title: string;
 }>) {
   const theme = useAppTheme();
+  const shouldShowHeader = showHeader && !hideHeader;
 
   return (
     <ScrollView
@@ -27,7 +30,7 @@ export function ScreenShell({
       showsVerticalScrollIndicator={false}
       style={{ backgroundColor: theme.colors.background }}
     >
-      {showHeader ? (
+      {shouldShowHeader ? (
         <View style={{ gap: theme.spacing.xs }}>
           {eyebrow ? (
             <Text

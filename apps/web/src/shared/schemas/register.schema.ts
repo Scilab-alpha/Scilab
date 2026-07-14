@@ -11,7 +11,8 @@ export function validateRegisterForm(
   values: RegisterFormValues,
 ): RegisterFieldErrors {
   const errors: RegisterFieldErrors = {};
-  const displayName = values.displayName.trim();
+  const firstName = values.firstName.trim();
+  const lastName = values.lastName.trim();
 
   if (!values.email.trim()) {
     errors.email = "Email is required.";
@@ -19,10 +20,26 @@ export function validateRegisterForm(
     errors.email = "Enter a valid email address.";
   }
 
-  if (!displayName) {
-    errors.displayName = "Display name is required.";
-  } else if (displayName.length < 2) {
-    errors.displayName = "Display name must be at least 2 characters.";
+  if (!firstName) {
+    errors.firstName = "First name is required.";
+  } else if (firstName.length < 2) {
+    errors.firstName = "First name must be at least 2 characters.";
+  }
+
+  if (!lastName) {
+    errors.lastName = "Last name is required.";
+  } else if (lastName.length < 2) {
+    errors.lastName = "Last name must be at least 2 characters.";
+  }
+
+  if (!values.gender) {
+    errors.gender = "Select a gender option.";
+  }
+
+  if (!values.dateOfBirth) {
+    errors.dateOfBirth = "Date of birth is required.";
+  } else if (Number.isNaN(new Date(values.dateOfBirth).getTime())) {
+    errors.dateOfBirth = "Enter a valid date of birth.";
   }
 
   if (!values.password) {

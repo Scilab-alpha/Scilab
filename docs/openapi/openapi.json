@@ -23,6 +23,26 @@
     {
       "name": "Academic",
       "description": "Public academic article and journal discovery."
+    },
+    {
+      "name": "Bookmarks",
+      "description": "Authenticated user article bookmarks."
+    },
+    {
+      "name": "Follows",
+      "description": "Authenticated user follow targets and notification modes."
+    },
+    {
+      "name": "Notifications",
+      "description": "Authenticated user in-app notifications."
+    },
+    {
+      "name": "Events",
+      "description": "Authenticated realtime user event stream."
+    },
+    {
+      "name": "Push",
+      "description": "Authenticated push notification device registration."
     }
   ],
   "paths": {
@@ -846,106 +866,360 @@
           "type": "string",
           "maxLength": 200
         }
-      },
-      "AcademicKeywordId": {
-        "name": "keywordId",
-        "in": "query",
-        "required": false,
-        "description": "Require an exact related keyword id.",
-        "schema": {
-          "type": "string"
+      }
+    },
+    "/academic/articles/{articleId}": {
+      "get": {
+        "summary": "Return one academic article by id",
+        "operationId": "getAcademicArticleById",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ArticleId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Article retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicArticleResponseEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/ArticleNotFound"
+          }
+        }
+      }
+    },
+    "/academic/authors": {
+      "get": {
+        "summary": "List academic authors with cursor pagination",
+        "operationId": "listAcademicAuthors",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AcademicCursor"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authors retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicAuthorListResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/AcademicCursorInvalid"
+          }
+        }
+      }
+    },
+    "/academic/authors/{authorId}": {
+      "get": {
+        "summary": "Return one academic author by id",
+        "operationId": "getAcademicAuthorById",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AuthorId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Author retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicAuthorResponseEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/AuthorNotFound"
+          }
+        }
+      }
+    },
+    "/academic/journals": {
+      "get": {
+        "summary": "List academic journals with cursor pagination",
+        "operationId": "listAcademicJournals",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AcademicCursor"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Journals retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicJournalListResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/AcademicCursorInvalid"
+          }
+        }
+      }
+    },
+    "/academic/journals/{journalId}": {
+      "get": {
+        "summary": "Return one academic journal by id",
+        "operationId": "getAcademicJournalById",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/JournalId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Journal retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicJournalResponseEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/JournalNotFound"
+          }
+        }
+      }
+    },
+    "/users/me": {
+      "get": {
+        "summary": "Return the authenticated user profile",
+        "operationId": "getMyUser",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          }
         }
       },
-      "AcademicTopicId": {
-        "name": "topicId",
-        "in": "query",
-        "required": false,
-        "description": "Require an exact related topic id.",
-        "schema": {
-          "type": "string"
+      "patch": {
+        "summary": "Update the authenticated user profile",
+        "operationId": "patchMyUser",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserUpdatedResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/UserInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/EmailAlreadyUsed"
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "summary": "List users for admin management",
+        "operationId": "listUsers",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminRequired"
+          }
+        }
+      }
+    },
+    "/users/{userId}": {
+      "get": {
+        "summary": "Return one user for admin management",
+        "operationId": "getUserById",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminRequired"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          }
         }
       },
-      "AcademicAuthorFilterId": {
-        "name": "authorId",
-        "in": "query",
-        "required": false,
-        "description": "Require an exact author id.",
-        "schema": {
-          "type": "string"
-        }
-      },
-      "AcademicJournalFilterId": {
-        "name": "journalId",
-        "in": "query",
-        "required": false,
-        "description": "Require an exact journal id.",
-        "schema": {
-          "type": "string"
-        }
-      },
-      "AcademicPublicationYear": {
-        "name": "publicationYear",
-        "in": "query",
-        "required": false,
-        "description": "Exact publication year; mutually exclusive with year range.",
-        "schema": {
-          "type": "integer",
-          "minimum": 1000
-        }
-      },
-      "AcademicPublicationYearFrom": {
-        "name": "publicationYearFrom",
-        "in": "query",
-        "required": false,
-        "description": "Inclusive publication year lower bound.",
-        "schema": {
-          "type": "integer",
-          "minimum": 1000
-        }
-      },
-      "AcademicPublicationYearTo": {
-        "name": "publicationYearTo",
-        "in": "query",
-        "required": false,
-        "description": "Inclusive publication year upper bound.",
-        "schema": {
-          "type": "integer",
-          "minimum": 1000
-        }
-      },
-      "AcademicPublisher": {
-        "name": "publisher",
-        "in": "query",
-        "required": false,
-        "description": "Publisher name matched exactly after normalization.",
-        "schema": {
-          "type": "string",
-          "maxLength": 255
-        }
-      },
-      "AcademicCountry": {
-        "name": "country",
-        "in": "query",
-        "required": false,
-        "description": "ISO 3166-1 alpha-2 journal country code.",
-        "schema": {
-          "type": "string",
-          "minLength": 2,
-          "maxLength": 2
-        }
-      },
-      "AcademicSort": {
-        "name": "sort",
-        "in": "query",
-        "required": false,
-        "description": "Defaults to relevant for research queries and newest otherwise.",
-        "schema": {
-          "type": "string",
-          "enum": [
-            "relevant",
-            "newest",
-            "most_cited"
-          ]
+      "patch": {
+        "summary": "Update one user profile for admin management",
+        "operationId": "patchUserById",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserUpdatedResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/UserInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminRequired"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/EmailAlreadyUsed"
+          }
         }
       },
       "AcademicLimit": {
@@ -1222,6 +1496,1353 @@
                 "value": {
                   "success": false,
                   "message": "publicationYear cannot be combined with publicationYearFrom or publicationYearTo",
+      "delete": {
+        "summary": "Delete one user for admin management",
+        "operationId": "deleteUserById",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDeletedResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminRequired"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          }
+        }
+      }
+    },
+    "/users/{userId}/role": {
+      "patch": {
+        "summary": "Update one user role for admin management",
+        "operationId": "patchUserRole",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRolePatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User role updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRoleUpdatedResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/UserInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminRequired"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          }
+        }
+      }
+    },
+    "/users/{userId}/status": {
+      "patch": {
+        "summary": "Update one user status for admin management",
+        "operationId": "patchUserStatus",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserStatusPatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User status updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserStatusUpdatedResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/UserInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdminRequired"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserNotFound"
+          }
+        }
+      }
+    },
+    "/bookmarks": {
+      "get": {
+        "summary": "List current user bookmarks",
+        "operationId": "listBookmarks",
+        "tags": [
+          "Bookmarks"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageQuery"
+          },
+          {
+            "$ref": "#/components/parameters/LimitQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bookmarks retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookmarkListResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BookmarkInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/bookmarks/toggle": {
+      "post": {
+        "summary": "Toggle a bookmark for one article",
+        "operationId": "toggleBookmark",
+        "tags": [
+          "Bookmarks"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToggleBookmarkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bookmark toggled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToggleBookmarkResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BookmarkInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/ArticleNotFound"
+          }
+        }
+      }
+    },
+    "/follows": {
+      "get": {
+        "summary": "List current user follows",
+        "operationId": "listFollows",
+        "tags": [
+          "Follows"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/FollowTypeQuery"
+          },
+          {
+            "$ref": "#/components/parameters/PageQuery"
+          },
+          {
+            "$ref": "#/components/parameters/LimitQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Follows retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowListResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/FollowInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/follows/toggle": {
+      "post": {
+        "summary": "Toggle follow for a journal, keyword, or topic",
+        "operationId": "toggleFollow",
+        "tags": [
+          "Follows"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToggleFollowRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Follow toggled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToggleFollowResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/FollowInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/FollowTargetNotFound"
+          }
+        }
+      }
+    },
+    "/follows/{objectType}/{objectId}/notify-mode": {
+      "patch": {
+        "summary": "Update notification mode for a followed target",
+        "operationId": "updateFollowNotifyMode",
+        "tags": [
+          "Follows"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/FollowObjectTypePath"
+          },
+          {
+            "$ref": "#/components/parameters/FollowObjectIdPath"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFollowNotifyModeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Follow notification mode updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowUpdatedResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/FollowInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/FollowNotFound"
+          }
+        }
+      }
+    },
+    "/events": {
+      "get": {
+        "summary": "Subscribe to current user realtime events",
+        "operationId": "subscribeEvents",
+        "tags": [
+          "Events"
+        ],
+        "description": "Bearer-authenticated Server-Sent Events stream for current-user activity. Events are best-effort and are not replayed after reconnect.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User event stream opened.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "eventId",
+                    "occurredAt",
+                    "type",
+                    "data"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "eventId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "occurredAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "notification.created",
+                        "notification.read",
+                        "notification.read_all",
+                        "bookmark.toggled",
+                        "follow.toggled",
+                        "follow.updated",
+                        "ping"
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/notifications": {
+      "get": {
+        "summary": "List current user notifications",
+        "operationId": "listNotifications",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/NotificationReadQuery"
+          },
+          {
+            "$ref": "#/components/parameters/PageQuery"
+          },
+          {
+            "$ref": "#/components/parameters/LimitQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notifications retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationListResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/NotificationInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/notifications/unread-count": {
+      "get": {
+        "summary": "Get current user unread notification count",
+        "operationId": "getUnreadNotificationCount",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unread notification count retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadNotificationCountResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/notifications/{notificationId}/read": {
+      "patch": {
+        "summary": "Mark one notification as read",
+        "operationId": "markNotificationRead",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/NotificationIdPath"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification marked as read.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationReadResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/NotificationInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotificationNotFound"
+          }
+        }
+      }
+    },
+    "/notifications/read-all": {
+      "patch": {
+        "summary": "Mark all current user notifications as read",
+        "operationId": "markAllNotificationsRead",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notifications marked as read.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkAllNotificationsReadResponseEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/push/devices/register": {
+      "post": {
+        "summary": "Register current user push device",
+        "operationId": "registerPushDevice",
+        "tags": [
+          "Push"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPushDeviceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Push device registered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushDeviceRegisteredResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/PushInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/push/devices/unregister": {
+      "post": {
+        "summary": "Unregister current user push device",
+        "operationId": "unregisterPushDevice",
+        "tags": [
+          "Push"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnregisterPushDeviceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Push device unregistered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushDeviceUnregisteredResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/PushInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "UserId": {
+        "name": "userId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "PageQuery": {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        }
+      },
+      "LimitQuery": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        }
+      },
+      "FollowTypeQuery": {
+        "name": "type",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "$ref": "#/components/schemas/FollowObjectType"
+        }
+      },
+      "FollowObjectTypePath": {
+        "name": "objectType",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/FollowObjectType"
+        }
+      },
+      "FollowObjectIdPath": {
+        "name": "objectId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "NotificationReadQuery": {
+        "name": "isRead",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "boolean"
+        }
+      },
+      "NotificationIdPath": {
+        "name": "notificationId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "ArticleId": {
+        "name": "articleId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "JournalId": {
+        "name": "journalId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AuthorId": {
+        "name": "authorId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AcademicCursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Cursor returned by the previous page.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AcademicQuery": {
+        "name": "q",
+        "in": "query",
+        "required": false,
+        "description": "Search article titles, abstracts, keywords, and topics.",
+        "schema": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "AcademicKeywordId": {
+        "name": "keywordId",
+        "in": "query",
+        "required": false,
+        "description": "Require an exact related keyword id.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AcademicTopicId": {
+        "name": "topicId",
+        "in": "query",
+        "required": false,
+        "description": "Require an exact related topic id.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AcademicAuthorFilterId": {
+        "name": "authorId",
+        "in": "query",
+        "required": false,
+        "description": "Require an exact author id.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AcademicJournalFilterId": {
+        "name": "journalId",
+        "in": "query",
+        "required": false,
+        "description": "Require an exact journal id.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AcademicPublicationYear": {
+        "name": "publicationYear",
+        "in": "query",
+        "required": false,
+        "description": "Exact publication year; mutually exclusive with year range.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1000
+        }
+      },
+      "AcademicPublicationYearFrom": {
+        "name": "publicationYearFrom",
+        "in": "query",
+        "required": false,
+        "description": "Inclusive publication year lower bound.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1000
+        }
+      },
+      "AcademicPublicationYearTo": {
+        "name": "publicationYearTo",
+        "in": "query",
+        "required": false,
+        "description": "Inclusive publication year upper bound.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1000
+        }
+      },
+      "AcademicPublisher": {
+        "name": "publisher",
+        "in": "query",
+        "required": false,
+        "description": "Publisher name matched exactly after normalization.",
+        "schema": {
+          "type": "string",
+          "maxLength": 255
+        }
+      },
+      "AcademicCountry": {
+        "name": "country",
+        "in": "query",
+        "required": false,
+        "description": "ISO 3166-1 alpha-2 journal country code.",
+        "schema": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 2
+        }
+      },
+      "AcademicSort": {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "description": "Defaults to relevant for research queries and newest otherwise.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "relevant",
+            "newest",
+            "most_cited"
+          ]
+        }
+      },
+      "AcademicLimit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Number of records to return. Defaults to 20, maximum 100.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "responses": {
+      "InvalidRegistrationInput": {
+        "description": "Registration input is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "invalidRegistrationInput": {
+                "value": {
+                  "success": false,
+                  "message": "Registration input is invalid",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "EmailAlreadyRegistered": {
+        "description": "Email is already registered.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "emailAlreadyRegistered": {
+                "value": {
+                  "success": false,
+                  "message": "Email is already registered",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "LoginBadRequest": {
+        "description": "Email and password are required.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "missingCredentials": {
+                "value": {
+                  "success": false,
+                  "message": "Email and password are required",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "ArticleNotFound": {
+        "description": "Article not found.",
+      "RefreshBadRequest": {
+        "description": "Refresh token is required.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "articleNotFound": {
+                "value": {
+                  "success": false,
+                  "message": "Article not found",
+              "missingRefreshToken": {
+                "value": {
+                  "success": false,
+                  "message": "Refresh token is required",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "JournalNotFound": {
+        "description": "Journal not found.",
+      "Unauthorized": {
+        "description": "Authentication failed or the session is not valid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "journalNotFound": {
+                "value": {
+                  "success": false,
+                  "message": "Journal not found",
+              "authenticationFailed": {
+                "value": {
+                  "success": false,
+                  "message": "Authentication failed",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "AuthorNotFound": {
+        "description": "Author not found.",
+      "Forbidden": {
+        "description": "Account exists but is not allowed to sign in.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "example": {
+              "success": false,
+              "message": "Author not found",
+              "data": {}
+            }
+          }
+        }
+      },
+      "AcademicJournalRankingListInvalid": {
+        "description": "Journal ranking list query is invalid.",
+            "examples": {
+              "inactiveAccount": {
+                "value": {
+                  "success": false,
+                  "message": "Account is not allowed to sign in",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "AdminRequired": {
+        "description": "Authenticated user must have the ADMIN role.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "invalidYear": {
+                "value": {
+                  "success": false,
+                  "message": "year is required",
+                  "data": {}
+                }
+              },
+              "invalidCursor": {
+                "value": {
+                  "success": false,
+                  "message": "cursor is invalid for this journal ranking year",
+                  "data": {}
+                }
+              },
+              "invalidLimit": {
+                "value": {
+                  "success": false,
+                  "message": "limit must be an integer between 1 and 100",
+              "adminRequired": {
+                "value": {
+                  "success": false,
+                  "message": "Admin role is required",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "UserInputInvalid": {
+        "description": "User input is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "userInputInvalid": {
+                "value": {
+                  "success": false,
+                  "message": "User input is invalid",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "EmailAlreadyUsed": {
+        "description": "Email is already used.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "emailAlreadyUsed": {
+                "value": {
+                  "success": false,
+                  "message": "Email is already used",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "JournalRankingDatasetNotFound": {
+        "description": "SCImago ranking dataset was not found for the requested year",
+      "UserNotFound": {
+        "description": "User not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "error": {
+                "value": {
+                  "success": false,
+                  "message": "SCImago ranking dataset was not found for the requested year",
+              "userNotFound": {
+                "value": {
+                  "success": false,
+                  "message": "User not found",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ApiResponseBase": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "nullable": true
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "firstname",
+          "lastname",
+          "gender",
+          "dataofbirth"
+      },
+      "BookmarkInputInvalid": {
+        "description": "Bookmark request input is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "error": {
+                "value": {
+                  "success": false,
+                  "message": "articleId is invalid",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "FollowInputInvalid": {
+        "description": "Follow request input is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "error": {
+                "value": {
+                  "success": false,
+                  "message": "Follow input is invalid",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "FollowTargetNotFound": {
+        "description": "Follow target node was not found in Neo4j.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "error": {
+                "value": {
+                  "success": false,
+                  "message": "Follow target not found",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "FollowNotFound": {
+        "description": "Follow record was not found for the current user.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "error": {
+                "value": {
+                  "success": false,
+                  "message": "Follow not found",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "PushInputInvalid": {
+        "description": "Push request input is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "error": {
+                "value": {
+                  "success": false,
+                  "message": "token is invalid",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "NotificationInputInvalid": {
+        "description": "Notification request input is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "error": {
+                "value": {
+                  "success": false,
+                  "message": "Notification input is invalid",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "NotificationNotFound": {
+        "description": "Notification was not found for the current user.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "error": {
+                "value": {
+                  "success": false,
+                  "message": "Notification not found",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "AcademicCursorInvalid": {
+        "description": "Cursor pagination query is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "invalidLimit": {
+                "value": {
+                  "success": false,
+                  "message": "limit must be an integer between 1 and 100",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "AcademicArticleListInvalid": {
+        "description": "Article list query is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "invalidLimit": {
+                "value": {
+                  "success": false,
+                  "message": "limit must be an integer between 1 and 100",
+                  "data": {}
+                }
+              },
+              "invalidCursor": {
+                "value": {
+                  "success": false,
+                  "message": "cursor is invalid for this article query",
+                  "data": {}
+                }
+              },
+              "invalidArticleQuery": {
+                "value": {
+                  "success": false,
+                  "message": "publicationYear cannot be combined with publicationYearFrom or publicationYearTo",
                   "data": {}
                 }
               }
@@ -1248,6 +2869,25 @@
           }
         }
       },
+      "AuthorNotFound": {
+        "description": "Author not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "authorNotFound": {
+                "value": {
+                  "success": false,
+                  "message": "Author not found",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
       "JournalNotFound": {
         "description": "Journal not found.",
         "content": {
@@ -1260,73 +2900,6 @@
                 "value": {
                   "success": false,
                   "message": "Journal not found",
-                  "data": {}
-                }
-              }
-            }
-          }
-        }
-      },
-      "AuthorNotFound": {
-        "description": "Author not found.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponseEnvelope"
-            },
-            "example": {
-              "success": false,
-              "message": "Author not found",
-              "data": {}
-            }
-          }
-        }
-      },
-      "AcademicJournalRankingListInvalid": {
-        "description": "Journal ranking list query is invalid.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponseEnvelope"
-            },
-            "examples": {
-              "invalidYear": {
-                "value": {
-                  "success": false,
-                  "message": "year is required",
-                  "data": {}
-                }
-              },
-              "invalidCursor": {
-                "value": {
-                  "success": false,
-                  "message": "cursor is invalid for this journal ranking year",
-                  "data": {}
-                }
-              },
-              "invalidLimit": {
-                "value": {
-                  "success": false,
-                  "message": "limit must be an integer between 1 and 100",
-                  "data": {}
-                }
-              }
-            }
-          }
-        }
-      },
-      "JournalRankingDatasetNotFound": {
-        "description": "SCImago ranking dataset was not found for the requested year",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponseEnvelope"
-            },
-            "examples": {
-              "error": {
-                "value": {
-                  "success": false,
-                  "message": "SCImago ranking dataset was not found for the requested year",
                   "data": {}
                 }
               }
@@ -1472,6 +3045,31 @@
           }
         }
       },
+      "UserRolePatchRequest": {
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/PatchableRoleAccount"
+          }
+        }
+      },
+      "UserStatusPatchRequest": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/StatusAccount"
+          }
+        }
+      },
+      "RegisteredUserResponseEnvelope": {
       "UserRolePatchRequest": {
         "type": "object",
         "required": [
@@ -1768,6 +3366,186 @@
           }
         ]
       },
+      "AcademicArticleListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Articles retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicArticleCursorPage"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicAuthorListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Authors retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicAuthorCursorPage"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicJournalListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Journals retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicJournalCursorPage"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicArticleResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Article retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicArticleGraph"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicAuthorResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Author retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicAuthorListItem"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicJournalResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Journal retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicJournal"
+              }
+            }
+          }
+        ]
+      },
       "EmptyResponseEnvelope": {
         "allOf": [
           {
@@ -1827,6 +3605,936 @@
                 "type": "object",
                 "additionalProperties": false,
                 "example": {}
+              }
+            }
+          }
+        ]
+      },
+      "BookmarkItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "articleId",
+          "bookmarkedAt",
+          "article"
+        ],
+        "properties": {
+          "articleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bookmarkedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "article": {
+            "$ref": "#/components/schemas/AcademicArticleGraph"
+          }
+        }
+      },
+      "BookmarkListData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "page",
+          "limit",
+          "hasMore"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookmarkItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "limit": {
+            "type": "integer",
+            "example": 20
+          },
+          "hasMore": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "BookmarkListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Bookmarks retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/BookmarkListData"
+              }
+            }
+          }
+        ]
+      },
+      "ToggleBookmarkRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "articleId"
+        ],
+        "properties": {
+          "articleId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ToggleBookmarkData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "articleId",
+          "bookmarked"
+        ],
+        "properties": {
+          "articleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bookmarked": {
+            "type": "boolean"
+          },
+          "bookmarkedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "ToggleBookmarkResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Registration successful"
+              },
+              "data": {
+                "$ref": "#/components/schemas/RegisteredUser"
+              }
+            }
+          }
+        ]
+      },
+      "TokenPairResponseEnvelope": {
+                "example": "Bookmark toggled"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ToggleBookmarkData"
+              }
+            }
+          }
+        ]
+      },
+      "NotificationItem": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "notificationId",
+          "type",
+          "title",
+          "isRead",
+          "createdAt"
+        ],
+        "properties": {
+          "notificationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string",
+            "nullable": true
+          },
+          "isRead": {
+            "type": "boolean"
+          },
+          "readAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "NotificationListData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "page",
+          "limit",
+          "hasMore"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "limit": {
+            "type": "integer",
+            "example": 20
+          },
+          "hasMore": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "NotificationListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Authentication successful"
+              },
+              "data": {
+                "$ref": "#/components/schemas/TokenPairData"
+              }
+            }
+          }
+        ]
+      },
+      "RefreshTokenPairResponseEnvelope": {
+                "example": "Notifications retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/NotificationListData"
+              }
+            }
+          }
+        ]
+      },
+      "UnreadNotificationCountResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Authentication refreshed"
+              },
+              "data": {
+                "$ref": "#/components/schemas/TokenPairData"
+              }
+            }
+          }
+        ]
+      },
+      "UserSummaryResponseEnvelope": {
+                "example": "Unread notification count retrieved"
+              },
+              "data": {
+                "type": "object",
+                "required": [
+                  "unreadCount"
+                ],
+                "properties": {
+                  "unreadCount": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "NotificationReadResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Current user retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/UserSummary"
+              }
+            }
+          }
+        ]
+      },
+      "UserProfileResponseEnvelope": {
+                "example": "Notification marked as read"
+              },
+              "data": {
+                "$ref": "#/components/schemas/NotificationItem"
+              }
+            }
+          }
+        ]
+      },
+      "MarkAllNotificationsReadResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "User retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/UserProfile"
+              }
+            }
+          }
+        ]
+      },
+      "UserUpdatedResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserProfileResponseEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string",
+                "example": "User updated"
+              }
+            }
+          }
+        ]
+      },
+      "UserRoleUpdatedResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserProfileResponseEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string",
+                "example": "User role updated"
+              }
+            }
+          }
+        ]
+      },
+      "UserStatusUpdatedResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserProfileResponseEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string",
+                "example": "User status updated"
+              }
+            }
+          }
+        ]
+      },
+      "UserListResponseEnvelope": {
+                "example": "Notifications marked as read"
+              },
+              "data": {
+                "type": "object",
+                "required": [
+                  "markedReadCount"
+                ],
+                "properties": {
+                  "markedReadCount": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "FollowObjectType": {
+        "type": "string",
+        "enum": [
+          "JOURNAL",
+          "KEYWORD",
+          "TOPIC"
+        ]
+      },
+      "FollowNotifyMode": {
+        "type": "string",
+        "enum": [
+          "IN_APP",
+          "DAILY_EMAIL",
+          "WEEKLY_EMAIL",
+          "OFF"
+        ]
+      },
+      "FollowTarget": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "id",
+          "displayName"
+        ],
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/FollowObjectType"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "journalType": {
+            "type": "string",
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
+          },
+          "region": {
+            "type": "string",
+            "nullable": true
+          },
+          "score": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "FollowItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "followId",
+          "objectType",
+          "objectId",
+          "notifyMode",
+          "followedAt",
+          "target"
+        ],
+        "properties": {
+          "followId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "objectType": {
+            "$ref": "#/components/schemas/FollowObjectType"
+          },
+          "objectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "notifyMode": {
+            "$ref": "#/components/schemas/FollowNotifyMode"
+          },
+          "followedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "target": {
+            "$ref": "#/components/schemas/FollowTarget"
+          }
+        }
+      },
+      "FollowListData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "page",
+          "limit",
+          "hasMore"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FollowItem"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "limit": {
+            "type": "integer",
+            "example": 20
+          },
+          "hasMore": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "FollowListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Follows retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/FollowListData"
+              }
+            }
+          }
+        ]
+      },
+      "ToggleFollowRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "objectType",
+          "objectId"
+        ],
+        "properties": {
+          "objectType": {
+            "$ref": "#/components/schemas/FollowObjectType"
+          },
+          "objectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "notifyMode": {
+            "$ref": "#/components/schemas/FollowNotifyMode"
+          }
+        }
+      },
+      "ToggleFollowData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "objectType",
+          "objectId",
+          "followed"
+        ],
+        "properties": {
+          "objectType": {
+            "$ref": "#/components/schemas/FollowObjectType"
+          },
+          "objectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "followed": {
+            "type": "boolean"
+          },
+          "notifyMode": {
+            "$ref": "#/components/schemas/FollowNotifyMode"
+          },
+          "followedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "ToggleFollowResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Users retrieved"
+              },
+              "data": {
+                "type": "object",
+                "required": [
+                  "users"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "users": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/UserProfile"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "UserDeletedResponseEnvelope": {
+                "example": "Follow toggled"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ToggleFollowData"
+              }
+            }
+          }
+        ]
+      },
+      "UpdateFollowNotifyModeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "notifyMode"
+        ],
+        "properties": {
+          "notifyMode": {
+            "$ref": "#/components/schemas/FollowNotifyMode"
+          }
+        }
+      },
+      "FollowUpdatedResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "User deleted"
+              },
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "example": {}
+              }
+            }
+          }
+        ]
+      },
+      "EmptyResponseEnvelope": {
+                "example": "Follow notification mode updated"
+              },
+              "data": {
+                "$ref": "#/components/schemas/FollowItem"
+              }
+            }
+          }
+        ]
+      },
+      "PushProvider": {
+        "type": "string",
+        "enum": [
+          "EXPO",
+          "FCM"
+        ]
+      },
+      "PushPlatform": {
+        "type": "string",
+        "enum": [
+          "IOS",
+          "ANDROID",
+          "WEB",
+          "UNKNOWN"
+        ]
+      },
+      "RegisterPushDeviceRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "token",
+          "platform"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 2048
+          },
+          "platform": {
+            "$ref": "#/components/schemas/PushPlatform"
+          },
+          "clientDeviceId": {
+            "type": "string",
+            "maxLength": 255
+          }
+        }
+      },
+      "UnregisterPushDeviceRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 2048
+          }
+        }
+      },
+      "PushDeviceRegisteredData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "deviceId",
+          "provider",
+          "platform",
+          "isActive"
+        ],
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/PushProvider"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/PushPlatform"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PushDeviceRegisteredResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Logout successful"
+              },
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "example": {}
+              }
+            }
+          }
+        ]
+      },
+      "ErrorResponseEnvelope": {
+                "example": "Push device registered"
+              },
+              "data": {
+                "$ref": "#/components/schemas/PushDeviceRegisteredData"
+              }
+            }
+          }
+        ]
+      },
+      "PushDeviceUnregisteredData": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "token",
+          "unregistered"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "unregistered": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PushDeviceUnregisteredResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Authentication failed"
+              },
+              "data": {
+                "type": "object",
+                "additionalProperties": false,
+                "example": {}
+                "example": "Push device unregistered"
+              },
+              "data": {
+                "$ref": "#/components/schemas/PushDeviceUnregisteredData"
               }
             }
           }
@@ -2054,6 +4762,7 @@
         }
       },
       "AcademicJournalCursorPage": {
+      "AcademicAuthorCursorPage": {
         "type": "object",
         "required": [
           "items",
@@ -2065,6 +4774,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/AcademicJournal"
+              "$ref": "#/components/schemas/AcademicAuthorListItem"
             }
           },
           "nextCursor": {
@@ -2192,6 +4902,25 @@
             }
           }
         ]
+      "AcademicJournalCursorPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicJournal"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        }
       },
       "AcademicArticleGraph": {
         "type": "object",
@@ -2427,11 +5156,23 @@
           "id",
           "displayName",
           "score"
+      "AcademicAuthorListItem": {
+        "type": "object",
+        "required": [
+          "id",
+          "orcid",
+          "displayName",
+          "imageUrl",
+          "articleCount"
         ],
         "additionalProperties": false,
         "properties": {
           "id": {
             "type": "string"
+          },
+          "orcid": {
+            "type": "string",
+            "nullable": true
           },
           "displayName": {
             "type": "string",
@@ -2444,12 +5185,24 @@
         }
       },
       "AcademicTopic": {
+          "imageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "articleCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "AcademicKeyword": {
         "type": "object",
         "required": [
           "id",
           "displayName",
           "score",
           "isPrimary"
+          "score"
         ],
         "additionalProperties": false,
         "properties": {
@@ -2528,6 +5281,16 @@
           "displayName",
           "imageUrl",
           "articleCount"
+          }
+        }
+      },
+      "AcademicTopic": {
+        "type": "object",
+        "required": [
+          "id",
+          "displayName",
+          "score",
+          "isPrimary"
         ],
         "additionalProperties": false,
         "properties": {
@@ -2717,6 +5480,45 @@
               }
             }
           }
+          "score": {
+            "type": "number",
+            "nullable": true
+          },
+          "isPrimary": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "StatusAccount": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "INACTIVE",
+          "BANNED"
+        ]
+      },
+      "RoleAccount": {
+        "type": "string",
+        "enum": [
+          "STUDENT",
+          "RESEARCHER",
+          "ADMIN"
+        ]
+      },
+      "PatchableRoleAccount": {
+        "type": "string",
+        "enum": [
+          "STUDENT",
+          "RESEARCHER"
+        ]
+      },
+      "Gender": {
+        "type": "string",
+        "enum": [
+          "MALE",
+          "FEMALE",
+          "OTHER"
         ]
       }
     }
