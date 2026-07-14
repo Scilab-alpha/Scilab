@@ -1,6 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Link, Stack, type Href, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -26,13 +25,16 @@ import {
   getArticleYear,
   getAuthorDisplayName,
 } from "@/features/academic/utils/article-format";
+import { useToast } from "@/components/ui";
+import { useBookmarkStatus } from "@/features/bookmarks/hooks/use-bookmarks";
+import { useToggleBookmark } from "@/features/bookmarks/hooks/use-toggle-bookmark";
 import { AppBackButton } from "@/features/navigation/components/app-back-button";
 import { getUserFriendlyApiErrorMessage } from "@/services/api";
 import { useAppTheme } from "@/theme";
 
 export function ArticleDetailScreen() {
   const theme = useAppTheme();
-  const [isBookmarked, setIsBookmarked] = useState(false);
+  const { showToast } = useToast();
   const params = useLocalSearchParams<{ articleId?: string }>();
   const articleId = Array.isArray(params.articleId)
     ? params.articleId[0]
@@ -43,6 +45,37 @@ export function ArticleDetailScreen() {
     isLoading,
     refetch,
   } = useArticle(articleId ?? "");
+  const bookmarkStatusQuery = useBookmarkStatus(articleId ?? "");
+  const toggleBookmark = useToggleBookmark();
+  const serverBookmarked = bookmarkStatusQuery.data ?? false;
+  const toggleBookmarkData = toggleBookmark.data;
+  const latestToggle =
+    toggleBookmarkData && toggleBookmarkData.articleId === articleId
+      ? toggleBookmarkData.bookmarked
+      : null;
+  const isBookmarked = latestToggle ?? serverBookmarked;
+
+  const handleToggleBookmark = () => {
+    if (!articleId || toggleBookmark.isPending) {
+      return;
+    }
+
+    toggleBookmark.mutate(articleId, {
+      onError: (mutationError) => {
+        showToast(getUserFriendlyApiErrorMessage(mutationError), {
+          tone: "error",
+        });
+      },
+      onSuccess: (result) => {
+        showToast(
+          result.bookmarked
+            ? "Article saved to your library."
+            : "Article removed from your library.",
+          { tone: "success" },
+        );
+      },
+    });
+  };
 
   return (
     <>
@@ -151,7 +184,8 @@ export function ArticleDetailScreen() {
             <View style={styles.actionStack}>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => setIsBookmarked((current) => !current)}
+                disabled={toggleBookmark.isPending}
+                onPress={handleToggleBookmark}
                 style={({ pressed }) => [
                   styles.primaryAction,
                   {
@@ -159,22 +193,30 @@ export function ArticleDetailScreen() {
                       ? theme.colors.primaryPressed
                       : theme.colors.primary,
                     borderRadius: theme.radii.md,
-                    opacity: pressed ? 0.82 : 1,
+                    opacity: pressed || toggleBookmark.isPending ? 0.82 : 1,
                   },
                 ]}
               >
-                <Ionicons
-                  color={theme.colors.onPrimary}
-                  name={isBookmarked ? "bookmark" : "bookmark-outline"}
-                  size={17}
-                />
+                {toggleBookmark.isPending ? (
+                  <ActivityIndicator color={theme.colors.onPrimary} />
+                ) : (
+                  <Ionicons
+                    color={theme.colors.onPrimary}
+                    name={isBookmarked ? "bookmark" : "bookmark-outline"}
+                    size={17}
+                  />
+                )}
                 <Text
                   style={[
                     theme.typography.label,
                     { color: theme.colors.onPrimary },
                   ]}
                 >
-                  {isBookmarked ? "Saved to Bookmarks" : "Save to Bookmarks"}
+                  {toggleBookmark.isPending
+                    ? "Updating..."
+                    : isBookmarked
+                      ? "Saved to Bookmarks"
+                      : "Save to Bookmarks"}
                 </Text>
               </Pressable>
             </View>
