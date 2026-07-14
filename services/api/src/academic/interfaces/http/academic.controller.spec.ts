@@ -158,6 +158,52 @@ describe('AcademicController', () => {
     });
   });
 
+  it('lists journal rankings for one exact SCImago year', async () => {
+    const execute = jest.fn().mockResolvedValue({
+      items: [
+        {
+          title: 'Journal One',
+          type: 'journal',
+          sjr: 2.5,
+          hIndex: 10,
+          totalDocs: 12,
+          totalDocs3Years: 30,
+          totalRefs: 40,
+          totalCitations3Years: 50,
+          citableDocs3Years: 25,
+          citationsPerDoc2Years: 2,
+          refsPerDoc: 3,
+          femalePercentage: 45,
+          countryCode: 'US',
+        },
+      ],
+      nextCursor: null,
+    });
+    const controller = createController({
+      listJournalRankingsExecute: execute,
+    });
+
+    await expect(
+      controller.findJournalRankings({ year: '2023', limit: '10' }),
+    ).resolves.toMatchObject({
+      data: { items: [{ title: 'Journal One', countryCode: 'US' }] },
+    });
+
+    expect(execute).toHaveBeenCalledWith({
+      year: 2023,
+      cursor: null,
+      limit: 10,
+    });
+  });
+
+  it('requires an exact ranking year', async () => {
+    const controller = createController();
+
+    await expect(
+      controller.findJournalRankings({} as never),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it('returns an author by id', async () => {
     const execute = jest.fn().mockResolvedValue({
       id: 'author-1',
@@ -191,10 +237,12 @@ function createController({
   listArticlesExecute,
   listAuthorsExecute = jest.fn(),
   getAuthorByIdExecute = jest.fn(),
+  listJournalRankingsExecute = jest.fn(),
 }: {
   listArticlesExecute?: jest.Mock;
   listAuthorsExecute?: jest.Mock;
   getAuthorByIdExecute?: jest.Mock;
+  listJournalRankingsExecute?: jest.Mock;
 } = {}) {
   return new AcademicController(
     { execute: listArticlesExecute ?? jest.fn() } as never,
@@ -203,5 +251,6 @@ function createController({
     { execute: getAuthorByIdExecute } as never,
     { execute: jest.fn() } as never,
     { execute: jest.fn() } as never,
+    { execute: listJournalRankingsExecute } as never,
   );
 }

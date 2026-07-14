@@ -38,6 +38,16 @@ export interface AcademicGraphRepository {
   listHydratedArticleIdsMissingCitation(
     input: CursorPaginationInput,
   ): Promise<CursorPage<string>>;
+  listPlaceholderArticleIds(limit: number): Promise<string[]>;
+  listHydratedArticleIdsForIncomingCitation(input: {
+    limit: number;
+    ingestedSince: Date;
+  }): Promise<string[]>;
+  markIncomingCitationCrawled(ids: string[]): Promise<void>;
+  listHydratedArticleIdsNeedingCitation(input: {
+    limit: number;
+    staleBefore: Date;
+  }): Promise<string[]>;
   updateArticleCitationCounts(
     updates: Array<{ id: string; citationCount: number }>,
   ): Promise<void>;

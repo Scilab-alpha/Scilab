@@ -24,6 +24,10 @@ export function createAcademicGraphRepositoryDouble(
     listHydratedArticleIdsMissingCitation: jest
       .fn()
       .mockResolvedValue({ items: [], nextCursor: null }),
+    listPlaceholderArticleIds: jest.fn().mockResolvedValue([]),
+    listHydratedArticleIdsForIncomingCitation: jest.fn().mockResolvedValue([]),
+    markIncomingCitationCrawled: jest.fn().mockResolvedValue(undefined),
+    listHydratedArticleIdsNeedingCitation: jest.fn().mockResolvedValue([]),
     updateArticleCitationCounts: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };

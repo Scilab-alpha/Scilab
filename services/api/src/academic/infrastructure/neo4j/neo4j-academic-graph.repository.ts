@@ -92,6 +92,11 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
           article.issue_number = $article.issue_number,
           article.citation_count = $article.citation_count,
           article.hydration_state = 'HYDRATED',
+          article.ingested_at = datetime(),
+          article.citation_count_updated_at = CASE
+            WHEN $article.citation_count IS NULL THEN article.citation_count_updated_at
+            ELSE datetime()
+          END,
           article.created_at = coalesce($article.created_at, article.created_at, datetime()),
           article.updated_at = coalesce($article.updated_at, datetime())
 
@@ -158,7 +163,8 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
         WITH article
         UNWIND $cited_article_ids AS cited_article_id
         MERGE (cited:Article {id: cited_article_id})
-        ON CREATE SET cited.hydration_state = 'PLACEHOLDER'
+        ON CREATE SET cited.hydration_state = 'PLACEHOLDER',
+                      cited.reference_discovered_at = datetime()
         MERGE (article)-[:CITES]->(cited)
         RETURN count(cited) AS cited_count
       }
@@ -644,6 +650,87 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
     return toCursorPage(result.records, input.limit, (id) => id);
   }
 
+  async listPlaceholderArticleIds(limit: number): Promise<string[]> {
+    const result = await this.neo4j.executeRead<string>(
+      `
+      MATCH (article:Article)
+      WHERE article.hydration_state = 'PLACEHOLDER'
+      RETURN article.id AS id
+      ORDER BY article.reference_discovered_at ASC, article.id ASC
+      LIMIT $limit
+      `,
+      { limit: neo4j.int(limit) },
+      (record) => String(record.get('id')),
+    );
+
+    return result.records;
+  }
+
+  async listHydratedArticleIdsForIncomingCitation(input: {
+    limit: number;
+    ingestedSince: Date;
+  }): Promise<string[]> {
+    const result = await this.neo4j.executeRead<string>(
+      `
+      MATCH (article:Article)
+      WHERE article.hydration_state = 'HYDRATED'
+        AND article.ingested_at >= datetime($ingested_since)
+        AND article.incoming_citations_crawled_at IS NULL
+      RETURN article.id AS id
+      ORDER BY article.ingested_at ASC, article.id ASC
+      LIMIT $limit
+      `,
+      {
+        limit: neo4j.int(input.limit),
+        ingested_since: input.ingestedSince.toISOString(),
+      },
+      (record) => String(record.get('id')),
+    );
+
+    return result.records;
+  }
+
+  async markIncomingCitationCrawled(ids: string[]): Promise<void> {
+    if (ids.length === 0) {
+      return;
+    }
+
+    await this.neo4j.executeWrite(
+      `
+      MATCH (article:Article)
+      WHERE article.id IN $ids
+      SET article.incoming_citations_crawled_at = datetime()
+      `,
+      { ids },
+    );
+  }
+
+  async listHydratedArticleIdsNeedingCitation(input: {
+    limit: number;
+    staleBefore: Date;
+  }): Promise<string[]> {
+    const result = await this.neo4j.executeRead<string>(
+      `
+      MATCH (article:Article)
+      WHERE article.hydration_state = 'HYDRATED'
+        AND (
+          article.citation_count_updated_at IS NULL
+          OR article.citation_count_updated_at < datetime($stale_before)
+        )
+      RETURN article.id AS id
+      ORDER BY article.citation_count_updated_at ASC, article.id ASC
+      LIMIT $limit
+      `,
+      {
+        limit: neo4j.int(input.limit),
+        stale_before: input.staleBefore.toISOString(),
+      },
+      (record) => String(record.get('id')),
+    );
+
+    return result.records;
+  }
+
   async updateArticleCitationCounts(
     updates: Array<{ id: string; citationCount: number }>,
   ): Promise<void> {
@@ -656,7 +743,8 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
       UNWIND $updates AS update
       MATCH (article:Article {id: update.id})
       WHERE article.hydration_state = 'HYDRATED'
-      SET article.citation_count = update.citation_count
+      SET article.citation_count = update.citation_count,
+          article.citation_count_updated_at = datetime()
       `,
       {
         updates: updates.map((update) => ({

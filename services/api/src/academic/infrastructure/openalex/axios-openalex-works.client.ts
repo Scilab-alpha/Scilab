@@ -3,6 +3,7 @@ import axios, { type AxiosInstance } from 'axios';
 import {
   FetchOpenAlexWorksInput,
   FetchOpenAlexWorksByIdsInput,
+  FetchOpenAlexCitingWorksInput,
   OpenAlexWorksPage,
   OpenAlexWorkSource,
 } from '@/academic/application/ports/openalex-work-source.port';
@@ -17,8 +18,7 @@ export class AxiosOpenAlexWorksClient implements OpenAlexWorkSource {
   });
 
   async fetchWorks(input: FetchOpenAlexWorksInput): Promise<OpenAlexWorksPage> {
-    const { config } = input;
-    const response = await this.getWorksPage(config);
+    const response = await this.getWorksPage(input);
 
     return {
       meta: response.data.meta,
@@ -26,8 +26,70 @@ export class AxiosOpenAlexWorksClient implements OpenAlexWorkSource {
     };
   }
 
+  async fetchWorkDetailsByIds(
+    input: FetchOpenAlexWorksByIdsInput,
+  ): Promise<OpenAlexWorksPage> {
+    return this.fetchByIds(input);
+  }
+
   async fetchWorksByIds(
     input: FetchOpenAlexWorksByIdsInput,
+  ): Promise<OpenAlexWorksPage> {
+    if (input.ids.length === 0) {
+      return { results: [] };
+    }
+
+    if (input.ids.length > 100) {
+      throw new Error('OpenAlex work id batches must not exceed 100 ids');
+    }
+
+    return this.fetchByIds(input, 'id,cited_by_count');
+  }
+
+  async fetchCitingWorks(
+    input: FetchOpenAlexCitingWorksInput,
+  ): Promise<OpenAlexWorksPage> {
+    try {
+      const response = await this.http.get<OpenAlexWorksPage>('/works', {
+        baseURL: input.config.baseUrl,
+        params: {
+          api_key: input.config.apiKey,
+          filter: `cites:${input.workId}`,
+          sort: 'publication_date:desc',
+          per_page: input.limit,
+        },
+      });
+
+      return {
+        meta: response.data.meta,
+        results: response.data.results ?? [],
+      };
+    } catch (error) {
+      throw new Error(formatOpenAlexError(error));
+    }
+  }
+
+  private async getWorksPage(input: FetchOpenAlexWorksInput) {
+    const { config } = input;
+    try {
+      return await this.http.get<OpenAlexWorksPage>('/works', {
+        baseURL: config.baseUrl,
+        params: {
+          api_key: config.apiKey,
+          filter: config.filter,
+          sort: config.sort,
+          per_page: config.perPage,
+          cursor: input.cursor ?? undefined,
+        },
+      });
+    } catch (error) {
+      throw new Error(formatOpenAlexError(error));
+    }
+  }
+
+  private async fetchByIds(
+    input: FetchOpenAlexWorksByIdsInput,
+    select?: string,
   ): Promise<OpenAlexWorksPage> {
     if (input.ids.length === 0) {
       return { results: [] };
@@ -42,9 +104,9 @@ export class AxiosOpenAlexWorksClient implements OpenAlexWorkSource {
         baseURL: input.config.baseUrl,
         params: {
           api_key: input.config.apiKey,
-          filter: `openalex_id:${input.ids.join('|')}`,
+          filter: `openalex:${input.ids.join('|')}`,
           per_page: input.ids.length,
-          select: 'id,cited_by_count',
+          select,
         },
       });
 
@@ -52,22 +114,6 @@ export class AxiosOpenAlexWorksClient implements OpenAlexWorkSource {
         meta: response.data.meta,
         results: response.data.results ?? [],
       };
-    } catch (error) {
-      throw new Error(formatOpenAlexError(error));
-    }
-  }
-
-  private async getWorksPage(config: FetchOpenAlexWorksInput['config']) {
-    try {
-      return await this.http.get<OpenAlexWorksPage>('/works', {
-        baseURL: config.baseUrl,
-        params: {
-          api_key: config.apiKey,
-          filter: config.filter,
-          sort: config.sort,
-          per_page: config.perPage,
-        },
-      });
     } catch (error) {
       throw new Error(formatOpenAlexError(error));
     }

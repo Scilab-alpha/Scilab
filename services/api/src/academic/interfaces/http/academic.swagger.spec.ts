@@ -7,6 +7,7 @@ import { GetJournalByIdUseCase } from '@/academic/application/use-cases/get-jour
 import { ListArticlesUseCase } from '@/academic/application/use-cases/list-articles/list-articles.use-case';
 import { ListAuthorsUseCase } from '@/academic/application/use-cases/list-authors/list-authors.use-case';
 import { ListJournalsUseCase } from '@/academic/application/use-cases/list-journals/list-journals.use-case';
+import { ListJournalRankingsUseCase } from '@/academic/application/use-cases/list-journal-rankings/list-journal-rankings.use-case';
 import { AcademicController } from '@/academic/interfaces/http/academic.controller';
 
 describe('Academic OpenAPI contract', () => {
@@ -22,6 +23,10 @@ describe('Academic OpenAPI contract', () => {
         { provide: GetAuthorByIdUseCase, useValue: { execute: jest.fn() } },
         { provide: ListJournalsUseCase, useValue: { execute: jest.fn() } },
         { provide: GetJournalByIdUseCase, useValue: { execute: jest.fn() } },
+        {
+          provide: ListJournalRankingsUseCase,
+          useValue: { execute: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -67,5 +72,35 @@ describe('Academic OpenAPI contract', () => {
     const articleContract = JSON.stringify(articleList);
     expect(articleContract).toContain('citationCount');
     expect(articleContract).not.toContain('region');
+  });
+
+  it('documents the year-bound journal ranking response', () => {
+    const swaggerDocument = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder().setTitle('Scilab API').addBearerAuth().build(),
+    );
+    const rankingList =
+      swaggerDocument.paths['/academic/journal-rankings']?.get;
+    const parameterNames = (rankingList?.parameters ?? [])
+      .map((parameter) => ('name' in parameter ? parameter.name : null))
+      .filter((name): name is string => name !== null);
+
+    expect(parameterNames).toEqual(
+      expect.arrayContaining(['year', 'cursor', 'limit']),
+    );
+    expect(rankingList?.responses?.['200']).toBeDefined();
+    expect(rankingList?.responses?.['400']).toBeDefined();
+    expect(rankingList?.responses?.['404']).toBeDefined();
+
+    const rankingContract = JSON.stringify(rankingList);
+    expect(rankingContract).toContain('totalDocs');
+    expect(rankingContract).toContain('totalDocs3Years');
+    expect(rankingContract).toContain('totalRefs');
+    expect(rankingContract).toContain('totalCitations3Years');
+    expect(rankingContract).toContain('citableDocs3Years');
+    expect(rankingContract).toContain('citationsPerDoc2Years');
+    expect(rankingContract).toContain('refsPerDoc');
+    expect(rankingContract).toContain('femalePercentage');
+    expect(rankingContract).toContain('countryCode');
   });
 });

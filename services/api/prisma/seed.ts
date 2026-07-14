@@ -14,9 +14,6 @@ import {
   RoleAccount,
   StatusAccount,
   SyncFrequency,
-  SyncJobType,
-  SyncSource,
-  SyncStatus,
 } from '@prisma/client';
 
 const connectionString = process.env.DATABASE_URL;
@@ -80,7 +77,6 @@ const ids = {
     climateRank: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee5',
   },
   configs: {
-    openAlex: '12121212-1212-4121-8121-121212121211',
     neo4j: '12121212-1212-4121-8121-121212121212',
   },
   bookmarks: {
@@ -94,9 +90,6 @@ const ids = {
   },
   notifications: {
     newArticle: '15151515-1515-4151-8151-151515151511',
-  },
-  syncLogs: {
-    openAlex: '16161616-1616-4161-8161-161616161611',
   },
 };
 
@@ -344,6 +337,7 @@ async function seedRankings() {
         id: ids.rankings.aiQuartile,
         journalId: ids.journals.aiReview,
         subjectCategoryId: ids.subjectCategories.ai,
+        scopeKey: `CATEGORY:${ids.subjectCategories.ai}`,
         source: RankingSource.SCIMAGO,
         metricId: ids.metrics.quartile,
         year: 2025,
@@ -361,6 +355,7 @@ async function seedRankings() {
         id: ids.rankings.aiSjr,
         journalId: ids.journals.aiReview,
         subjectCategoryId: ids.subjectCategories.ai,
+        scopeKey: `CATEGORY:${ids.subjectCategories.ai}`,
         source: RankingSource.SCIMAGO,
         metricId: ids.metrics.sjr,
         year: 2025,
@@ -378,6 +373,7 @@ async function seedRankings() {
         id: ids.rankings.softwareQuartile,
         journalId: ids.journals.softwareSystems,
         subjectCategoryId: ids.subjectCategories.software,
+        scopeKey: `CATEGORY:${ids.subjectCategories.software}`,
         source: RankingSource.SCOPUS,
         metricId: ids.metrics.quartile,
         year: 2025,
@@ -395,6 +391,7 @@ async function seedRankings() {
         id: ids.rankings.healthCiteScore,
         journalId: ids.journals.digitalHealth,
         subjectCategoryId: ids.subjectCategories.publicHealth,
+        scopeKey: `CATEGORY:${ids.subjectCategories.publicHealth}`,
         source: RankingSource.SCOPUS,
         metricId: ids.metrics.citeScore,
         year: 2024,
@@ -412,6 +409,7 @@ async function seedRankings() {
         id: ids.rankings.climateRank,
         journalId: ids.journals.climateData,
         subjectCategoryId: ids.subjectCategories.sustainability,
+        scopeKey: `CATEGORY:${ids.subjectCategories.sustainability}`,
         source: RankingSource.WOS,
         metricId: ids.metrics.rank,
         year: 2024,
@@ -423,58 +421,19 @@ async function seedRankings() {
 }
 
 async function seedOperations() {
-  await Promise.all([
-    prisma.systemConfig.upsert({
-      where: { apiName: 'OpenAlex' },
-      update: {
-        apiEndpoint: 'https://api.openalex.org',
-        syncFrequency: SyncFrequency.DAILY,
-        isActive: true,
-      },
-      create: {
-        id: ids.configs.openAlex,
-        apiName: 'OpenAlex',
-        apiEndpoint: 'https://api.openalex.org',
-        syncFrequency: SyncFrequency.DAILY,
-        isActive: true,
-      },
-    }),
-    prisma.systemConfig.upsert({
-      where: { apiName: 'Neo4j Orphan Reconciliation' },
-      update: {
-        apiEndpoint: 'neo4j://graph',
-        syncFrequency: SyncFrequency.WEEKLY,
-        isActive: true,
-      },
-      create: {
-        id: ids.configs.neo4j,
-        apiName: 'Neo4j Orphan Reconciliation',
-        apiEndpoint: 'neo4j://graph',
-        syncFrequency: SyncFrequency.WEEKLY,
-        isActive: true,
-      },
-    }),
-  ]);
-
-  await prisma.syncLog.upsert({
-    where: { id: ids.syncLogs.openAlex },
+  await prisma.systemConfig.upsert({
+    where: { apiName: 'Neo4j Orphan Reconciliation' },
     update: {
-      totalFetched: 4,
-      totalInserted: 4,
-      totalUpdated: 0,
-      totalErrors: 0,
-      status: SyncStatus.SUCCESS,
+      apiEndpoint: 'neo4j://graph',
+      syncFrequency: SyncFrequency.WEEKLY,
+      isActive: true,
     },
     create: {
-      id: ids.syncLogs.openAlex,
-      configId: ids.configs.openAlex,
-      source: SyncSource.OPENALEX,
-      jobType: SyncJobType.SCHEDULED_SYNC,
-      startedAt: new Date('2026-06-01T02:00:00.000Z'),
-      finishedAt: new Date('2026-06-01T02:03:00.000Z'),
-      totalFetched: 4,
-      totalInserted: 4,
-      status: SyncStatus.SUCCESS,
+      id: ids.configs.neo4j,
+      apiName: 'Neo4j Orphan Reconciliation',
+      apiEndpoint: 'neo4j://graph',
+      syncFrequency: SyncFrequency.WEEKLY,
+      isActive: true,
     },
   });
 }

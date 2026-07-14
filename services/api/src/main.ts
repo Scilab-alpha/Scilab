@@ -3,9 +3,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from '@/app.module';
 import { HttpExceptionFilter } from '@/shared/response/http-exception.filter';
 import { ResponseInterceptor } from '@/shared/response/response.interceptor';
+import { createCorsOptions } from '@/shared/http/cors.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableCors(createCorsOptions());
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalInterceptors(new ResponseInterceptor());
 

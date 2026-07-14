@@ -28,6 +28,7 @@ FROM base AS runtime
 WORKDIR /app/services/api
 
 ENV PORT="6003"
+ENV SCIMAGO_DATASET_DIR="/app/docs/scimagojr/normalized"
 
 COPY --from=build /app/package.json /app/package.json
 COPY --from=build /app/pnpm-lock.yaml /app/pnpm-lock.yaml
@@ -38,6 +39,7 @@ COPY --from=build /app/services/api/package.json ./package.json
 COPY --from=build /app/services/api/prisma.config.ts ./prisma.config.ts
 COPY --from=build /app/services/api/dist ./dist
 COPY --from=build /app/services/api/prisma ./prisma
+COPY --from=build /app/docs/scimagojr/normalized /app/docs/scimagojr/normalized
 
 EXPOSE 6003
 

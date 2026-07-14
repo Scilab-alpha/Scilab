@@ -761,6 +761,44 @@
           }
         }
       }
+    },
+    "/academic/journal-rankings": {
+      "get": {
+        "summary": "List SCImago journal rankings for one exact year",
+        "operationId": "listAcademicJournalRankings",
+        "tags": [
+          "Academic"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AcademicRankingYear"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicCursor"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Journal rankings retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicJournalRankingListResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/AcademicJournalRankingListInvalid"
+          },
+          "404": {
+            "$ref": "#/components/responses/JournalRankingDatasetNotFound"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -928,6 +966,16 @@
         "required": true,
         "schema": {
           "type": "string"
+        }
+      },
+      "AcademicRankingYear": {
+        "name": "year",
+        "in": "query",
+        "required": true,
+        "description": "Exact SCImago ranking year. No fallback is applied.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1000
         }
       }
     },
@@ -1230,6 +1278,58 @@
               "success": false,
               "message": "Author not found",
               "data": {}
+            }
+          }
+        }
+      },
+      "AcademicJournalRankingListInvalid": {
+        "description": "Journal ranking list query is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "invalidYear": {
+                "value": {
+                  "success": false,
+                  "message": "year is required",
+                  "data": {}
+                }
+              },
+              "invalidCursor": {
+                "value": {
+                  "success": false,
+                  "message": "cursor is invalid for this journal ranking year",
+                  "data": {}
+                }
+              },
+              "invalidLimit": {
+                "value": {
+                  "success": false,
+                  "message": "limit must be an integer between 1 and 100",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "JournalRankingDatasetNotFound": {
+        "description": "SCImago ranking dataset was not found for the requested year",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "error": {
+                "value": {
+                  "success": false,
+                  "message": "SCImago ranking dataset was not found for the requested year",
+                  "data": {}
+                }
+              }
             }
           }
         }
@@ -2477,6 +2577,143 @@
               },
               "data": {
                 "$ref": "#/components/schemas/AcademicAuthorListItem"
+              }
+            }
+          }
+        ]
+      },
+      "AcademicJournalRanking": {
+        "type": "object",
+        "required": [
+          "title",
+          "type",
+          "sjr",
+          "hIndex",
+          "totalDocs",
+          "totalDocs3Years",
+          "totalRefs",
+          "totalCitations3Years",
+          "citableDocs3Years",
+          "citationsPerDoc2Years",
+          "refsPerDoc",
+          "femalePercentage",
+          "countryCode"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "CA-A Cancer Journal for Clinicians"
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "sjr": {
+            "type": "number",
+            "nullable": true,
+            "example": 106.094
+          },
+          "hIndex": {
+            "type": "integer",
+            "nullable": true,
+            "example": 236
+          },
+          "totalDocs": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Total Docs. for the requested ranking year.",
+            "example": 43
+          },
+          "totalDocs3Years": {
+            "type": "integer",
+            "nullable": true,
+            "example": 124
+          },
+          "totalRefs": {
+            "type": "integer",
+            "nullable": true,
+            "example": 3952
+          },
+          "totalCitations3Years": {
+            "type": "integer",
+            "nullable": true,
+            "example": 35985
+          },
+          "citableDocs3Years": {
+            "type": "integer",
+            "nullable": true,
+            "example": 89
+          },
+          "citationsPerDoc2Years": {
+            "type": "number",
+            "nullable": true,
+            "example": 387.59
+          },
+          "refsPerDoc": {
+            "type": "number",
+            "nullable": true,
+            "description": "SCImago Ref. / Doc. for the requested ranking year.",
+            "example": 91.91
+          },
+          "femalePercentage": {
+            "type": "number",
+            "nullable": true,
+            "example": 45.26
+          },
+          "countryCode": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^[A-Z]{2}$",
+            "example": "US"
+          }
+        }
+      },
+      "AcademicJournalRankingCursorPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicJournalRanking"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AcademicJournalRankingListResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": [
+              "success",
+              "message",
+              "data"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [
+                  true
+                ]
+              },
+              "message": {
+                "type": "string",
+                "example": "Journal rankings retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicJournalRankingCursorPage"
               }
             }
           }

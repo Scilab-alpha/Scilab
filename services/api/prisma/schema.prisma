@@ -88,6 +88,11 @@ enum SyncJobType {
   ORPHAN_CLEANUP
   TREND_AGGREGATION
   ALERT_DISPATCH
+  SCIMAGO_RELOAD
+  ARTICLE_SYNC
+  REFERENCE_HYDRATION
+  INCOMING_CITATION_CRAWL
+  CITATION_COUNT_REFRESH
 
   @@map("sync_job_type")
 }
@@ -251,6 +256,17 @@ model SyncLog {
   @@map("sync_log")
 }
 
+model AcademicSyncCheckpoint {
+  key                     String    @id @map("checkpoint_key") @db.VarChar(100)
+  cursor                  String?   @db.Text
+  initialBackfillComplete Boolean   @default(false) @map("initial_backfill_complete")
+  lastSuccessfulAt        DateTime? @map("last_successful_at") @db.Timestamp(6)
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt               DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  @@map("academic_sync_checkpoint")
+}
+
 model SubjectArea {
   id                String            @id @default(uuid()) @map("subject_area_id") @db.Uuid
   displayName       String            @unique @map("display_name") @db.VarChar(255)
@@ -263,12 +279,11 @@ model SubjectArea {
 model SubjectCategory {
   id              String           @id @default(uuid()) @map("subject_category_id") @db.Uuid
   subjectAreaId   String?          @map("subject_area_id") @db.Uuid
-  displayName     String           @map("display_name") @db.VarChar(255)
+  displayName     String           @unique @map("display_name") @db.VarChar(255)
   description     String?          @db.VarChar(1000)
   subjectArea     SubjectArea?     @relation(fields: [subjectAreaId], references: [id], onDelete: SetNull)
   journalRankings JournalRanking[]
 
-  @@unique([subjectAreaId, displayName])
   @@index([subjectAreaId])
   @@map("subject_category")
 }
@@ -286,11 +301,12 @@ model RankingMetric {
 
 model JournalRanking {
   id                String           @id @default(uuid()) @map("journal_ranking_id") @db.Uuid
-  journalId         String           @map("journal_id") @db.Uuid
+  journalId         String           @map("journal_id") @db.VarChar(255)
   subjectCategoryId String?          @map("subject_category_id") @db.Uuid
   metricId          String           @map("metric_id") @db.Uuid
   source            RankingSource
   year              Int
+  scopeKey          String           @map("scope_key") @db.VarChar(64)
   valueText         String?          @map("value_txt") @db.VarChar(255)
   valueInt          Int?             @map("value_int")
   valueFloat        Float?           @map("value_float")
@@ -298,7 +314,7 @@ model JournalRanking {
   subjectCategory   SubjectCategory? @relation(fields: [subjectCategoryId], references: [id], onDelete: SetNull)
   metric            RankingMetric    @relation(fields: [metricId], references: [id], onDelete: Restrict)
 
-  @@unique([journalId, subjectCategoryId, source, metricId, year])
+  @@unique([journalId, scopeKey, source, metricId, year])
   @@index([journalId, year])
   @@index([metricId])
   @@index([subjectCategoryId])

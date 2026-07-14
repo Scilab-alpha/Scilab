@@ -1,0 +1,81 @@
+{
+  "year": 2023,
+  "sourceFile": "scimagojr 2023.csv",
+  "normalizedFile": "2023/scimagojr 2023.normalized.csv",
+  "rows": 32316,
+  "validIssnTokens": 53643,
+  "invalidIssnTokens": [
+    {
+      "sourceId": "100459",
+      "title": "International Conference on Architectural Support for Programming Languages and Operating Systems - ASPLOS",
+      "value": "-"
+    },
+    {
+      "sourceId": "94067",
+      "title": "Proceedings of the Annual ACM Symposium on Principles of Distributed Computing",
+      "value": "-"
+    },
+    {
+      "sourceId": "56825",
+      "title": "Proceedings of the International Conference on Supercomputing",
+      "value": "-"
+    },
+    {
+      "sourceId": "89358",
+      "title": "Proceedings of the ACM Symposium on Applied Computing",
+      "value": "-"
+    },
+    {
+      "sourceId": "11600154611",
+      "title": "ACM International Conference Proceeding Series",
+      "value": "-"
+    },
+    {
+      "sourceId": "91440",
+      "title": "Proceedings of the International Conference on Offshore Mechanics and Arctic Engineering - OMAE",
+      "value": "-"
+    },
+    {
+      "sourceId": "90640",
+      "title": "Proceedings of the IEEE International Conference on Properties and Applications of Dielectric Materials",
+      "value": "-"
+    },
+    {
+      "sourceId": "31602",
+      "title": "Working Paper of the Helen Kellogg Institute for International Studies",
+      "value": "-"
+    },
+    {
+      "sourceId": "70075",
+      "title": "International Conference on Nuclear Engineering, Proceedings, ICONE",
+      "value": "-"
+    },
+    {
+      "sourceId": "54202",
+      "title": "Spinnovation",
+      "value": "-"
+    },
+    {
+      "sourceId": "19900194828",
+      "title": "American Society of Mechanical Engineers, Power Division (Publication) POWER",
+      "value": "-"
+    },
+    {
+      "sourceId": "31473",
+      "title": "Conference on Human Factors in Computing Systems - Proceedings",
+      "value": "-"
+    }
+  ],
+  "collisions": [],
+  "unresolvedCategories": [
+    "Medical Assisting and Transcription",
+    "Medical Terminology",
+    "Pathophysiology",
+    "Radiological and Ultrasound Technology",
+    "Respiratory Care",
+    "Review and Exam Preparation"
+  ],
+  "collapsedDuplicateColumns": [
+    "Publisher"
+  ]
+}
