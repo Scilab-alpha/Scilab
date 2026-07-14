@@ -70,13 +70,12 @@ describe('RunArticleSyncPipelineUseCase', () => {
         filter: 'type:article,from_created_date:2026-07-13',
       }),
     );
-    expect(execute).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        filter: expect.stringMatching(
-          /^type:article,from_publication_date:\d{4}-\d{2}-\d{2}$/,
-        ),
-      }),
+    expect(
+      (execute.mock.calls as Array<[{ filter?: unknown }]>)[1]?.[0]?.filter,
+    ).toEqual(
+      expect.stringMatching(
+        /^type:article,from_publication_date:\d{4}-\d{2}-\d{2}$/,
+      ),
     );
   });
 });
