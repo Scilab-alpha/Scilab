@@ -228,6 +228,27 @@ paths:
                 $ref: "#/components/schemas/AcademicJournalListResponseEnvelope"
         "400":
           $ref: "#/components/responses/AcademicCursorInvalid"
+  /academic/journal-rankings:
+    get:
+      summary: List SCImago journal rankings for one exact year
+      operationId: listAcademicJournalRankings
+      tags:
+        - Academic
+      parameters:
+        - $ref: "#/components/parameters/AcademicRankingYear"
+        - $ref: "#/components/parameters/AcademicCursor"
+        - $ref: "#/components/parameters/AcademicLimit"
+      responses:
+        "200":
+          description: Journal rankings retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AcademicJournalRankingListResponseEnvelope"
+        "400":
+          $ref: "#/components/responses/AcademicJournalRankingListInvalid"
+        "404":
+          $ref: "#/components/responses/JournalRankingDatasetNotFound"
   /academic/journals/{journalId}:
     get:
       summary: Return one academic journal by id
@@ -836,6 +857,14 @@ components:
       description: Cursor returned by the previous page.
       schema:
         type: string
+    AcademicRankingYear:
+      name: year
+      in: query
+      required: true
+      description: Exact SCImago ranking year. No fallback is applied.
+      schema:
+        type: integer
+        minimum: 1000
     AcademicQuery:
       name: q
       in: query
@@ -1155,6 +1184,40 @@ components:
               value:
                 success: false
                 message: limit must be an integer between 1 and 100
+                data: {}
+    AcademicJournalRankingListInvalid:
+      description: Journal ranking list query is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponseEnvelope"
+          examples:
+            invalidYear:
+              value:
+                success: false
+                message: year is required
+                data: {}
+            invalidCursor:
+              value:
+                success: false
+                message: cursor is invalid for this journal ranking year
+                data: {}
+            invalidLimit:
+              value:
+                success: false
+                message: limit must be an integer between 1 and 100
+                data: {}
+    JournalRankingDatasetNotFound:
+      description: SCImago ranking dataset was not found for the requested year.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponseEnvelope"
+          examples:
+            datasetNotFound:
+              value:
+                success: false
+                message: SCImago ranking dataset was not found for the requested year
                 data: {}
     AcademicArticleListInvalid:
       description: Article list query is invalid.
@@ -1550,6 +1613,24 @@ components:
               example: Journals retrieved
             data:
               $ref: "#/components/schemas/AcademicJournalCursorPage"
+    AcademicJournalRankingListResponseEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/ApiResponseBase"
+        - type: object
+          required:
+            - success
+            - message
+            - data
+          properties:
+            success:
+              type: boolean
+              enum:
+                - true
+            message:
+              type: string
+              example: Journal rankings retrieved
+            data:
+              $ref: "#/components/schemas/AcademicJournalRankingCursorPage"
     AcademicArticleResponseEnvelope:
       allOf:
         - $ref: "#/components/schemas/ApiResponseBase"
@@ -2319,6 +2400,20 @@ components:
         nextCursor:
           type: string
           nullable: true
+    AcademicJournalRankingCursorPage:
+      type: object
+      required:
+        - items
+        - nextCursor
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AcademicJournalRanking"
+        nextCursor:
+          type: string
+          nullable: true
     AcademicArticleGraph:
       type: object
       required:
@@ -2462,6 +2557,77 @@ components:
         articleCount:
           type: integer
           minimum: 0
+    AcademicJournalRanking:
+      type: object
+      required:
+        - title
+        - type
+        - sjr
+        - hIndex
+        - totalDocs
+        - totalDocs3Years
+        - totalRefs
+        - totalCitations3Years
+        - citableDocs3Years
+        - citationsPerDoc2Years
+        - refsPerDoc
+        - femalePercentage
+        - countryCode
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+          example: CA-A Cancer Journal for Clinicians
+        type:
+          type: string
+          nullable: true
+        sjr:
+          type: number
+          nullable: true
+          example: 106.094
+        hIndex:
+          type: integer
+          nullable: true
+          example: 236
+        totalDocs:
+          type: integer
+          nullable: true
+          description: Total Docs. for the requested ranking year.
+          example: 43
+        totalDocs3Years:
+          type: integer
+          nullable: true
+          example: 124
+        totalRefs:
+          type: integer
+          nullable: true
+          example: 3952
+        totalCitations3Years:
+          type: integer
+          nullable: true
+          example: 35985
+        citableDocs3Years:
+          type: integer
+          nullable: true
+          example: 89
+        citationsPerDoc2Years:
+          type: number
+          nullable: true
+          example: 387.59
+        refsPerDoc:
+          type: number
+          nullable: true
+          description: SCImago Ref. / Doc. for the requested ranking year.
+          example: 91.91
+        femalePercentage:
+          type: number
+          nullable: true
+          example: 45.26
+        countryCode:
+          type: string
+          nullable: true
+          pattern: '^[A-Z]{2}$'
+          example: US
     AcademicAuthor:
       type: object
       required:

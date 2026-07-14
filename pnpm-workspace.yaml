@@ -11,6 +11,7 @@ allowBuilds:
   "@prisma/engines": true
   "@scarf/scarf": false
   argon2: true
+  msgpackr-extract: false
   esbuild: true
   prisma: true
   protobufjs: true

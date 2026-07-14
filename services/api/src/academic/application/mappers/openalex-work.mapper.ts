@@ -9,6 +9,7 @@ import {
 
 export function transformOpenAlexWorkToArticleGraph(
   work: OpenAlexWorkRecord,
+  options: { includeReferences?: boolean } = {},
 ): ArticleGraph | null {
   const articleId = normalizeOpenAlexId(work.id);
   const title = work.title ?? work.display_name;
@@ -39,9 +40,12 @@ export function transformOpenAlexWorkToArticleGraph(
     authors: transformAuthors(work),
     keywords: transformKeywords(work),
     topics: transformTopics(work, primaryTopicId),
-    citedArticleIds: (work.referenced_works ?? [])
-      .map(normalizeOpenAlexId)
-      .filter((id): id is string => Boolean(id)),
+    citedArticleIds:
+      options.includeReferences === false
+        ? []
+        : (work.referenced_works ?? [])
+            .map(normalizeOpenAlexId)
+            .filter((id): id is string => Boolean(id)),
   };
 }
 

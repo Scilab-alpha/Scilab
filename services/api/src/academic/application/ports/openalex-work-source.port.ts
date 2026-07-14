@@ -2,10 +2,16 @@ import { OpenAlexSyncConfig } from '@/academic/application/ports/openalex-config
 
 export interface FetchOpenAlexWorksInput {
   config: OpenAlexSyncConfig;
+  cursor?: string | null;
 }
 
 export interface FetchOpenAlexWorksByIdsInput extends FetchOpenAlexWorksInput {
   ids: string[];
+}
+
+export interface FetchOpenAlexCitingWorksInput extends FetchOpenAlexWorksInput {
+  workId: string;
+  limit: number;
 }
 
 export interface OpenAlexWorksPage {
@@ -13,6 +19,7 @@ export interface OpenAlexWorksPage {
     count?: number;
     page?: number;
     per_page?: number;
+    next_cursor?: string | null;
   };
   results: OpenAlexWorkRecord[];
 }
@@ -21,6 +28,12 @@ export interface OpenAlexWorkSource {
   fetchWorks(input: FetchOpenAlexWorksInput): Promise<OpenAlexWorksPage>;
   fetchWorksByIds(
     input: FetchOpenAlexWorksByIdsInput,
+  ): Promise<OpenAlexWorksPage>;
+  fetchWorkDetailsByIds?(
+    input: FetchOpenAlexWorksByIdsInput,
+  ): Promise<OpenAlexWorksPage>;
+  fetchCitingWorks?(
+    input: FetchOpenAlexCitingWorksInput,
   ): Promise<OpenAlexWorksPage>;
 }
 

@@ -14,6 +14,11 @@ import { ListArticlesUseCase } from '@/academic/application/use-cases/list-artic
 import { ListAuthorsUseCase } from '@/academic/application/use-cases/list-authors/list-authors.use-case';
 import { ListJournalsUseCase } from '@/academic/application/use-cases/list-journals/list-journals.use-case';
 import {
+  InvalidJournalRankingCursorError,
+  JournalRankingDatasetNotFoundError,
+  ListJournalRankingsUseCase,
+} from '@/academic/application/use-cases/list-journal-rankings/list-journal-rankings.use-case';
+import {
   ArticleListInput,
   CursorPaginationInput,
   InvalidArticleListCursorError,
@@ -22,6 +27,7 @@ import { normalizeExactName } from '@/academic/domain/normalize-exact-name';
 import {
   AcademicArticleQueryDto,
   AcademicCursorQueryDto,
+  JournalRankingListQueryDto,
 } from '@/academic/interfaces/http/academic.dto';
 import {
   ApiGetArticle,
@@ -30,6 +36,7 @@ import {
   ApiListArticles,
   ApiListAuthors,
   ApiListJournals,
+  ApiListJournalRankings,
 } from '@/academic/interfaces/http/academic.swagger';
 import { createSuccessResponse } from '@/shared/response/response.factory';
 
@@ -46,6 +53,7 @@ export class AcademicController {
     private readonly getAuthorById: GetAuthorByIdUseCase,
     private readonly listJournals: ListJournalsUseCase,
     private readonly getJournalById: GetJournalByIdUseCase,
+    private readonly listJournalRankings: ListJournalRankingsUseCase,
   ) {}
 
   @Get('articles')
@@ -101,6 +109,27 @@ export class AcademicController {
   async findJournals(@Query() query: AcademicCursorQueryDto) {
     const page = await this.listJournals.execute(this.toCursorInput(query));
     return createSuccessResponse(page, 'Journals retrieved');
+  }
+
+  @Get('journal-rankings')
+  @ApiListJournalRankings()
+  async findJournalRankings(@Query() query: JournalRankingListQueryDto) {
+    try {
+      const page = await this.listJournalRankings.execute(
+        this.toJournalRankingListInput(query),
+      );
+      return createSuccessResponse(page, 'Journal rankings retrieved');
+    } catch (error) {
+      if (error instanceof InvalidJournalRankingCursorError) {
+        throw new BadRequestException(error.message);
+      }
+
+      if (error instanceof JournalRankingDatasetNotFoundError) {
+        throw new NotFoundException(error.message);
+      }
+
+      throw error;
+    }
   }
 
   @Get('journals/:journalId')
@@ -215,6 +244,26 @@ export class AcademicController {
       country,
       sort: sort as ArticleListInput['sort'],
     };
+  }
+
+  private toJournalRankingListInput(query: JournalRankingListQueryDto): {
+    year: number;
+    cursor: string | null;
+    limit: number;
+  } {
+    if (query.year === undefined) {
+      throw new BadRequestException('year is required');
+    }
+
+    const year = this.optionalYear(query.year, 'year');
+
+    if (year === null) {
+      throw new BadRequestException('year is required');
+    }
+
+    const { cursor, limit } = this.toCursorInput(query);
+
+    return { year, cursor: cursor ?? null, limit };
   }
 
   private optionalText(

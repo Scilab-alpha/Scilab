@@ -9,6 +9,12 @@ export const ACADEMIC_GRAPH_SCHEMA_CYPHER = [
    FOR (a:Article) ON (a.hydration_state)`,
   `CREATE INDEX article_citation_count_index IF NOT EXISTS
    FOR (a:Article) ON (a.citation_count)`,
+  `CREATE INDEX article_reference_discovered_at_index IF NOT EXISTS
+   FOR (a:Article) ON (a.reference_discovered_at)`,
+  `CREATE INDEX article_ingested_at_index IF NOT EXISTS
+   FOR (a:Article) ON (a.ingested_at)`,
+  `CREATE INDEX article_citation_count_updated_at_index IF NOT EXISTS
+   FOR (a:Article) ON (a.citation_count_updated_at)`,
   `CREATE FULLTEXT INDEX article_title_abstract_fulltext IF NOT EXISTS
    FOR (a:Article) ON EACH [a.title, a.abstract]
    OPTIONS {indexConfig: {

@@ -1,4 +1,4 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class AcademicCursorQueryDto {
   @ApiPropertyOptional({
@@ -72,4 +72,12 @@ export class AcademicArticleQueryDto extends AcademicCursorQueryDto {
       'Sort order. Defaults to relevant for research queries and newest otherwise.',
   })
   sort?: string;
+}
+
+export class JournalRankingListQueryDto extends AcademicCursorQueryDto {
+  @ApiProperty({
+    description: 'Exact SCImago ranking year to return.',
+    example: 2023,
+  })
+  year!: string;
 }
