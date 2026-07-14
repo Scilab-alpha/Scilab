@@ -44,6 +44,8 @@ export interface JournalNode {
   publisherName?: string | null;
   publisherImageUrl?: string | null;
   subjectCategories?: string[] | null;
+  scimagoSourceId?: string | null;
+  scimagoCatalogYear?: number | null;
 }
 
 export interface KeywordNode {

@@ -86,105 +86,115 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
   }
 
   async upsertArticleGraph(graph: ArticleGraph): Promise<void> {
+    await this.upsertArticleGraphs([graph]);
+  }
+
+  async upsertArticleGraphs(
+    graphs: ArticleGraph[],
+  ): Promise<{ inserted: number; updated: number }> {
+    if (graphs.length === 0) {
+      return { inserted: 0, updated: 0 };
+    }
+
+    const ids = [...new Set(graphs.map((graph) => graph.article.id))];
+    const existingIds = await this.findExistingReferenceIds('ARTICLE', ids);
     await this.neo4j.executeWrite(
       `
-      MERGE (article:Article {id: $article.id})
-      SET article.title = $article.title,
-          article.abstract = $article.abstract,
-          article.doi = $article.doi,
-          article.publication_year = $article.publication_year,
-          article.version = $article.version,
-          article.volume_number = $article.volume_number,
-          article.issue_number = $article.issue_number,
-          article.citation_count = $article.citation_count,
+      UNWIND $graphs AS graph
+      MERGE (article:Article {id: graph.article.id})
+      SET article.title = graph.article.title,
+          article.abstract = graph.article.abstract,
+          article.doi = graph.article.doi,
+          article.publication_year = graph.article.publication_year,
+          article.version = graph.article.version,
+          article.volume_number = graph.article.volume_number,
+          article.issue_number = graph.article.issue_number,
+          article.citation_count = graph.article.citation_count,
           article.hydration_state = 'HYDRATED',
           article.ingested_at = datetime(),
           article.citation_count_updated_at = CASE
-            WHEN $article.citation_count IS NULL THEN article.citation_count_updated_at
+            WHEN graph.article.citation_count IS NULL THEN article.citation_count_updated_at
             ELSE datetime()
           END,
-          article.created_at = coalesce($article.created_at, article.created_at, datetime()),
-          article.updated_at = coalesce($article.updated_at, datetime())
-
-      WITH article
-      CALL {
-        WITH article
-        WITH article WHERE $journal IS NOT NULL
-        MERGE (journal:Journal {id: $journal.id})
-        SET journal.source_id = $journal.source_id,
-            journal.display_name = $journal.display_name,
-            journal.type = $journal.type,
-            journal.is_open_access = $journal.is_open_access,
-            journal.is_oa_diamond = $journal.is_oa_diamond,
-            journal.coverage = $journal.coverage,
-            journal.country = $journal.country,
-            journal.issn_list = $journal.issn_list,
-            journal.publisher_name = $journal.publisher_name,
-            journal.publisher_name_normalized = $journal.publisher_name_normalized,
-            journal.publisher_image_url = $journal.publisher_image_url,
-            journal.subject_categories = $journal.subject_categories
+          article.created_at = coalesce(graph.article.created_at, article.created_at, datetime()),
+          article.updated_at = coalesce(graph.article.updated_at, datetime())
+      FOREACH (journal_input IN CASE WHEN graph.journal IS NULL THEN [] ELSE [graph.journal] END |
+        MERGE (journal:Journal {id: journal_input.id})
+        SET journal.source_id = journal_input.source_id,
+            journal.display_name = journal_input.display_name,
+            journal.type = journal_input.type,
+            journal.is_open_access = journal_input.is_open_access,
+            journal.is_oa_diamond = journal_input.is_oa_diamond,
+            journal.coverage = journal_input.coverage,
+            journal.country = journal_input.country,
+            journal.issn_list = journal_input.issn_list,
+            journal.publisher_name = journal_input.publisher_name,
+            journal.publisher_name_normalized = journal_input.publisher_name_normalized,
+            journal.publisher_image_url = journal_input.publisher_image_url,
+            journal.subject_categories = journal_input.subject_categories,
+            journal.scimago_source_id = coalesce(journal_input.scimago_source_id, journal.scimago_source_id),
+            journal.scimago_catalog_year = coalesce(journal_input.scimago_catalog_year, journal.scimago_catalog_year)
         MERGE (article)-[:PUBLISHED_IN]->(journal)
-        RETURN count(journal) AS journal_count
-      }
-
-      WITH article
-      CALL {
-        WITH article
-        UNWIND $authors AS author_input
+      )
+      FOREACH (author_input IN graph.authors |
         MERGE (author:Author {id: author_input.id})
         SET author.orcid = author_input.orcid,
             author.display_name = author_input.display_name,
             author.url_image = author_input.url_image
         MERGE (author)-[wrote:WROTE]->(article)
         SET wrote.author_position = author_input.author_position
-        RETURN count(author) AS author_count
-      }
-
-      WITH article
-      CALL {
-        WITH article
-        UNWIND $keywords AS keyword_input
+      )
+      FOREACH (keyword_input IN graph.keywords |
         MERGE (keyword:Keyword {id: keyword_input.id})
         SET keyword.display_name = keyword_input.display_name
         MERGE (article)-[has_keyword:HAS_KEYWORD]->(keyword)
         SET has_keyword.score = keyword_input.score
-        RETURN count(keyword) AS keyword_count
-      }
-
-      WITH article
-      CALL {
-        WITH article
-        UNWIND $topics AS topic_input
+      )
+      FOREACH (topic_input IN graph.topics |
         MERGE (topic:Topic {id: topic_input.id})
         SET topic.display_name = topic_input.display_name,
             topic.score = topic_input.score
         MERGE (article)-[belongs_to:BELONGS_TO]->(topic)
         SET belongs_to.score = topic_input.score,
             belongs_to.is_primary = topic_input.is_primary
-        RETURN count(topic) AS topic_count
-      }
-
-      WITH article
-      CALL {
-        WITH article
-        UNWIND $cited_article_ids AS cited_article_id
+      )
+      FOREACH (cited_article_id IN graph.cited_article_ids |
         MERGE (cited:Article {id: cited_article_id})
         ON CREATE SET cited.hydration_state = 'PLACEHOLDER',
                       cited.reference_discovered_at = datetime()
         MERGE (article)-[:CITES]->(cited)
-        RETURN count(cited) AS cited_count
-      }
-
-      RETURN article.id AS id
+      )
+      RETURN count(article) AS count
       `,
-      {
-        article: toNeo4jArticle(graph.article),
-        journal: graph.journal ? toNeo4jJournal(graph.journal) : null,
-        authors: (graph.authors ?? []).map(toNeo4jAuthor),
-        keywords: (graph.keywords ?? []).map(toNeo4jKeyword),
-        topics: (graph.topics ?? []).map(toNeo4jTopic),
-        cited_article_ids: graph.citedArticleIds ?? [],
-      },
+      { graphs: graphs.map(toNeo4jGraph) },
+    );
+
+    return {
+      inserted: ids.filter((id) => !existingIds.has(id)).length,
+      updated: ids.filter((id) => existingIds.has(id)).length,
+    };
+  }
+
+  async upsertJournal(journal: JournalNode): Promise<void> {
+    await this.neo4j.executeWrite(
+      `
+      MERGE (journal:Journal {id: $journal.id})
+      SET journal.source_id = $journal.source_id,
+          journal.display_name = $journal.display_name,
+          journal.type = $journal.type,
+          journal.is_open_access = $journal.is_open_access,
+          journal.is_oa_diamond = $journal.is_oa_diamond,
+          journal.coverage = $journal.coverage,
+          journal.country = $journal.country,
+          journal.issn_list = $journal.issn_list,
+          journal.publisher_name = $journal.publisher_name,
+          journal.publisher_name_normalized = $journal.publisher_name_normalized,
+          journal.publisher_image_url = $journal.publisher_image_url,
+          journal.subject_categories = $journal.subject_categories,
+          journal.scimago_source_id = $journal.scimago_source_id,
+          journal.scimago_catalog_year = $journal.scimago_catalog_year
+      `,
+      { journal: toNeo4jJournal(journal) },
     );
   }
 
@@ -670,6 +680,40 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
     );
 
     return result.records;
+  }
+
+  async listHydratedArticleIdsMissingOutgoingReferences(
+    limit: number,
+  ): Promise<string[]> {
+    const result = await this.neo4j.executeRead<string>(
+      `
+      MATCH (article:Article)
+      WHERE article.hydration_state = 'HYDRATED'
+        AND article.outgoing_references_crawled_at IS NULL
+      RETURN article.id AS id
+      ORDER BY article.ingested_at ASC, article.id ASC
+      LIMIT $limit
+      `,
+      { limit: neo4j.int(limit) },
+      (record) => String(record.get('id')),
+    );
+
+    return result.records;
+  }
+
+  async markOutgoingReferencesCrawled(ids: string[]): Promise<void> {
+    if (ids.length === 0) {
+      return;
+    }
+
+    await this.neo4j.executeWrite(
+      `
+      MATCH (article:Article)
+      WHERE article.id IN $ids
+      SET article.outgoing_references_crawled_at = datetime()
+      `,
+      { ids },
+    );
   }
 
   async listHydratedArticleIdsForIncomingCitation(input: {
@@ -1319,7 +1363,20 @@ function toNeo4jJournal(journal: JournalNode) {
     publisher_name_normalized: normalizeExactName(journal.publisherName),
     publisher_image_url: journal.publisherImageUrl ?? null,
     subject_categories: journal.subjectCategories ?? null,
+    scimago_source_id: journal.scimagoSourceId ?? null,
+    scimago_catalog_year: journal.scimagoCatalogYear ?? null,
   });
+}
+
+function toNeo4jGraph(graph: ArticleGraph) {
+  return {
+    article: toNeo4jArticle(graph.article),
+    journal: graph.journal ? toNeo4jJournal(graph.journal) : null,
+    authors: (graph.authors ?? []).map(toNeo4jAuthor),
+    keywords: (graph.keywords ?? []).map(toNeo4jKeyword),
+    topics: (graph.topics ?? []).map(toNeo4jTopic),
+    cited_article_ids: graph.citedArticleIds ?? [],
+  };
 }
 
 function toNeo4jKeyword(keyword: KeywordNode) {

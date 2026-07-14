@@ -1,15 +1,20 @@
-import { OpenAlexSyncConfig } from '@/academic/application/ports/openalex-config.port';
+import {
+  OpenAlexConfig,
+  OpenAlexWorksQueryConfig,
+} from '@/academic/application/ports/openalex-config.port';
 
 export interface FetchOpenAlexWorksInput {
-  config: OpenAlexSyncConfig;
+  config: OpenAlexWorksQueryConfig;
   cursor?: string | null;
 }
 
-export interface FetchOpenAlexWorksByIdsInput extends FetchOpenAlexWorksInput {
+export interface FetchOpenAlexWorksByIdsInput {
+  config: OpenAlexConfig;
   ids: string[];
 }
 
-export interface FetchOpenAlexCitingWorksInput extends FetchOpenAlexWorksInput {
+export interface FetchOpenAlexCitingWorksInput {
+  config: OpenAlexConfig;
   workId: string;
   limit: number;
 }

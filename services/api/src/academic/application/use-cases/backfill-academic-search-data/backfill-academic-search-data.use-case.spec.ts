@@ -27,10 +27,9 @@ describe('BackfillAcademicSearchDataUseCase', () => {
     });
     const useCase = new BackfillAcademicSearchDataUseCase(
       {
-        getSyncConfig: () => ({
+        getOpenAlexConfig: () => ({
           apiKey: 'key',
           baseUrl: 'https://api.openalex.org',
-          perPage: 25,
         }),
       },
       { fetchWorks: jest.fn(), fetchWorksByIds },
@@ -63,10 +62,9 @@ describe('BackfillAcademicSearchDataUseCase', () => {
     });
     const useCase = new BackfillAcademicSearchDataUseCase(
       {
-        getSyncConfig: () => ({
+        getOpenAlexConfig: () => ({
           apiKey: 'key',
           baseUrl: 'https://api.openalex.org',
-          perPage: 25,
         }),
       },
       {

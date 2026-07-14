@@ -8,29 +8,14 @@ import {
 import {
   AcademicSyncLogRepository,
   StartAcademicPipelineJobInput,
-  CompleteOpenAlexSyncLogInput,
-  FailOpenAlexSyncLogInput,
-  StartOpenAlexSyncLogInput,
+  CompleteAcademicPipelineJobInput,
+  FailAcademicPipelineJobInput,
 } from '@/academic/application/ports/academic-sync-log.port';
 import { PrismaService } from '@/prisma/prisma.service';
-
-const OPENALEX_CONFIG_NAME = 'OpenAlex';
 
 @Injectable()
 export class PrismaAcademicSyncLogRepository implements AcademicSyncLogRepository {
   constructor(private readonly prisma: PrismaService) {}
-
-  async startOpenAlexScheduledSync(
-    input: StartOpenAlexSyncLogInput,
-  ): Promise<string> {
-    return this.startPipelineJob({
-      apiName: OPENALEX_CONFIG_NAME,
-      apiEndpoint: input.apiEndpoint,
-      source: 'OPENALEX',
-      jobType: 'ARTICLE_SYNC',
-      startedAt: input.startedAt,
-    });
-  }
 
   async startPipelineJob(
     input: StartAcademicPipelineJobInput,
@@ -63,16 +48,9 @@ export class PrismaAcademicSyncLogRepository implements AcademicSyncLogRepositor
     return syncLog.id;
   }
 
-  async completeOpenAlexSync(
-    syncLogId: string,
-    input: CompleteOpenAlexSyncLogInput,
-  ): Promise<void> {
-    await this.completePipelineJob(syncLogId, input);
-  }
-
   async completePipelineJob(
     syncLogId: string,
-    input: CompleteOpenAlexSyncLogInput,
+    input: CompleteAcademicPipelineJobInput,
   ): Promise<void> {
     await this.prisma.syncLog.update({
       where: { id: syncLogId },
@@ -88,16 +66,9 @@ export class PrismaAcademicSyncLogRepository implements AcademicSyncLogRepositor
     });
   }
 
-  async failOpenAlexSync(
-    syncLogId: string,
-    input: FailOpenAlexSyncLogInput,
-  ): Promise<void> {
-    await this.failPipelineJob(syncLogId, input);
-  }
-
   async failPipelineJob(
     syncLogId: string,
-    input: FailOpenAlexSyncLogInput,
+    input: FailAcademicPipelineJobInput,
   ): Promise<void> {
     await this.prisma.syncLog.update({
       where: { id: syncLogId },

@@ -238,6 +238,10 @@ const journalListResponseSchema = envelopeSchema(
 const journalRankingListItemSchema = {
   type: 'object',
   required: [
+    'scimagoSourceId',
+    'journalId',
+    'issns',
+    'matchStatus',
     'title',
     'type',
     'sjr',
@@ -254,6 +258,14 @@ const journalRankingListItemSchema = {
   ],
   additionalProperties: false,
   properties: {
+    scimagoSourceId: { type: 'string', example: '28773' },
+    journalId: { type: 'string', nullable: true, example: 'S123456789' },
+    issns: { type: 'array', items: { type: 'string' }, example: ['1542-4863'] },
+    matchStatus: {
+      type: 'string',
+      enum: ['PENDING', 'MATCHED', 'UNMATCHED', 'CONFLICT', 'OUT_OF_SCOPE'],
+      example: 'MATCHED',
+    },
     title: { type: 'string', example: 'CA-A Cancer Journal for Clinicians' },
     type: nullableStringSchema,
     sjr: { type: 'number', nullable: true, example: 106.094 },

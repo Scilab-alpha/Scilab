@@ -10,10 +10,9 @@ describe('CrawlIncomingCitationsUseCase', () => {
     });
     const useCase = new CrawlIncomingCitationsUseCase(
       {
-        getSyncConfig: () => ({
+        getOpenAlexConfig: () => ({
           apiKey: 'key',
           baseUrl: 'https://api.openalex.org',
-          perPage: 100,
         }),
       },
       {

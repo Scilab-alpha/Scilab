@@ -5,7 +5,9 @@ import { CrawlIncomingCitationsUseCase } from '@/academic/application/use-cases/
 import { HydrateReferencedWorksUseCase } from '@/academic/application/use-cases/hydrate-referenced-works/hydrate-referenced-works.use-case';
 import { RefreshCitationCountsUseCase } from '@/academic/application/use-cases/refresh-citation-counts/refresh-citation-counts.use-case';
 import { ReloadScimagoDatasetUseCase } from '@/academic/application/use-cases/reload-scimago-dataset/reload-scimago-dataset.use-case';
-import { RunArticleSyncPipelineUseCase } from '@/academic/application/use-cases/run-article-sync-pipeline/run-article-sync-pipeline.use-case';
+import { ResolveScimagoJournalsUseCase } from '@/academic/application/use-cases/resolve-scimago-journals/resolve-scimago-journals.use-case';
+import { RunJournalArticleSyncPipelineUseCase } from '@/academic/application/use-cases/run-journal-article-sync-pipeline/run-journal-article-sync-pipeline.use-case';
+import { CrawlOutgoingReferencesUseCase } from '@/academic/application/use-cases/crawl-outgoing-references/crawl-outgoing-references.use-case';
 import { ACADEMIC_PIPELINE_QUEUES } from '@/academic/infrastructure/queue/academic-pipeline.queue';
 import { OpenAlexEnvConfigReader } from '@/academic/infrastructure/config/openalex-env-config.reader';
 import { PrismaAcademicSyncLogRepository } from '@/academic/infrastructure/persistence/prisma-academic-sync-log.repository';
@@ -23,7 +25,9 @@ class AcademicPipelineJobRunner {
     context: {
       type:
         | 'SCIMAGO_RELOAD'
-        | 'ARTICLE_SYNC'
+        | 'JOURNAL_SOURCE_SYNC'
+        | 'JOURNAL_ARTICLE_SYNC'
+        | 'OUTGOING_REFERENCE_CRAWL'
         | 'REFERENCE_HYDRATION'
         | 'INCOMING_CITATION_CRAWL'
         | 'CITATION_COUNT_REFRESH';
@@ -36,7 +40,7 @@ class AcademicPipelineJobRunner {
       updated: number;
     },
   ): Promise<T> {
-    const config = this.openAlexConfig.getSyncConfig();
+    const config = this.openAlexConfig.getOpenAlexConfig();
     const syncLogId = await this.logs.startPipelineJob({
       apiName: context.source === 'SCIMAGO' ? 'SCImago Dataset' : 'OpenAlex',
       apiEndpoint:
@@ -100,11 +104,11 @@ export class ScimagoReloadProcessor extends WorkerHost {
   }
 }
 
-@Processor(ACADEMIC_PIPELINE_QUEUES.articleSync)
-export class ArticleSyncProcessor extends WorkerHost {
+@Processor(ACADEMIC_PIPELINE_QUEUES.journalSourceSync)
+export class JournalSourceSyncProcessor extends WorkerHost {
   constructor(
     private readonly jobs: AcademicPipelineJobRunner,
-    private readonly sync: RunArticleSyncPipelineUseCase,
+    private readonly resolve: ResolveScimagoJournalsUseCase,
   ) {
     super();
   }
@@ -112,21 +116,58 @@ export class ArticleSyncProcessor extends WorkerHost {
   async process(job: Job<PipelineJobData>): Promise<unknown> {
     void job;
     return this.jobs.run(
-      { source: 'OPENALEX', type: 'ARTICLE_SYNC' },
+      { source: 'OPENALEX', type: 'JOURNAL_SOURCE_SYNC' },
+      () => this.resolve.execute(),
+      (output) => ({
+        fetched: output.journals,
+        inserted: output.matched,
+        updated: output.unmatched + output.conflicts,
+      }),
+    );
+  }
+}
+
+@Processor(ACADEMIC_PIPELINE_QUEUES.journalArticleSync)
+export class JournalArticleSyncProcessor extends WorkerHost {
+  constructor(
+    private readonly jobs: AcademicPipelineJobRunner,
+    private readonly sync: RunJournalArticleSyncPipelineUseCase,
+  ) {
+    super();
+  }
+
+  async process(job: Job<PipelineJobData>): Promise<unknown> {
+    void job;
+    return this.jobs.run(
+      { source: 'OPENALEX', type: 'JOURNAL_ARTICLE_SYNC' },
       () => this.sync.execute(),
       (output) => ({
-        fetched: output.runs.reduce(
-          (total, run) => total + run.totalFetched,
-          0,
-        ),
-        inserted: output.runs.reduce(
-          (total, run) => total + run.totalInserted,
-          0,
-        ),
-        updated: output.runs.reduce(
-          (total, run) => total + run.totalUpdated,
-          0,
-        ),
+        fetched: output.pagesFetched,
+        inserted: output.articlesInserted,
+        updated: output.articlesUpdated,
+      }),
+    );
+  }
+}
+
+@Processor(ACADEMIC_PIPELINE_QUEUES.outgoingReference)
+export class OutgoingReferenceProcessor extends WorkerHost {
+  constructor(
+    private readonly jobs: AcademicPipelineJobRunner,
+    private readonly crawl: CrawlOutgoingReferencesUseCase,
+  ) {
+    super();
+  }
+
+  async process(job: Job<PipelineJobData>): Promise<unknown> {
+    void job;
+    return this.jobs.run(
+      { source: 'OPENALEX', type: 'OUTGOING_REFERENCE_CRAWL' },
+      () => this.crawl.execute(),
+      (output) => ({
+        fetched: output.articlesSelected,
+        inserted: output.edgesPrepared,
+        updated: output.articlesHydrated,
       }),
     );
   }
@@ -204,7 +245,9 @@ export class CitationCountRefreshProcessor extends WorkerHost {
 export const ACADEMIC_PIPELINE_PROCESSORS = [
   AcademicPipelineJobRunner,
   ScimagoReloadProcessor,
-  ArticleSyncProcessor,
+  JournalSourceSyncProcessor,
+  JournalArticleSyncProcessor,
+  OutgoingReferenceProcessor,
   ReferenceHydrationProcessor,
   IncomingCitationProcessor,
   CitationCountRefreshProcessor,

@@ -14,7 +14,7 @@ export class HydrateReferencedWorksUseCase {
   ) {}
 
   async execute(): Promise<HydrateReferencedWorksOutput> {
-    const config = this.configReader.getSyncConfig();
+    const config = this.configReader.getOpenAlexConfig();
 
     if (!config.apiKey) {
       throw new Error('OPENALEX_API_KEY is required for reference hydration');

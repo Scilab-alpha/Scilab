@@ -15,6 +15,8 @@ export const ACADEMIC_GRAPH_SCHEMA_CYPHER = [
    FOR (a:Article) ON (a.ingested_at)`,
   `CREATE INDEX article_citation_count_updated_at_index IF NOT EXISTS
    FOR (a:Article) ON (a.citation_count_updated_at)`,
+  `CREATE INDEX article_outgoing_references_crawled_at_index IF NOT EXISTS
+   FOR (a:Article) ON (a.outgoing_references_crawled_at)`,
   `CREATE FULLTEXT INDEX article_title_abstract_fulltext IF NOT EXISTS
    FOR (a:Article) ON EACH [a.title, a.abstract]
    OPTIONS {indexConfig: {
@@ -31,6 +33,8 @@ export const ACADEMIC_GRAPH_SCHEMA_CYPHER = [
    FOR (j:Journal) REQUIRE j.id IS UNIQUE`,
   `CREATE INDEX journal_source_id_index IF NOT EXISTS
    FOR (j:Journal) ON (j.source_id)`,
+  `CREATE INDEX journal_scimago_source_id_index IF NOT EXISTS
+   FOR (j:Journal) ON (j.scimago_source_id)`,
   `CREATE TEXT INDEX journal_display_name_text IF NOT EXISTS
    FOR (j:Journal) ON (j.display_name)`,
   `CREATE INDEX journal_publisher_name_normalized_index IF NOT EXISTS

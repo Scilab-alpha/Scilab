@@ -168,6 +168,7 @@ describe('Neo4jAcademicGraphRepository', () => {
       .mockResolvedValue({ records: [], summary: {} });
     const repository = new Neo4jAcademicGraphRepository({
       executeWrite,
+      executeRead: jest.fn().mockResolvedValue({ records: [], summary: {} }),
     } as never);
 
     await repository.upsertArticleGraph({
@@ -187,7 +188,10 @@ describe('Neo4jAcademicGraphRepository', () => {
     expect(cypher).toContain(
       "ON CREATE SET cited.hydration_state = 'PLACEHOLDER'",
     );
-    expect(parameters.article).toMatchObject({ citation_count: 3 });
+    const [graph] = parameters.graphs as Array<{
+      article: { citation_count: number };
+    }>;
+    expect(graph.article.citation_count).toBe(3);
   });
 
   it('uses legacy string-safe datetime conversion for alert article matching', async () => {

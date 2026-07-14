@@ -25,7 +25,7 @@ export class BackfillAcademicSearchDataUseCase {
     input: BackfillAcademicSearchDataInput = {},
   ): Promise<BackfillAcademicSearchDataOutput> {
     const batchSize = normalizeBatchSize(input.batchSize);
-    const config = this.configReader.getSyncConfig();
+    const config = this.configReader.getOpenAlexConfig();
 
     if (!config.apiKey) {
       throw new Error('OPENALEX_API_KEY is required for citation backfill');
@@ -95,7 +95,7 @@ export class BackfillAcademicSearchDataUseCase {
 
   private async fetchWorksWithRetry(
     ids: string[],
-    config: ReturnType<OpenAlexConfigReader['getSyncConfig']>,
+    config: ReturnType<OpenAlexConfigReader['getOpenAlexConfig']>,
   ) {
     let lastError: unknown;
 

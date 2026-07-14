@@ -2,35 +2,71 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   OpenAlexConfigReader,
-  OpenAlexSyncConfig,
+  OpenAlexConfig,
+  OpenAlexJournalSyncConfig,
 } from '@/academic/application/ports/openalex-config.port';
 
 const OPENALEX_API_KEY_CONFIG_KEY = 'OPENALEX_API_KEY';
 const OPENALEX_API_BASE_URL_CONFIG_KEY = 'OPENALEX_API_BASE_URL';
-const OPENALEX_SYNC_FILTER_CONFIG_KEY = 'OPENALEX_SYNC_FILTER';
-const OPENALEX_SYNC_SORT_CONFIG_KEY = 'OPENALEX_SYNC_SORT';
-const OPENALEX_SYNC_PER_PAGE_CONFIG_KEY = 'OPENALEX_SYNC_PER_PAGE';
+const OPENALEX_JOURNAL_BACKFILL_FROM_YEAR_CONFIG_KEY =
+  'OPENALEX_JOURNAL_BACKFILL_FROM_YEAR';
+const OPENALEX_JOURNAL_DAILY_PAGE_BUDGET_CONFIG_KEY =
+  'OPENALEX_JOURNAL_DAILY_PAGE_BUDGET';
+const OPENALEX_JOURNAL_MAX_PAGES_PER_PASS_CONFIG_KEY =
+  'OPENALEX_JOURNAL_MAX_PAGES_PER_PASS';
+const OPENALEX_SOURCE_BATCH_SIZE_CONFIG_KEY = 'OPENALEX_SOURCE_BATCH_SIZE';
+const OPENALEX_JOURNAL_BATCH_SIZE_CONFIG_KEY = 'OPENALEX_JOURNAL_BATCH_SIZE';
+const OPENALEX_OUTGOING_REFERENCE_BATCH_SIZE_CONFIG_KEY =
+  'OPENALEX_OUTGOING_REFERENCE_BATCH_SIZE';
 
 const DEFAULT_OPENALEX_API_BASE_URL = 'https://api.openalex.org';
-const DEFAULT_OPENALEX_SYNC_SORT = 'publication_year:desc';
-const DEFAULT_OPENALEX_SYNC_PER_PAGE = 25;
-const MAX_OPENALEX_SYNC_PER_PAGE = 100;
 
 @Injectable()
 export class OpenAlexEnvConfigReader implements OpenAlexConfigReader {
   constructor(private readonly configService: ConfigService) {}
 
-  getSyncConfig(): OpenAlexSyncConfig {
+  getOpenAlexConfig(): OpenAlexConfig {
     return {
       apiKey: this.readOptionalString(OPENALEX_API_KEY_CONFIG_KEY),
       baseUrl:
         this.readOptionalString(OPENALEX_API_BASE_URL_CONFIG_KEY) ??
         DEFAULT_OPENALEX_API_BASE_URL,
-      filter: this.readOptionalString(OPENALEX_SYNC_FILTER_CONFIG_KEY),
-      sort:
-        this.readOptionalString(OPENALEX_SYNC_SORT_CONFIG_KEY) ??
-        DEFAULT_OPENALEX_SYNC_SORT,
-      perPage: this.readPerPage(),
+    };
+  }
+
+  getJournalSyncConfig(): OpenAlexJournalSyncConfig {
+    return {
+      ...this.getOpenAlexConfig(),
+      journalBackfillFromYear: this.readPositiveInteger(
+        OPENALEX_JOURNAL_BACKFILL_FROM_YEAR_CONFIG_KEY,
+        2020,
+        1900,
+        new Date().getUTCFullYear(),
+      ),
+      dailyPageBudget: this.readPositiveInteger(
+        OPENALEX_JOURNAL_DAILY_PAGE_BUDGET_CONFIG_KEY,
+        1000,
+      ),
+      maxPagesPerPass: this.readPositiveInteger(
+        OPENALEX_JOURNAL_MAX_PAGES_PER_PASS_CONFIG_KEY,
+        10,
+      ),
+      sourceBatchSize: this.readPositiveInteger(
+        OPENALEX_SOURCE_BATCH_SIZE_CONFIG_KEY,
+        100,
+        1,
+        100,
+      ),
+      journalBatchSize: this.readPositiveInteger(
+        OPENALEX_JOURNAL_BATCH_SIZE_CONFIG_KEY,
+        100,
+      ),
+      outgoingReferenceBatchSize: this.readPositiveInteger(
+        OPENALEX_OUTGOING_REFERENCE_BATCH_SIZE_CONFIG_KEY,
+        100,
+        1,
+        100,
+      ),
     };
   }
 
@@ -46,21 +82,16 @@ export class OpenAlexEnvConfigReader implements OpenAlexConfigReader {
     return trimmedValue.length > 0 ? trimmedValue : undefined;
   }
 
-  private readPerPage(): number {
-    const rawValue = this.configService.get<string>(
-      OPENALEX_SYNC_PER_PAGE_CONFIG_KEY,
-    );
+  private readPositiveInteger(
+    name: string,
+    fallback: number,
+    min = 1,
+    max = Number.MAX_SAFE_INTEGER,
+  ): number {
+    const parsed = Number(this.configService.get<string>(name));
 
-    if (!rawValue) {
-      return DEFAULT_OPENALEX_SYNC_PER_PAGE;
-    }
-
-    const perPage = Number(rawValue);
-
-    if (!Number.isInteger(perPage) || perPage <= 0) {
-      return DEFAULT_OPENALEX_SYNC_PER_PAGE;
-    }
-
-    return Math.min(perPage, MAX_OPENALEX_SYNC_PER_PAGE);
+    return Number.isInteger(parsed) && parsed >= min && parsed <= max
+      ? parsed
+      : fallback;
   }
 }

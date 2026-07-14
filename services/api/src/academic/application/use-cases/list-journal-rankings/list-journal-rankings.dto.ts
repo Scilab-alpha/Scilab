@@ -5,6 +5,15 @@ export interface ListJournalRankingsInput {
 }
 
 export interface JournalRankingListItem {
+  scimagoSourceId: string;
+  journalId: string | null;
+  issns: string[];
+  matchStatus:
+    | 'PENDING'
+    | 'MATCHED'
+    | 'UNMATCHED'
+    | 'CONFLICT'
+    | 'OUT_OF_SCOPE';
   title: string;
   type: string | null;
   sjr: number | null;
