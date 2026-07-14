@@ -13,6 +13,8 @@ export function createAcademicGraphRepositoryDouble(
     listJournals: jest.fn().mockResolvedValue({ items: [], nextCursor: null }),
     getJournalById: jest.fn().mockResolvedValue(null),
     findArticlesByIds: jest.fn().mockResolvedValue([]),
+    findFollowTargetsByReferences: jest.fn().mockResolvedValue([]),
+    findArticlesMatchingFollowedTargets: jest.fn().mockResolvedValue([]),
     findExistingReferenceIds: jest.fn().mockResolvedValue(new Set()),
     backfillHydrationStateAndRemoveRegion: jest
       .fn()

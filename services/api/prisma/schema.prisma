@@ -64,6 +64,22 @@ enum NotificationObjectType {
   @@map("notification_object_type")
 }
 
+enum PushProvider {
+  EXPO
+  FCM
+
+  @@map("push_provider")
+}
+
+enum PushPlatform {
+  IOS
+  ANDROID
+  WEB
+  UNKNOWN
+
+  @@map("push_platform")
+}
+
 enum SyncFrequency {
   DAILY
   WEEKLY
@@ -126,23 +142,24 @@ enum RankingSource {
 }
 
 model User {
-  id            String         @id @default(uuid()) @map("user_id") @db.Uuid
-  email         String         @unique @db.VarChar(255)
-  password      String         @map("password_hash") @db.VarChar(255)
+  id            String           @id @default(uuid()) @map("user_id") @db.Uuid
+  email         String           @unique @db.VarChar(255)
+  password      String           @map("password_hash") @db.VarChar(255)
   type          AuthProvider
   status        StatusAccount
   role          RoleAccount
-  lastName      String?        @map("last_name") @db.VarChar(255)
-  firstName     String?        @map("first_name") @db.VarChar(255)
-  imageUrl      String?        @map("url_image") @db.VarChar(2048)
-  dateOfBirth   DateTime?      @map("date_of_birth") @db.Date
+  lastName      String?          @map("last_name") @db.VarChar(255)
+  firstName     String?          @map("first_name") @db.VarChar(255)
+  imageUrl      String?          @map("url_image") @db.VarChar(2048)
+  dateOfBirth   DateTime?        @map("date_of_birth") @db.Date
   gender        Gender?
-  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamp(6)
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt     DateTime         @updatedAt @map("updated_at") @db.Timestamp(6)
   authSessions  AuthSession[]
   bookmarks     UserBookmark[]
   follows       UserFollow[]
   notifications Notification[]
+  pushDevices   UserPushDevice[]
 
   @@index([role])
   @@index([status])
@@ -210,9 +227,30 @@ model Notification {
   readAt            DateTime?               @map("read_at") @db.Timestamp(6)
   user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, relatedObjectType, relatedObjectId])
   @@index([userId, isRead, createdAt])
   @@index([relatedObjectType, relatedObjectId])
   @@map("notification")
+}
+
+model UserPushDevice {
+  id               String       @id @default(uuid()) @map("push_device_id") @db.Uuid
+  userId           String       @map("user_id") @db.Uuid
+  provider         PushProvider
+  token            String       @db.VarChar(2048)
+  platform         PushPlatform @default(UNKNOWN)
+  clientDeviceId   String?      @map("client_device_id") @db.VarChar(255)
+  isActive         Boolean      @default(true) @map("is_active")
+  lastRegisteredAt DateTime     @default(now()) @map("last_registered_at") @db.Timestamp(6)
+  lastUsedAt       DateTime?    @map("last_used_at") @db.Timestamp(6)
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamp(6)
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider, token])
+  @@index([userId, isActive])
+  @@index([provider, isActive])
+  @@map("user_push_device")
 }
 
 model SystemConfig {

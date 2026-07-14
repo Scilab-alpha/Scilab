@@ -21,8 +21,8 @@ export default function StudentShell({ children }: StudentShellProps) {
     (item) => !item.permission || can(item.permission),
   );
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push("/auth/login");
   };
 

@@ -26,6 +26,9 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="articles/[articleId]" />
+        <Stack.Screen name="authors/[authorId]" />
+        <Stack.Screen name="journals/[journalId]" />
         <Stack.Screen
           name="profile/edit"
           options={{
