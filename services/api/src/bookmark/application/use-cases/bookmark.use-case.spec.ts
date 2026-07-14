@@ -42,6 +42,10 @@ function createGraphRepository(): jest.Mocked<AcademicGraphRepository> {
     listJournalsForPublisherNormalization: jest.fn(),
     updatePublisherNameNormalizations: jest.fn(),
     listHydratedArticleIdsMissingCitation: jest.fn(),
+    listPlaceholderArticleIds: jest.fn(),
+    listHydratedArticleIdsForIncomingCitation: jest.fn(),
+    markIncomingCitationCrawled: jest.fn(),
+    listHydratedArticleIdsNeedingCitation: jest.fn(),
     updateArticleCitationCounts: jest.fn(),
   };
 }
