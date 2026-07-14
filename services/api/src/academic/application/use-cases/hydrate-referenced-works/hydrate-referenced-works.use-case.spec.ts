@@ -6,10 +6,9 @@ describe('HydrateReferencedWorksUseCase', () => {
     const upsertArticleGraph = jest.fn().mockResolvedValue(undefined);
     const useCase = new HydrateReferencedWorksUseCase(
       {
-        getSyncConfig: () => ({
+        getOpenAlexConfig: () => ({
           apiKey: 'key',
           baseUrl: 'https://api.openalex.org',
-          perPage: 100,
         }),
       },
       {

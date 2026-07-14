@@ -1,4 +1,5 @@
 import { ScimagoDatasetReader } from '@/academic/application/ports/scimago-dataset.port';
+import { AcademicJournalSyncStateRepository } from '@/academic/application/ports/academic-journal-sync-state.port';
 import {
   JournalRankingListItem,
   ListJournalRankingsInput,
@@ -19,7 +20,10 @@ export class InvalidJournalRankingCursorError extends Error {
 }
 
 export class ListJournalRankingsUseCase {
-  constructor(private readonly datasets: ScimagoDatasetReader) {}
+  constructor(
+    private readonly datasets: ScimagoDatasetReader,
+    private readonly states: AcademicJournalSyncStateRepository,
+  ) {}
 
   async execute(
     input: ListJournalRankingsInput,
@@ -37,8 +41,36 @@ export class ListJournalRankingsUseCase {
     const pageRecords = records.slice(startIndex, startIndex + input.limit);
     const hasNextPage = startIndex + input.limit < records.length;
 
+    const latestCatalogYear = Math.max(...dataset.years);
+    const latestJournalSourceIds = new Set(
+      dataset.records
+        .filter(
+          (record) =>
+            record.year === latestCatalogYear &&
+            record.type?.trim().toLowerCase() === 'journal',
+        )
+        .map((record) => record.sourceId),
+    );
+    const states = new Map(
+      (
+        await this.states.findByScimagoSourceIds(
+          pageRecords
+            .filter((record) => latestJournalSourceIds.has(record.sourceId))
+            .map((record) => record.sourceId),
+        )
+      ).map((state) => [state.scimagoSourceId, state]),
+    );
+
     return {
-      items: pageRecords.map(toJournalRankingListItem),
+      items: pageRecords.map((record) =>
+        toJournalRankingListItem(
+          record,
+          latestJournalSourceIds.has(record.sourceId)
+            ? (states.get(record.sourceId) ?? null)
+            : null,
+          latestJournalSourceIds.has(record.sourceId),
+        ),
+      ),
       nextCursor:
         hasNextPage && pageRecords.length > 0
           ? pageRecords[pageRecords.length - 1].sourceId
@@ -78,8 +110,20 @@ function compareScimagoRankings(
 
 function toJournalRankingListItem(
   record: ScimagoRecord,
+  state: {
+    openAlexJournalId: string | null;
+    matchStatus: 'PENDING' | 'MATCHED' | 'UNMATCHED' | 'CONFLICT';
+  } | null,
+  isInLatestCatalog: boolean,
 ): JournalRankingListItem {
   return {
+    scimagoSourceId: record.sourceId,
+    journalId:
+      state?.matchStatus === 'MATCHED' ? state.openAlexJournalId : null,
+    issns: record.issns,
+    matchStatus: isInLatestCatalog
+      ? (state?.matchStatus ?? 'PENDING')
+      : 'OUT_OF_SCOPE',
     title: record.title,
     type: record.type ?? null,
     sjr: record.sjr,

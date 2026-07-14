@@ -6,6 +6,7 @@ import {
   CursorPage,
   CursorPaginationInput,
   JournalListItem,
+  JournalNode,
 } from '@/academic/domain/academic-graph.model';
 
 export const ACADEMIC_GRAPH_REPOSITORY = Symbol('ACADEMIC_GRAPH_REPOSITORY');
@@ -42,6 +43,10 @@ export interface FollowedTargetGroups {
 export interface AcademicGraphRepository {
   ensureSchema(): Promise<void>;
   upsertArticleGraph(graph: ArticleGraph): Promise<void>;
+  upsertArticleGraphs(
+    graphs: ArticleGraph[],
+  ): Promise<{ inserted: number; updated: number }>;
+  upsertJournal(journal: JournalNode): Promise<void>;
   listArticles(input: ArticleListInput): Promise<CursorPage<ArticleGraph>>;
   getArticleById(id: string): Promise<ArticleGraph | null>;
   listAuthors(
@@ -75,6 +80,10 @@ export interface AcademicGraphRepository {
     input: CursorPaginationInput,
   ): Promise<CursorPage<string>>;
   listPlaceholderArticleIds(limit: number): Promise<string[]>;
+  listHydratedArticleIdsMissingOutgoingReferences(
+    limit: number,
+  ): Promise<string[]>;
+  markOutgoingReferencesCrawled(ids: string[]): Promise<void>;
   listHydratedArticleIdsForIncomingCitation(input: {
     limit: number;
     ingestedSince: Date;

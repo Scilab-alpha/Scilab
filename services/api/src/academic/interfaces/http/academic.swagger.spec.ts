@@ -102,5 +102,8 @@ describe('Academic OpenAPI contract', () => {
     expect(rankingContract).toContain('refsPerDoc');
     expect(rankingContract).toContain('femalePercentage');
     expect(rankingContract).toContain('countryCode');
+    expect(rankingContract).toContain('scimagoSourceId');
+    expect(rankingContract).toContain('journalId');
+    expect(rankingContract).toContain('matchStatus');
   });
 });

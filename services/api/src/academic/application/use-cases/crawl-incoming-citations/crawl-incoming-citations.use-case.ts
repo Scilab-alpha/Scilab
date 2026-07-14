@@ -15,7 +15,7 @@ export class CrawlIncomingCitationsUseCase {
   ) {}
 
   async execute(now = new Date()): Promise<CrawlIncomingCitationsOutput> {
-    const config = this.configReader.getSyncConfig();
+    const config = this.configReader.getOpenAlexConfig();
 
     if (!config.apiKey) {
       throw new Error(

@@ -6,9 +6,14 @@ import {
   AcademicGraphRepository,
 } from '@/academic/application/ports/academic-graph.port';
 import {
-  ACADEMIC_SYNC_CHECKPOINT_REPOSITORY,
-  AcademicSyncCheckpointRepository,
-} from '@/academic/application/ports/academic-sync-checkpoint.port';
+  ACADEMIC_JOURNAL_SYNC_STATE_REPOSITORY,
+  AcademicJournalSyncStateRepository,
+} from '@/academic/application/ports/academic-journal-sync-state.port';
+import { OPENALEX_PAGE_BUDGET } from '@/academic/application/ports/openalex-page-budget.port';
+import {
+  OPENALEX_SOURCES_CATALOG,
+  OpenAlexSourcesCatalog,
+} from '@/academic/application/ports/openalex-source.port';
 import {
   JOURNAL_RANKING_REPOSITORY,
   JournalRankingRepository,
@@ -18,12 +23,13 @@ import {
   SCIMAGO_DATASET_READER,
   ScimagoDatasetReader,
 } from '@/academic/application/ports/scimago-dataset.port';
-import { ExecuteOpenAlexSyncUseCase } from '@/academic/application/use-cases/execute-openalex-sync/execute-openalex-sync.use-case';
 import { CrawlIncomingCitationsUseCase } from '@/academic/application/use-cases/crawl-incoming-citations/crawl-incoming-citations.use-case';
 import { HydrateReferencedWorksUseCase } from '@/academic/application/use-cases/hydrate-referenced-works/hydrate-referenced-works.use-case';
 import { RefreshCitationCountsUseCase } from '@/academic/application/use-cases/refresh-citation-counts/refresh-citation-counts.use-case';
 import { ReloadScimagoDatasetUseCase } from '@/academic/application/use-cases/reload-scimago-dataset/reload-scimago-dataset.use-case';
-import { RunArticleSyncPipelineUseCase } from '@/academic/application/use-cases/run-article-sync-pipeline/run-article-sync-pipeline.use-case';
+import { ResolveScimagoJournalsUseCase } from '@/academic/application/use-cases/resolve-scimago-journals/resolve-scimago-journals.use-case';
+import { RunJournalArticleSyncPipelineUseCase } from '@/academic/application/use-cases/run-journal-article-sync-pipeline/run-journal-article-sync-pipeline.use-case';
+import { CrawlOutgoingReferencesUseCase } from '@/academic/application/use-cases/crawl-outgoing-references/crawl-outgoing-references.use-case';
 import { BackfillAcademicSearchDataUseCase } from '@/academic/application/use-cases/backfill-academic-search-data/backfill-academic-search-data.use-case';
 import { GetArticleByIdUseCase } from '@/academic/application/use-cases/get-article-by-id/get-article-by-id.use-case';
 import { GetAuthorByIdUseCase } from '@/academic/application/use-cases/get-author-by-id/get-author-by-id.use-case';
@@ -36,8 +42,10 @@ import { OpenAlexEnvConfigReader } from '@/academic/infrastructure/config/openal
 import { AcademicGraphSchemaInitializer } from '@/academic/infrastructure/neo4j/academic-graph-schema.initializer';
 import { Neo4jAcademicGraphRepository } from '@/academic/infrastructure/neo4j/neo4j-academic-graph.repository';
 import { AxiosOpenAlexWorksClient } from '@/academic/infrastructure/openalex/axios-openalex-works.client';
+import { AxiosOpenAlexSourcesClient } from '@/academic/infrastructure/openalex/axios-openalex-sources.client';
+import { BullMqOpenAlexPageBudget } from '@/academic/infrastructure/queue/bullmq-openalex-page-budget';
 import { PrismaAcademicSyncLogRepository } from '@/academic/infrastructure/persistence/prisma-academic-sync-log.repository';
-import { PrismaAcademicSyncCheckpointRepository } from '@/academic/infrastructure/persistence/prisma-academic-sync-checkpoint.repository';
+import { PrismaAcademicJournalSyncStateRepository } from '@/academic/infrastructure/persistence/prisma-academic-journal-sync-state.repository';
 import { PrismaJournalRankingRepository } from '@/academic/infrastructure/persistence/prisma-journal-ranking.repository';
 import {
   defaultScimagoDatasetDirectory,
@@ -66,9 +74,11 @@ import { PrismaModule } from '@/prisma/prisma.module';
   controllers: isAcademicWorker() ? [] : [AcademicController],
   providers: [
     AxiosOpenAlexWorksClient,
+    AxiosOpenAlexSourcesClient,
     OpenAlexEnvConfigReader,
+    BullMqOpenAlexPageBudget,
     PrismaAcademicSyncLogRepository,
-    PrismaAcademicSyncCheckpointRepository,
+    PrismaAcademicJournalSyncStateRepository,
     PrismaJournalRankingRepository,
     FileSystemScimagoDatasetReader,
     CachedScimagoDatasetReader,
@@ -106,16 +116,67 @@ import { PrismaModule } from '@/prisma/prisma.module';
       inject: [CachedScimagoDatasetReader, JOURNAL_RANKING_REPOSITORY],
     },
     {
-      provide: RunArticleSyncPipelineUseCase,
+      provide: ResolveScimagoJournalsUseCase,
       useFactory: (
         configReader: OpenAlexEnvConfigReader,
-        checkpoints: AcademicSyncCheckpointRepository,
-        sync: ExecuteOpenAlexSyncUseCase,
-      ) => new RunArticleSyncPipelineUseCase(configReader, checkpoints, sync),
+        datasets: ScimagoDatasetReader,
+        sources: OpenAlexSourcesCatalog,
+        states: AcademicJournalSyncStateRepository,
+        graph: AcademicGraphRepository,
+        rankings: JournalRankingRepository,
+      ) =>
+        new ResolveScimagoJournalsUseCase(
+          configReader,
+          datasets,
+          sources,
+          states,
+          graph,
+          rankings,
+        ),
       inject: [
         OpenAlexEnvConfigReader,
-        ACADEMIC_SYNC_CHECKPOINT_REPOSITORY,
-        ExecuteOpenAlexSyncUseCase,
+        SCIMAGO_DATASET_READER,
+        OPENALEX_SOURCES_CATALOG,
+        ACADEMIC_JOURNAL_SYNC_STATE_REPOSITORY,
+        ACADEMIC_GRAPH_REPOSITORY,
+        JOURNAL_RANKING_REPOSITORY,
+      ],
+    },
+    {
+      provide: RunJournalArticleSyncPipelineUseCase,
+      useFactory: (
+        configReader: OpenAlexEnvConfigReader,
+        states: AcademicJournalSyncStateRepository,
+        works: AxiosOpenAlexWorksClient,
+        graph: AcademicGraphRepository,
+        budget: BullMqOpenAlexPageBudget,
+      ) =>
+        new RunJournalArticleSyncPipelineUseCase(
+          configReader,
+          states,
+          works,
+          graph,
+          budget,
+        ),
+      inject: [
+        OpenAlexEnvConfigReader,
+        ACADEMIC_JOURNAL_SYNC_STATE_REPOSITORY,
+        AxiosOpenAlexWorksClient,
+        ACADEMIC_GRAPH_REPOSITORY,
+        OPENALEX_PAGE_BUDGET,
+      ],
+    },
+    {
+      provide: CrawlOutgoingReferencesUseCase,
+      useFactory: (
+        configReader: OpenAlexEnvConfigReader,
+        works: AxiosOpenAlexWorksClient,
+        graph: AcademicGraphRepository,
+      ) => new CrawlOutgoingReferencesUseCase(configReader, works, graph),
+      inject: [
+        OpenAlexEnvConfigReader,
+        AxiosOpenAlexWorksClient,
+        ACADEMIC_GRAPH_REPOSITORY,
       ],
     },
     {
@@ -173,33 +234,6 @@ import { PrismaModule } from '@/prisma/prisma.module';
       ],
     },
     {
-      provide: ExecuteOpenAlexSyncUseCase,
-      useFactory: (
-        configReader: OpenAlexEnvConfigReader,
-        worksClient: AxiosOpenAlexWorksClient,
-        graphRepository: AcademicGraphRepository,
-        syncLogs: PrismaAcademicSyncLogRepository,
-        scimagoDatasets: ScimagoDatasetReader,
-        rankings: JournalRankingRepository,
-      ) =>
-        new ExecuteOpenAlexSyncUseCase(
-          configReader,
-          worksClient,
-          graphRepository,
-          syncLogs,
-          scimagoDatasets,
-          rankings,
-        ),
-      inject: [
-        OpenAlexEnvConfigReader,
-        AxiosOpenAlexWorksClient,
-        ACADEMIC_GRAPH_REPOSITORY,
-        PrismaAcademicSyncLogRepository,
-        SCIMAGO_DATASET_READER,
-        JOURNAL_RANKING_REPOSITORY,
-      ],
-    },
-    {
       provide: ListArticlesUseCase,
       useFactory: (graphRepository: AcademicGraphRepository) =>
         new ListArticlesUseCase(graphRepository),
@@ -231,9 +265,11 @@ import { PrismaModule } from '@/prisma/prisma.module';
     },
     {
       provide: ListJournalRankingsUseCase,
-      useFactory: (datasets: ScimagoDatasetReader) =>
-        new ListJournalRankingsUseCase(datasets),
-      inject: [SCIMAGO_DATASET_READER],
+      useFactory: (
+        datasets: ScimagoDatasetReader,
+        states: AcademicJournalSyncStateRepository,
+      ) => new ListJournalRankingsUseCase(datasets, states),
+      inject: [SCIMAGO_DATASET_READER, ACADEMIC_JOURNAL_SYNC_STATE_REPOSITORY],
     },
     {
       provide: GetJournalByIdUseCase,
@@ -254,14 +290,22 @@ import { PrismaModule } from '@/prisma/prisma.module';
       useExisting: PrismaJournalRankingRepository,
     },
     {
-      provide: ACADEMIC_SYNC_CHECKPOINT_REPOSITORY,
-      useExisting: PrismaAcademicSyncCheckpointRepository,
+      provide: ACADEMIC_JOURNAL_SYNC_STATE_REPOSITORY,
+      useExisting: PrismaAcademicJournalSyncStateRepository,
+    },
+    {
+      provide: OPENALEX_SOURCES_CATALOG,
+      useExisting: AxiosOpenAlexSourcesClient,
+    },
+    {
+      provide: OPENALEX_PAGE_BUDGET,
+      useExisting: BullMqOpenAlexPageBudget,
     },
     ...(isAcademicWorker()
       ? ACADEMIC_PIPELINE_PROCESSORS
       : [AcademicPipelineScheduler]),
   ],
-  exports: [ExecuteOpenAlexSyncUseCase, ACADEMIC_GRAPH_REPOSITORY],
+  exports: [ACADEMIC_GRAPH_REPOSITORY],
 })
 export class AcademicModule {}
 

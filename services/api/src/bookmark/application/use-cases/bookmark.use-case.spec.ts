@@ -28,6 +28,8 @@ function createGraphRepository(): jest.Mocked<AcademicGraphRepository> {
   return {
     ensureSchema: jest.fn(),
     upsertArticleGraph: jest.fn(),
+    upsertArticleGraphs: jest.fn(),
+    upsertJournal: jest.fn(),
     listArticles: jest.fn(),
     getArticleById: jest.fn(),
     listAuthors: jest.fn(),
@@ -43,6 +45,8 @@ function createGraphRepository(): jest.Mocked<AcademicGraphRepository> {
     updatePublisherNameNormalizations: jest.fn(),
     listHydratedArticleIdsMissingCitation: jest.fn(),
     listPlaceholderArticleIds: jest.fn(),
+    listHydratedArticleIdsMissingOutgoingReferences: jest.fn(),
+    markOutgoingReferencesCrawled: jest.fn(),
     listHydratedArticleIdsForIncomingCitation: jest.fn(),
     markIncomingCitationCrawled: jest.fn(),
     listHydratedArticleIdsNeedingCitation: jest.fn(),

@@ -53,16 +53,14 @@ services:
     image: scilab-api
     container_name: scilab-academic-worker
     restart: unless-stopped
-    command: ["sh", "-c", "pnpm prisma migrate deploy && node dist/worker.js"]
+    command: ["sh", "-c", "pnpm run prisma:deploy && node dist/worker.js"]
+    env_file:
+      - ./services/api/.env
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://postgres:123@postgres:5432/scilab?schema=public
       - SCIMAGO_DATASET_DIR=/app/docs/scimagojr/normalized
-      - OPENALEX_API_KEY
       - OPENALEX_API_BASE_URL=https://api.openalex.org
-      - OPENALEX_SYNC_PER_PAGE=100
-      - OPENALEX_SYNC_SORT=publication_year:desc
-      - OPENALEX_SYNC_FILTER
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USERNAME=neo4j
       - NEO4J_PASSWORD=12345678
@@ -123,10 +121,7 @@ services:
       - neo4j-logs:/logs
     healthcheck:
       test:
-        [
-          "CMD-SHELL",
-          "cypher-shell -u neo4j -p 12345678 'RETURN 1' || exit 1",
-        ]
+        ["CMD-SHELL", "cypher-shell -u neo4j -p 12345678 'RETURN 1' || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -138,16 +133,22 @@ services:
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
       TZ: Asia/Bangkok
+    ports:
+      - "127.0.0.1:6379:6379"
     command:
       [
         "sh",
         "-c",
-        "redis-server --appendonly yes --maxmemory-policy noeviction --requirepass \"$$REDIS_PASSWORD\"",
+        'redis-server --appendonly yes --maxmemory-policy noeviction --requirepass "$$REDIS_PASSWORD"',
       ]
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      test:
+        [
+          "CMD-SHELL",
+          'redis-cli --no-auth-warning -a "$$REDIS_PASSWORD" ping | grep PONG',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5

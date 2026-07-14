@@ -55,13 +55,25 @@ describe('ListJournalRankingsUseCase', () => {
 
   it('lists the requested SCImago year with the required fields', async () => {
     const load = jest.fn().mockResolvedValue(buildScimagoDataset(records));
-    const useCase = new ListJournalRankingsUseCase({ load });
+    const useCase = new ListJournalRankingsUseCase({ load }, {
+      findByScimagoSourceIds: jest.fn().mockResolvedValue([
+        {
+          scimagoSourceId: 'first',
+          openAlexJournalId: 'S123',
+          matchStatus: 'MATCHED',
+        },
+      ]),
+    } as never);
 
     await expect(
       useCase.execute({ year: 2023, cursor: null, limit: 1 }),
     ).resolves.toEqual({
       items: [
         {
+          scimagoSourceId: 'first',
+          journalId: 'S123',
+          issns: ['1111-1111'],
+          matchStatus: 'MATCHED',
           title: 'First Journal',
           type: 'journal',
           sjr: 2.5,
@@ -82,9 +94,10 @@ describe('ListJournalRankingsUseCase', () => {
   });
 
   it('never falls back to another ranking year', async () => {
-    const useCase = new ListJournalRankingsUseCase({
-      load: () => Promise.resolve(buildScimagoDataset(records)),
-    });
+    const useCase = new ListJournalRankingsUseCase(
+      { load: () => Promise.resolve(buildScimagoDataset(records)) },
+      { findByScimagoSourceIds: jest.fn().mockResolvedValue([]) } as never,
+    );
 
     await expect(
       useCase.execute({ year: 2024, cursor: null, limit: 20 }),
@@ -92,9 +105,10 @@ describe('ListJournalRankingsUseCase', () => {
   });
 
   it('rejects a cursor that does not belong to the requested year', async () => {
-    const useCase = new ListJournalRankingsUseCase({
-      load: () => Promise.resolve(buildScimagoDataset(records)),
-    });
+    const useCase = new ListJournalRankingsUseCase(
+      { load: () => Promise.resolve(buildScimagoDataset(records)) },
+      { findByScimagoSourceIds: jest.fn().mockResolvedValue([]) } as never,
+    );
 
     await expect(
       useCase.execute({ year: 2023, cursor: 'missing', limit: 20 }),

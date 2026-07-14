@@ -23,15 +23,33 @@ export class AcademicPipelineScheduler {
   }
 
   @Cron('0 15 2 * * *', {
-    name: 'article-sync-producer',
+    name: 'journal-source-sync-producer',
     timeZone: TIME_ZONE,
     waitForCompletion: true,
   })
-  async enqueueArticleSync(): Promise<void> {
-    await this.enqueue(ACADEMIC_PIPELINE_QUEUES.articleSync);
+  async enqueueJournalSourceSync(): Promise<void> {
+    await this.enqueue(ACADEMIC_PIPELINE_QUEUES.journalSourceSync);
   }
 
-  @Cron('0 0 3 * * *', {
+  @Cron('0 0 4 * * *', {
+    name: 'journal-article-sync-producer',
+    timeZone: TIME_ZONE,
+    waitForCompletion: true,
+  })
+  async enqueueJournalArticleSync(): Promise<void> {
+    await this.enqueue(ACADEMIC_PIPELINE_QUEUES.journalArticleSync);
+  }
+
+  @Cron('0 0 6 * * *', {
+    name: 'outgoing-reference-producer',
+    timeZone: TIME_ZONE,
+    waitForCompletion: true,
+  })
+  async enqueueOutgoingReference(): Promise<void> {
+    await this.enqueue(ACADEMIC_PIPELINE_QUEUES.outgoingReference);
+  }
+
+  @Cron('0 0 7 * * *', {
     name: 'reference-hydration-producer',
     timeZone: TIME_ZONE,
     waitForCompletion: true,
@@ -40,7 +58,7 @@ export class AcademicPipelineScheduler {
     await this.enqueue(ACADEMIC_PIPELINE_QUEUES.referenceHydration);
   }
 
-  @Cron('0 0 4 * * *', {
+  @Cron('0 0 8 * * *', {
     name: 'incoming-citation-producer',
     timeZone: TIME_ZONE,
     waitForCompletion: true,

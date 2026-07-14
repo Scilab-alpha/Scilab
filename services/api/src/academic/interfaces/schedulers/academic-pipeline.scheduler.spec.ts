@@ -7,12 +7,14 @@ describe('AcademicPipelineScheduler', () => {
     const scheduler = new AcademicPipelineScheduler({ enqueue } as never);
 
     await scheduler.enqueueScimagoReload();
-    await scheduler.enqueueArticleSync();
+    await scheduler.enqueueJournalSourceSync();
+    await scheduler.enqueueJournalArticleSync();
+    await scheduler.enqueueOutgoingReference();
     await scheduler.enqueueReferenceHydration();
     await scheduler.enqueueIncomingCitation();
     await scheduler.enqueueCitationCountRefresh();
 
-    expect(enqueue).toHaveBeenCalledTimes(5);
+    expect(enqueue).toHaveBeenCalledTimes(7);
     expect(enqueue).toHaveBeenNthCalledWith(
       1,
       ACADEMIC_PIPELINE_QUEUES.scimagoReload,
@@ -20,21 +22,31 @@ describe('AcademicPipelineScheduler', () => {
     );
     expect(enqueue).toHaveBeenNthCalledWith(
       2,
-      ACADEMIC_PIPELINE_QUEUES.articleSync,
+      ACADEMIC_PIPELINE_QUEUES.journalSourceSync,
       expect.any(Date),
     );
     expect(enqueue).toHaveBeenNthCalledWith(
       3,
-      ACADEMIC_PIPELINE_QUEUES.referenceHydration,
+      ACADEMIC_PIPELINE_QUEUES.journalArticleSync,
       expect.any(Date),
     );
     expect(enqueue).toHaveBeenNthCalledWith(
       4,
-      ACADEMIC_PIPELINE_QUEUES.incomingCitation,
+      ACADEMIC_PIPELINE_QUEUES.outgoingReference,
       expect.any(Date),
     );
     expect(enqueue).toHaveBeenNthCalledWith(
       5,
+      ACADEMIC_PIPELINE_QUEUES.referenceHydration,
+      expect.any(Date),
+    );
+    expect(enqueue).toHaveBeenNthCalledWith(
+      6,
+      ACADEMIC_PIPELINE_QUEUES.incomingCitation,
+      expect.any(Date),
+    );
+    expect(enqueue).toHaveBeenNthCalledWith(
+      7,
       ACADEMIC_PIPELINE_QUEUES.citationCountRefresh,
       expect.any(Date),
     );

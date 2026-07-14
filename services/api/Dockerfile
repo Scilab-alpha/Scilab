@@ -43,4 +43,4 @@ COPY --from=build /app/docs/scimagojr/normalized /app/docs/scimagojr/normalized
 
 EXPOSE 6003
 
-CMD ["sh", "-c", "pnpm prisma migrate deploy && node dist/main.js"]
+CMD ["sh", "-c", "pnpm run prisma:deploy && node dist/main.js"]

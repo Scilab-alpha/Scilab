@@ -105,12 +105,30 @@ enum SyncJobType {
   TREND_AGGREGATION
   ALERT_DISPATCH
   SCIMAGO_RELOAD
-  ARTICLE_SYNC
   REFERENCE_HYDRATION
   INCOMING_CITATION_CRAWL
   CITATION_COUNT_REFRESH
+  JOURNAL_SOURCE_SYNC
+  JOURNAL_ARTICLE_SYNC
+  OUTGOING_REFERENCE_CRAWL
 
   @@map("sync_job_type")
+}
+
+enum AcademicJournalMatchStatus {
+  PENDING
+  MATCHED
+  UNMATCHED
+  CONFLICT
+
+  @@map("academic_journal_match_status")
+}
+
+enum AcademicJournalSyncMode {
+  BACKFILL
+  INCREMENTAL
+
+  @@map("academic_journal_sync_mode")
 }
 
 enum SyncStatus {
@@ -294,15 +312,27 @@ model SyncLog {
   @@map("sync_log")
 }
 
-model AcademicSyncCheckpoint {
-  key                     String    @id @map("checkpoint_key") @db.VarChar(100)
-  cursor                  String?   @db.Text
-  initialBackfillComplete Boolean   @default(false) @map("initial_backfill_complete")
-  lastSuccessfulAt        DateTime? @map("last_successful_at") @db.Timestamp(6)
-  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt               DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+model AcademicJournalSyncState {
+  scimagoSourceId         String                     @id @map("scimago_source_id") @db.VarChar(64)
+  catalogYear             Int                        @map("catalog_year")
+  openAlexJournalId       String?                    @unique @map("openalex_journal_id") @db.VarChar(255)
+  matchStatus             AcademicJournalMatchStatus @default(PENDING) @map("match_status")
+  matchedIssn             String?                    @map("matched_issn") @db.VarChar(32)
+  candidateJournalIds     String[]                   @default([]) @map("candidate_journal_ids")
+  syncMode                AcademicJournalSyncMode    @default(BACKFILL) @map("sync_mode")
+  cursor                  String?                    @db.Text
+  filterSignature         String?                    @map("filter_signature") @db.VarChar(128)
+  incrementalWindowFrom   DateTime?                  @map("incremental_window_from") @db.Timestamp(6)
+  initialBackfillComplete Boolean                    @default(false) @map("initial_backfill_complete")
+  lastResolvedAt          DateTime?                  @map("last_resolved_at") @db.Timestamp(6)
+  lastSuccessfulAt        DateTime?                  @map("last_successful_at") @db.Timestamp(6)
+  errorDetail             String?                    @map("error_detail") @db.Text
+  createdAt               DateTime                   @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt               DateTime                   @updatedAt @map("updated_at") @db.Timestamp(6)
 
-  @@map("academic_sync_checkpoint")
+  @@index([matchStatus, catalogYear])
+  @@index([initialBackfillComplete, lastSuccessfulAt])
+  @@map("academic_journal_sync_state")
 }
 
 model SubjectArea {

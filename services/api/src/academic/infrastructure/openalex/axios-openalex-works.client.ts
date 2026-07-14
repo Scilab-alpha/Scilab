@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import axios, { type AxiosInstance } from 'axios';
+import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 import {
   FetchOpenAlexWorksInput,
   FetchOpenAlexWorksByIdsInput,
@@ -50,15 +50,17 @@ export class AxiosOpenAlexWorksClient implements OpenAlexWorkSource {
     input: FetchOpenAlexCitingWorksInput,
   ): Promise<OpenAlexWorksPage> {
     try {
-      const response = await this.http.get<OpenAlexWorksPage>('/works', {
-        baseURL: input.config.baseUrl,
-        params: {
-          api_key: input.config.apiKey,
-          filter: `cites:${input.workId}`,
-          sort: 'publication_date:desc',
-          per_page: input.limit,
-        },
-      });
+      const response = await requestOpenAlex(() =>
+        this.http.get<OpenAlexWorksPage>('/works', {
+          baseURL: input.config.baseUrl,
+          params: {
+            api_key: input.config.apiKey,
+            filter: `cites:${input.workId}`,
+            sort: 'publication_date:desc',
+            per_page: input.limit,
+          },
+        }),
+      );
 
       return {
         meta: response.data.meta,
@@ -72,16 +74,18 @@ export class AxiosOpenAlexWorksClient implements OpenAlexWorkSource {
   private async getWorksPage(input: FetchOpenAlexWorksInput) {
     const { config } = input;
     try {
-      return await this.http.get<OpenAlexWorksPage>('/works', {
-        baseURL: config.baseUrl,
-        params: {
-          api_key: config.apiKey,
-          filter: config.filter,
-          sort: config.sort,
-          per_page: config.perPage,
-          cursor: input.cursor ?? undefined,
-        },
-      });
+      return await requestOpenAlex(() =>
+        this.http.get<OpenAlexWorksPage>('/works', {
+          baseURL: config.baseUrl,
+          params: {
+            api_key: config.apiKey,
+            filter: config.filter,
+            sort: config.sort,
+            per_page: config.perPage,
+            cursor: input.cursor ?? undefined,
+          },
+        }),
+      );
     } catch (error) {
       throw new Error(formatOpenAlexError(error));
     }
@@ -100,15 +104,17 @@ export class AxiosOpenAlexWorksClient implements OpenAlexWorkSource {
     }
 
     try {
-      const response = await this.http.get<OpenAlexWorksPage>('/works', {
-        baseURL: input.config.baseUrl,
-        params: {
-          api_key: input.config.apiKey,
-          filter: `openalex:${input.ids.join('|')}`,
-          per_page: input.ids.length,
-          select,
-        },
-      });
+      const response = await requestOpenAlex(() =>
+        this.http.get<OpenAlexWorksPage>('/works', {
+          baseURL: input.config.baseUrl,
+          params: {
+            api_key: input.config.apiKey,
+            filter: `openalex:${input.ids.join('|')}`,
+            per_page: input.ids.length,
+            select,
+          },
+        }),
+      );
 
       return {
         meta: response.data.meta,
@@ -118,6 +124,60 @@ export class AxiosOpenAlexWorksClient implements OpenAlexWorkSource {
       throw new Error(formatOpenAlexError(error));
     }
   }
+}
+
+export async function requestOpenAlex<T>(
+  request: () => Promise<AxiosResponse<T>>,
+): Promise<AxiosResponse<T>> {
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await request();
+    } catch (error) {
+      const status = axios.isAxiosError(error)
+        ? error.response?.status
+        : undefined;
+      const isRetryable =
+        status === 429 || (status !== undefined && status >= 500);
+      if (!isRetryable || attempt === maxAttempts) {
+        throw error;
+      }
+      await delay(retryAfterMilliseconds(error, attempt));
+    }
+  }
+  throw new Error('OpenAlex request retries were exhausted');
+}
+
+function retryAfterMilliseconds(error: unknown, attempt: number): number {
+  const retryAfter = axios.isAxiosError(error)
+    ? readHeader(error.response?.headers, 'retry-after')
+    : undefined;
+  const seconds =
+    typeof retryAfter === 'string' ? Number(retryAfter) : Number(retryAfter);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return seconds * 1000;
+  }
+  if (typeof retryAfter === 'string') {
+    const retryAt = Date.parse(retryAfter);
+    if (Number.isFinite(retryAt)) {
+      return Math.max(0, retryAt - Date.now());
+    }
+  }
+  return Math.min(1000 * 2 ** (attempt - 1), 10_000);
+}
+
+function readHeader(value: unknown, name: string): string | number | undefined {
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+  const header = (value as Record<string, unknown>)[name];
+  return typeof header === 'string' || typeof header === 'number'
+    ? header
+    : undefined;
+}
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function formatOpenAlexError(error: unknown): string {
