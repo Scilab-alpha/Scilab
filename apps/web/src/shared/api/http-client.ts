@@ -5,8 +5,15 @@ import {
   getAccessToken,
   saveAuthSession,
 } from "@/features/auth/api/auth-token-storage";
+
+export function resolveApiBaseUrl(
+  value = process.env.NEXT_PUBLIC_API_BASE_URL,
+) {
+  return value?.trim();
+}
+
 export const httpClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api/backend",
+  baseURL: resolveApiBaseUrl(),
   timeout: 15_000,
   headers: {
     "Content-Type": "application/json",

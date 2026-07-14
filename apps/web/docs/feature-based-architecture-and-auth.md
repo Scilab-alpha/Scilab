@@ -11,7 +11,7 @@ trong `src/app`. Mỗi nghiệp vụ lớn được gom thành một **feature**
 
 ```text
 apps/web/src/
-|-- app/                  # Route, layout và server endpoint của Next.js
+|-- app/                  # Route và layout của Next.js
 |-- features/             # Nghiệp vụ theo từng feature
 |   `-- auth/
 |       |-- api/          # Gọi API, mapping và lưu token
@@ -31,7 +31,7 @@ apps/web/src/
 Luồng phụ thuộc nên đi theo hướng:
 
 ```text
-app -> feature components -> feature api -> shared api -> Next.js proxy
+app -> feature components -> feature api -> shared api -> Scilab API
                      |              |
                      v              v
                feature types   token storage
@@ -54,7 +54,6 @@ component hoặc helper dùng chung chứa lẫn business logic.
 - `app/auth/register/page.tsx` ánh xạ URL `/auth/register` tới màn hình đăng ký.
 - `app/layout.tsx` lắp `ThemeProvider`, `QueryProvider`, `AuthProvider` và
   `Toaster` cho toàn bộ ứng dụng.
-- `app/api/backend/[...path]/route.ts` là Backend for Frontend (BFF) proxy.
 
 Page nên mỏng: nhận route params khi cần, render feature tương ứng, không tự gọi
 API và không tự quản lý token.
@@ -102,48 +101,49 @@ auth thì nó vẫn thuộc `features/auth`.
 
 ## 3. Đường đi của một request auth
 
-Browser không gọi thẳng domain backend. Mọi request auth đi qua BFF cùng origin
-của Next.js:
+Browser gọi trực tiếp backend public. Backend dùng CORS để chỉ cho phép frontend
+production tại `https://swapnet.io.vn` và các origin được cấu hình khác:
 
 ```mermaid
 sequenceDiagram
     participant UI as Auth component
     participant API as Feature API
     participant Axios as http-client
-    participant BFF as /api/backend/*
     participant BE as Scilab API
 
     UI->>API: login/register/getCurrentUser
     API->>Axios: apiRequest(config)
     Axios->>Axios: Gắn Bearer token nếu có
-    Axios->>BFF: HTTP /api/backend/auth/*
-    BFF->>BE: HTTP SCILAB_API_BASE_URL/auth/*
-    BE-->>BFF: Status + response envelope
-    BFF-->>Axios: Giữ nguyên status/body
+    Axios->>BE: HTTP NEXT_PUBLIC_API_BASE_URL/auth/*
+    BE-->>Axios: Status + response envelope + CORS headers
     Axios->>Axios: Unwrap data hoặc normalize error
     Axios-->>API: Typed data / AuthApiError
     API-->>UI: Kết quả nghiệp vụ
 ```
 
-BFF giải quyết việc backend hiện không hỗ trợ CORS phù hợp cho browser. Request
-từ browser vẫn cùng origin với web; chỉ Next.js server kết nối sang backend.
+Frontend origin và backend destination là hai URL khác nhau:
+
+```text
+Frontend origin:     https://swapnet.io.vn
+Backend destination: https://scilab-api.epsilon.io.vn
+```
+
+Backend phải trả `Access-Control-Allow-Origin: https://swapnet.io.vn` cho
+request từ production frontend.
 
 ### Cấu hình môi trường
 
 ```env
-# URL browser gọi, thường giữ nguyên giá trị này.
-NEXT_PUBLIC_API_BASE_URL=/api/backend
-
-# URL chỉ Next.js server sử dụng.
-SCILAB_API_BASE_URL=https://scilab-api.epsilon.io.vn
+# Public backend origin called directly by the browser.
+NEXT_PUBLIC_API_BASE_URL=https://scilab-api.epsilon.io.vn
 ```
 
-`NEXT_PUBLIC_*` được đóng gói vào client bundle. `SCILAB_API_BASE_URL` là biến
-server-only và không được đưa xuống browser.
+`NEXT_PUBLIC_*` được đóng gói vào client bundle nên URL này là public. Không đặt
+secret hoặc token trong biến môi trường public.
 
-### Giới hạn của BFF
+### Yêu cầu CORS
 
-Proxy chỉ cho phép các đường dẫn:
+Backend cần cho phép frontend gọi các đường dẫn:
 
 ```text
 POST /auth/login
@@ -154,9 +154,10 @@ POST /auth/logout
 GET  /users/me
 ```
 
-Các path khác trả `404`. Upstream timeout sau 15 giây. Mỗi response có header
-`x-auth-proxy-request-id` để đối chiếu với log server. Proxy trả `502` khi không
-kết nối được upstream và `504` khi upstream timeout.
+Preflight `OPTIONS` phải cho phép method tương ứng cùng các header
+`content-type` và `authorization`. Lỗi CORS bị browser chặn trước khi frontend
+đọc được response; lỗi nghiệp vụ `400`, `401` hoặc `409` vẫn có response envelope
+từ backend.
 
 ## 4. Response envelope và lỗi
 
@@ -302,7 +303,7 @@ Authorization: Bearer <accessToken>
 ```
 
 `localStorage` giúp khôi phục phiên sau khi reload nhưng token có thể bị truy cập
-nếu ứng dụng gặp XSS. Phương án an toàn hơn về lâu dài là backend/BFF quản lý
+nếu ứng dụng gặp XSS. Phương án an toàn hơn về lâu dài là backend quản lý
 refresh token bằng cookie `HttpOnly`, `Secure`, `SameSite`, nhưng phương án này
 cần contract backend hỗ trợ và không nằm trong implementation hiện tại.
 
@@ -379,17 +380,19 @@ pnpm --filter web test:e2e
 
 Khi auth lỗi, kiểm tra theo thứ tự:
 
-1. Browser request có đi tới `/api/backend/auth/...` hay không.
-2. HTTP status và `message` trong response envelope.
-3. Header `x-auth-proxy-request-id` của response.
-4. Log Next.js có cùng request ID hay không.
-5. `SCILAB_API_BASE_URL` có đúng protocol/domain và không có `/api/docs`.
-6. Request có header `Authorization: Bearer ...` ở endpoint cần auth hay không.
+1. Request URL có bắt đầu bằng `https://scilab-api.epsilon.io.vn` hay không.
+2. Request gửi từ production có `Origin: https://swapnet.io.vn` hay không.
+3. Preflight `OPTIONS` có trả `200/204` và `Access-Control-Allow-Origin` đúng
+   frontend origin hay không.
+4. Response có cho phép header `authorization` và `content-type` hay không.
+5. Nếu request đã qua CORS, kiểm tra HTTP status và `message` trong envelope.
+6. Request có `Authorization: Bearer ...` ở endpoint cần auth hay không.
 7. Payload register có dùng đúng `firstname`, `lastname`, `dataofbirth` không.
 
-Khi trao đổi lỗi với backend, nên gửi timestamp, endpoint, HTTP method, status,
-response message, payload đã loại password/token và `x-auth-proxy-request-id`.
-Không chụp hoặc gửi access token, refresh token hay mật khẩu.
+Lỗi CORS thường xuất hiện dưới dạng network error và JavaScript không đọc được
+response. Lỗi nghiệp vụ `400`, `401` hoặc `409` có status và message từ backend.
+Khi trao đổi lỗi, gửi timestamp, endpoint, method, origin, status và response đã
+loại password/token. Không chụp hoặc gửi access token, refresh token hay mật khẩu.
 
 ## 13. File quan trọng cần đọc trước
 
@@ -401,6 +404,5 @@ Không chụp hoặc gửi access token, refresh token hay mật khẩu.
 | Axios, envelope và error       | `src/shared/api/http-client.ts`               |
 | Lưu token                      | `src/features/auth/api/auth-token-storage.ts` |
 | Mapping backend user           | `src/features/auth/api/auth-mappers.ts`       |
-| Next.js BFF proxy              | `src/app/api/backend/[...path]/route.ts`      |
 | Route guard                    | `src/features/auth/components/RouteGuard.tsx` |
 | Rule truy cập                  | `src/shared/constants/route-access.ts`        |
