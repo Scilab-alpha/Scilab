@@ -16,7 +16,7 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
-CREATE TABLE "academic_journal_sync_state" (
+CREATE TABLE IF NOT EXISTS "academic_journal_sync_state" (
   "scimago_source_id" VARCHAR(64) NOT NULL,
   "catalog_year" INTEGER NOT NULL,
   "openalex_journal_id" VARCHAR(255),
@@ -36,9 +36,9 @@ CREATE TABLE "academic_journal_sync_state" (
   CONSTRAINT "academic_journal_sync_state_pkey" PRIMARY KEY ("scimago_source_id")
 );
 
-CREATE UNIQUE INDEX "academic_journal_sync_state_openalex_journal_id_key"
+CREATE UNIQUE INDEX IF NOT EXISTS "academic_journal_sync_state_openalex_journal_id_key"
   ON "academic_journal_sync_state"("openalex_journal_id");
-CREATE INDEX "academic_journal_sync_state_match_status_catalog_year_idx"
+CREATE INDEX IF NOT EXISTS "academic_journal_sync_state_match_status_catalog_year_idx"
   ON "academic_journal_sync_state"("match_status", "catalog_year");
-CREATE INDEX "academic_journal_sync_state_initial_backfill_complete_last_successful_at_idx"
+CREATE INDEX IF NOT EXISTS "academic_journal_sync_state_initial_backfill_complete_last_successful_at_idx"
   ON "academic_journal_sync_state"("initial_backfill_complete", "last_successful_at");
