@@ -4,7 +4,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
-const DEFAULT_DATABASE_SCHEMA = 'scilab_api';
+const DEFAULT_DATABASE_SCHEMA = 'public';
 
 function resolveDatabaseConfig(connectionString: string) {
   const url = new URL(connectionString);

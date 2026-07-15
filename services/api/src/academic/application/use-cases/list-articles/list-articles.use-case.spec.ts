@@ -20,7 +20,7 @@ describe('ListArticlesUseCase', () => {
     const useCase = new ListArticlesUseCase(repository);
 
     await expect(
-      useCase.execute({ cursor: 'article-0', limit: 1 }),
+      useCase.execute({ cursor: 'article-0', limit: 1, sort: 'newest' }),
     ).resolves.toEqual({
       items: [article],
       nextCursor: 'article-1',
@@ -28,10 +28,11 @@ describe('ListArticlesUseCase', () => {
     expect(listArticles).toHaveBeenCalledWith({
       cursor: 'article-0',
       limit: 1,
+      sort: 'newest',
     });
   });
 
-  it('passes a keyword search query to the graph repository', async () => {
+  it('passes a relevance search query to the graph repository', async () => {
     const listArticles = jest.fn().mockResolvedValue({
       items: [],
       nextCursor: null,
@@ -42,7 +43,12 @@ describe('ListArticlesUseCase', () => {
     const useCase = new ListArticlesUseCase(repository);
 
     await expect(
-      useCase.execute({ cursor: null, keyword: 'machine learning', limit: 20 }),
+      useCase.execute({
+        cursor: null,
+        q: 'machine learning',
+        limit: 20,
+        sort: 'relevant',
+      }),
     ).resolves.toEqual({
       items: [],
       nextCursor: null,
@@ -50,8 +56,9 @@ describe('ListArticlesUseCase', () => {
 
     expect(listArticles).toHaveBeenCalledWith({
       cursor: null,
-      keyword: 'machine learning',
+      q: 'machine learning',
       limit: 20,
+      sort: 'relevant',
     });
   });
 });

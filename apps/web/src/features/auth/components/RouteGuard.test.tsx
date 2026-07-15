@@ -1,0 +1,68 @@
+import * as React from "react";
+import { render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import RouteGuard from "./RouteGuard";
+import { useAuth } from "@/providers/auth-provider";
+
+const replace = vi.fn();
+let pathname = "/student/dashboard";
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => pathname,
+  useRouter: () => ({ replace }),
+}));
+
+vi.mock("@/providers/auth-provider", () => ({
+  useAuth: vi.fn(),
+}));
+
+describe("RouteGuard", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    pathname = "/student/dashboard";
+  });
+
+  it("shows loading state while API-backed auth is loading", () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: null,
+      session: null,
+      status: "loading",
+      isLoading: true,
+      isAuthenticated: false,
+      login: vi.fn(),
+      registerSession: vi.fn(),
+      logout: vi.fn(),
+      can: vi.fn(),
+    });
+
+    render(
+      <RouteGuard>
+        <div>Protected</div>
+      </RouteGuard>,
+    );
+
+    expect(screen.queryByText("Protected")).not.toBeInTheDocument();
+  });
+
+  it("redirects unauthenticated users to login", async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: null,
+      session: null,
+      status: "anonymous",
+      isLoading: false,
+      isAuthenticated: false,
+      login: vi.fn(),
+      registerSession: vi.fn(),
+      logout: vi.fn(),
+      can: vi.fn(),
+    });
+
+    render(
+      <RouteGuard>
+        <div>Protected</div>
+      </RouteGuard>,
+    );
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/auth/login"));
+  });
+});

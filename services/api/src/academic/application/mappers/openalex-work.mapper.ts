@@ -9,6 +9,7 @@ import {
 
 export function transformOpenAlexWorkToArticleGraph(
   work: OpenAlexWorkRecord,
+  options: { includeReferences?: boolean } = {},
 ): ArticleGraph | null {
   const articleId = normalizeOpenAlexId(work.id);
   const title = work.title ?? work.display_name;
@@ -30,6 +31,8 @@ export function transformOpenAlexWorkToArticleGraph(
       version: work.version ?? work.type ?? null,
       volumeNumber: work.biblio?.volume ?? null,
       issueNumber: work.biblio?.issue ?? null,
+      citationCount: work.cited_by_count ?? null,
+      hydrationState: 'HYDRATED',
       createdAt: work.created_date ?? null,
       updatedAt: work.updated_date ?? null,
     },
@@ -37,9 +40,12 @@ export function transformOpenAlexWorkToArticleGraph(
     authors: transformAuthors(work),
     keywords: transformKeywords(work),
     topics: transformTopics(work, primaryTopicId),
-    citedArticleIds: (work.referenced_works ?? [])
-      .map(normalizeOpenAlexId)
-      .filter((id): id is string => Boolean(id)),
+    citedArticleIds:
+      options.includeReferences === false
+        ? []
+        : (work.referenced_works ?? [])
+            .map(normalizeOpenAlexId)
+            .filter((id): id is string => Boolean(id)),
   };
 }
 
@@ -72,7 +78,6 @@ function transformSource(
     isOaDiamond: null,
     coverage: null,
     country: source.country_code ?? null,
-    region: null,
     issnList: source.issn ?? (source.issn_l ? [source.issn_l] : null),
     publisherName: source.host_organization_name ?? source.publisher ?? null,
     publisherImageUrl: null,

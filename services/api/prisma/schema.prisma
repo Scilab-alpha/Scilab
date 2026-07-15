@@ -64,6 +64,22 @@ enum NotificationObjectType {
   @@map("notification_object_type")
 }
 
+enum PushProvider {
+  EXPO
+  FCM
+
+  @@map("push_provider")
+}
+
+enum PushPlatform {
+  IOS
+  ANDROID
+  WEB
+  UNKNOWN
+
+  @@map("push_platform")
+}
+
 enum SyncFrequency {
   DAILY
   WEEKLY
@@ -88,8 +104,31 @@ enum SyncJobType {
   ORPHAN_CLEANUP
   TREND_AGGREGATION
   ALERT_DISPATCH
+  SCIMAGO_RELOAD
+  REFERENCE_HYDRATION
+  INCOMING_CITATION_CRAWL
+  CITATION_COUNT_REFRESH
+  JOURNAL_SOURCE_SYNC
+  JOURNAL_ARTICLE_SYNC
+  OUTGOING_REFERENCE_CRAWL
 
   @@map("sync_job_type")
+}
+
+enum AcademicJournalMatchStatus {
+  PENDING
+  MATCHED
+  UNMATCHED
+  CONFLICT
+
+  @@map("academic_journal_match_status")
+}
+
+enum AcademicJournalSyncMode {
+  BACKFILL
+  INCREMENTAL
+
+  @@map("academic_journal_sync_mode")
 }
 
 enum SyncStatus {
@@ -121,23 +160,24 @@ enum RankingSource {
 }
 
 model User {
-  id            String         @id @default(uuid()) @map("user_id") @db.Uuid
-  email         String         @unique @db.VarChar(255)
-  password      String         @map("password_hash") @db.VarChar(255)
+  id            String           @id @default(uuid()) @map("user_id") @db.Uuid
+  email         String           @unique @db.VarChar(255)
+  password      String           @map("password_hash") @db.VarChar(255)
   type          AuthProvider
   status        StatusAccount
   role          RoleAccount
-  lastName      String?        @map("last_name") @db.VarChar(255)
-  firstName     String?        @map("first_name") @db.VarChar(255)
-  imageUrl      String?        @map("url_image") @db.VarChar(2048)
-  dateOfBirth   DateTime?      @map("date_of_birth") @db.Date
+  lastName      String?          @map("last_name") @db.VarChar(255)
+  firstName     String?          @map("first_name") @db.VarChar(255)
+  imageUrl      String?          @map("url_image") @db.VarChar(2048)
+  dateOfBirth   DateTime?        @map("date_of_birth") @db.Date
   gender        Gender?
-  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamp(6)
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt     DateTime         @updatedAt @map("updated_at") @db.Timestamp(6)
   authSessions  AuthSession[]
   bookmarks     UserBookmark[]
   follows       UserFollow[]
   notifications Notification[]
+  pushDevices   UserPushDevice[]
 
   @@index([role])
   @@index([status])
@@ -205,9 +245,30 @@ model Notification {
   readAt            DateTime?               @map("read_at") @db.Timestamp(6)
   user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, relatedObjectType, relatedObjectId])
   @@index([userId, isRead, createdAt])
   @@index([relatedObjectType, relatedObjectId])
   @@map("notification")
+}
+
+model UserPushDevice {
+  id               String       @id @default(uuid()) @map("push_device_id") @db.Uuid
+  userId           String       @map("user_id") @db.Uuid
+  provider         PushProvider
+  token            String       @db.VarChar(2048)
+  platform         PushPlatform @default(UNKNOWN)
+  clientDeviceId   String?      @map("client_device_id") @db.VarChar(255)
+  isActive         Boolean      @default(true) @map("is_active")
+  lastRegisteredAt DateTime     @default(now()) @map("last_registered_at") @db.Timestamp(6)
+  lastUsedAt       DateTime?    @map("last_used_at") @db.Timestamp(6)
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamp(6)
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider, token])
+  @@index([userId, isActive])
+  @@index([provider, isActive])
+  @@map("user_push_device")
 }
 
 model SystemConfig {
@@ -251,6 +312,29 @@ model SyncLog {
   @@map("sync_log")
 }
 
+model AcademicJournalSyncState {
+  scimagoSourceId         String                     @id @map("scimago_source_id") @db.VarChar(64)
+  catalogYear             Int                        @map("catalog_year")
+  openAlexJournalId       String?                    @unique @map("openalex_journal_id") @db.VarChar(255)
+  matchStatus             AcademicJournalMatchStatus @default(PENDING) @map("match_status")
+  matchedIssn             String?                    @map("matched_issn") @db.VarChar(32)
+  candidateJournalIds     String[]                   @default([]) @map("candidate_journal_ids")
+  syncMode                AcademicJournalSyncMode    @default(BACKFILL) @map("sync_mode")
+  cursor                  String?                    @db.Text
+  filterSignature         String?                    @map("filter_signature") @db.VarChar(128)
+  incrementalWindowFrom   DateTime?                  @map("incremental_window_from") @db.Timestamp(6)
+  initialBackfillComplete Boolean                    @default(false) @map("initial_backfill_complete")
+  lastResolvedAt          DateTime?                  @map("last_resolved_at") @db.Timestamp(6)
+  lastSuccessfulAt        DateTime?                  @map("last_successful_at") @db.Timestamp(6)
+  errorDetail             String?                    @map("error_detail") @db.Text
+  createdAt               DateTime                   @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt               DateTime                   @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  @@index([matchStatus, catalogYear])
+  @@index([initialBackfillComplete, lastSuccessfulAt])
+  @@map("academic_journal_sync_state")
+}
+
 model SubjectArea {
   id                String            @id @default(uuid()) @map("subject_area_id") @db.Uuid
   displayName       String            @unique @map("display_name") @db.VarChar(255)
@@ -263,12 +347,11 @@ model SubjectArea {
 model SubjectCategory {
   id              String           @id @default(uuid()) @map("subject_category_id") @db.Uuid
   subjectAreaId   String?          @map("subject_area_id") @db.Uuid
-  displayName     String           @map("display_name") @db.VarChar(255)
+  displayName     String           @unique @map("display_name") @db.VarChar(255)
   description     String?          @db.VarChar(1000)
   subjectArea     SubjectArea?     @relation(fields: [subjectAreaId], references: [id], onDelete: SetNull)
   journalRankings JournalRanking[]
 
-  @@unique([subjectAreaId, displayName])
   @@index([subjectAreaId])
   @@map("subject_category")
 }
@@ -286,11 +369,12 @@ model RankingMetric {
 
 model JournalRanking {
   id                String           @id @default(uuid()) @map("journal_ranking_id") @db.Uuid
-  journalId         String           @map("journal_id") @db.Uuid
+  journalId         String           @map("journal_id") @db.VarChar(255)
   subjectCategoryId String?          @map("subject_category_id") @db.Uuid
   metricId          String           @map("metric_id") @db.Uuid
   source            RankingSource
   year              Int
+  scopeKey          String           @map("scope_key") @db.VarChar(64)
   valueText         String?          @map("value_txt") @db.VarChar(255)
   valueInt          Int?             @map("value_int")
   valueFloat        Float?           @map("value_float")
@@ -298,7 +382,7 @@ model JournalRanking {
   subjectCategory   SubjectCategory? @relation(fields: [subjectCategoryId], references: [id], onDelete: SetNull)
   metric            RankingMetric    @relation(fields: [metricId], references: [id], onDelete: Restrict)
 
-  @@unique([journalId, subjectCategoryId, source, metricId, year])
+  @@unique([journalId, scopeKey, source, metricId, year])
   @@index([journalId, year])
   @@index([metricId])
   @@index([subjectCategoryId])

@@ -4,19 +4,22 @@ import { listArticles } from "@/features/academic/api/article.service";
 
 import type {
   ArticleGraph,
+  ArticleListParams,
   CursorPage,
 } from "@/features/academic/types/article.type";
 
 const pageSize = 20;
 
-export function useArticles(keyword: string) {
-  const normalizedKeyword = keyword.trim();
+type ArticleQueryParams = Omit<ArticleListParams, "cursor" | "limit">;
+
+export function useArticles(params: ArticleQueryParams = {}) {
+  const normalizedParams = normalizeArticleQueryParams(params);
 
   return useInfiniteQuery<
     CursorPage<ArticleGraph>,
     Error,
     InfiniteData<CursorPage<ArticleGraph>>,
-    readonly ["academic", "articles", string],
+    readonly ["academic", "articles", ArticleQueryParams],
     string | null
   >({
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
@@ -24,9 +27,27 @@ export function useArticles(keyword: string) {
     queryFn: ({ pageParam }) =>
       listArticles({
         cursor: pageParam,
-        keyword: normalizedKeyword || null,
         limit: pageSize,
+        ...normalizedParams,
       }),
-    queryKey: ["academic", "articles", normalizedKeyword],
+    queryKey: ["academic", "articles", normalizedParams],
   });
+}
+
+function normalizeArticleQueryParams(
+  params: ArticleQueryParams,
+): ArticleQueryParams {
+  return {
+    keywordId: normalizeText(params.keywordId),
+    publicationYear: params.publicationYear ?? null,
+    publicationYearFrom: params.publicationYearFrom ?? null,
+    publicationYearTo: params.publicationYearTo ?? null,
+    q: normalizeText(params.q),
+    sort: normalizeText(params.sort) as ArticleQueryParams["sort"],
+    topicId: normalizeText(params.topicId),
+  };
+}
+
+function normalizeText(value: string | null | undefined) {
+  return value?.trim() || null;
 }
