@@ -1,15 +1,33 @@
-export type NotificationCategory =
-  | "journal"
-  | "topic"
-  | "publication"
-  | "system";
+import type { PageParams, PageResult } from "@/core/api/pagination";
 
-export interface Notification {
-  id: string;
-  category: NotificationCategory;
+export type NotificationObjectType =
+  | "ARTICLE"
+  | "JOURNAL"
+  | "KEYWORD"
+  | "TOPIC";
+
+/** Item from GET /notifications */
+export type NotificationItem = {
+  notificationId: string;
   title: string;
-  description: string;
-  timestamp: string;
+  message: string;
+  relatedObjectType: NotificationObjectType | null;
+  relatedObjectId: string | null;
   isRead: boolean;
-  relatedId?: string;
-}
+  createdAt: string;
+  readAt: string | null;
+};
+
+export type NotificationListParams = PageParams & {
+  isRead?: boolean;
+};
+
+export type NotificationListResponse = PageResult<NotificationItem>;
+
+export type UnreadCountResponse = {
+  unreadCount: number;
+};
+
+export type MarkAllReadResponse = {
+  updatedCount: number;
+};

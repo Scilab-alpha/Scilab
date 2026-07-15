@@ -7,9 +7,14 @@ import {
 } from "@/features/auth/api/auth-token-storage";
 
 export function resolveApiBaseUrl(
-  value = process.env.NEXT_PUBLIC_API_BASE_URL,
+  value = process.env.NEXT_PUBLIC_API_BASE_URL ??
+    process.env.NEXT_PUBLIC_API_URL,
 ) {
-  return value?.trim();
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return "/backend";
+  }
+  return trimmed.replace(/\/$/, "");
 }
 
 export const httpClient = axios.create({
