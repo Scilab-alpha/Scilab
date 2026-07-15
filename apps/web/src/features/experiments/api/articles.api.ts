@@ -37,7 +37,9 @@ export function listArticles(
   });
 }
 
-export function getArticleById(articleId: string): Promise<ArticleDetailResponse> {
+export function getArticleById(
+  articleId: string,
+): Promise<ArticleDetailResponse> {
   return apiRequest<ArticleGraph>({
     method: "GET",
     path: `/academic/articles/${encodeURIComponent(articleId)}`,

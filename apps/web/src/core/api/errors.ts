@@ -39,5 +39,7 @@ export function getUserFriendlyApiErrorMessage(
     return "The requested resource was not found.";
   }
 
-  return error.message || "We couldn't complete your request. Please try again.";
+  return (
+    error.message || "We couldn't complete your request. Please try again."
+  );
 }

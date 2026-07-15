@@ -152,7 +152,10 @@ export default function JournalSearch() {
     [items, searchQuery, filters],
   );
 
-  const totalPages = Math.max(1, Math.ceil(filteredJournals.length / itemsPerPage));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredJournals.length / itemsPerPage),
+  );
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentJournals = filteredJournals.slice(startIndex, endIndex);
@@ -453,7 +456,11 @@ export default function JournalSearch() {
               {error && (
                 <Card className="p-6 border-border mb-4">
                   <p className="text-sm text-destructive mb-4">{error}</p>
-                  <Button variant="outline" size="sm" onClick={() => void reload()}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void reload()}
+                  >
                     Try again
                   </Button>
                 </Card>
@@ -478,162 +485,162 @@ export default function JournalSearch() {
                   const subjects = getJournalSubjects(journal);
 
                   return (
-                  <Card
-                    key={journal.id}
-                    onClick={() =>
-                      router.push(`/student/journals/${journal.id}`)
-                    }
-                    className="p-6 border-border  hover:border-border transition-all cursor-pointer"
-                  >
-                    <div className="flex gap-6">
-                      <div className="w-16 h-16 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <BookOpen className="w-8 h-8 text-white" />
-                      </div>
+                    <Card
+                      key={journal.id}
+                      onClick={() =>
+                        router.push(`/student/journals/${journal.id}`)
+                      }
+                      className="p-6 border-border  hover:border-border transition-all cursor-pointer"
+                    >
+                      <div className="flex gap-6">
+                        <div className="w-16 h-16 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <BookOpen className="w-8 h-8 text-white" />
+                        </div>
 
-                      <div className="flex-1 min-w-0">
-                        {/* Journal Name and Badges */}
-                        <div className="flex items-start justify-between gap-4 mb-3">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-heading text-lg text-foreground mb-1 hover:text-primary transition-colors line-clamp-1">
-                              {getJournalName(journal)}
-                            </h3>
-                            <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
-                              <span className="flex-shrink-0">
-                                ISSN: {getJournalIssn(journal)}
-                              </span>
-                              <span className="text-border flex-shrink-0">
-                                •
-                              </span>
-                              <span className="truncate max-w-[200px]">
-                                {getJournalPublisher(journal)}
-                              </span>
-                              <span className="text-border flex-shrink-0">
-                                •
-                              </span>
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                <Globe className="w-3.5 h-3.5" />
-                                <span>{getJournalCountry(journal)}</span>
+                        <div className="flex-1 min-w-0">
+                          {/* Journal Name and Badges */}
+                          <div className="flex items-start justify-between gap-4 mb-3">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-heading text-lg text-foreground mb-1 hover:text-primary transition-colors line-clamp-1">
+                                {getJournalName(journal)}
+                              </h3>
+                              <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
+                                <span className="flex-shrink-0">
+                                  ISSN: {getJournalIssn(journal)}
+                                </span>
+                                <span className="text-border flex-shrink-0">
+                                  •
+                                </span>
+                                <span className="truncate max-w-[200px]">
+                                  {getJournalPublisher(journal)}
+                                </span>
+                                <span className="text-border flex-shrink-0">
+                                  •
+                                </span>
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  <Globe className="w-3.5 h-3.5" />
+                                  <span>{getJournalCountry(journal)}</span>
+                                </div>
                               </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {journal.isOpenAccess && (
+                                <div className="px-2.5 py-1 bg-teal/10 text-teal rounded-md flex items-center gap-1">
+                                  <LockOpen className="w-3.5 h-3.5" />
+                                  <span className="text-xs font-medium">
+                                    Open Access
+                                  </span>
+                                </div>
+                              )}
+                              {journal.isOaDiamond && (
+                                <div className="px-2.5 py-1 bg-accent text-tag rounded-md flex items-center gap-1">
+                                  <Award className="w-3.5 h-3.5" />
+                                  <span className="text-xs font-medium">
+                                    OA Diamond
+                                  </span>
+                                </div>
+                              )}
+                              {!journal.isOpenAccess && (
+                                <div className="px-2.5 py-1 bg-surface-raised text-muted-foreground rounded-md flex items-center gap-1">
+                                  <Lock className="w-3.5 h-3.5" />
+                                  <span className="text-xs font-medium">
+                                    Subscription
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {journal.isOpenAccess && (
-                              <div className="px-2.5 py-1 bg-teal/10 text-teal rounded-md flex items-center gap-1">
-                                <LockOpen className="w-3.5 h-3.5" />
-                                <span className="text-xs font-medium">
-                                  Open Access
-                                </span>
-                              </div>
-                            )}
-                            {journal.isOaDiamond && (
-                              <div className="px-2.5 py-1 bg-accent text-tag rounded-md flex items-center gap-1">
-                                <Award className="w-3.5 h-3.5" />
-                                <span className="text-xs font-medium">
-                                  OA Diamond
-                                </span>
-                              </div>
-                            )}
-                            {!journal.isOpenAccess && (
-                              <div className="px-2.5 py-1 bg-surface-raised text-muted-foreground rounded-md flex items-center gap-1">
-                                <Lock className="w-3.5 h-3.5" />
-                                <span className="text-xs font-medium">
-                                  Subscription
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {subjects.slice(0, 3).map((subject) => (
-                            <span
-                              key={subject}
-                              className="px-3 py-1 bg-accent text-tag text-xs font-medium rounded-full"
-                            >
-                              {subject}
-                            </span>
-                          ))}
-                          {subjects.length > 3 && (
-                            <span className="px-3 py-1 bg-surface-raised text-muted-foreground text-xs font-medium rounded-full">
-                              +{subjects.length - 3} more
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-6">
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <BookOpen className="w-4 h-4" />
-                            <span className="text-sm">
-                              <span className="font-semibold text-foreground">
-                                {journal.articleCount.toLocaleString()}
-                              </span>{" "}
-                              articles in graph
-                            </span>
-                          </div>
-                          {journal.coverage && (
-                            <>
-                              <div className="h-8 w-px bg-gray-200" />
-                              <span className="text-sm text-muted-foreground">
-                                Coverage: {journal.coverage}
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {subjects.slice(0, 3).map((subject) => (
+                              <span
+                                key={subject}
+                                className="px-3 py-1 bg-accent text-tag text-xs font-medium rounded-full"
+                              >
+                                {subject}
                               </span>
-                            </>
-                          )}
+                            ))}
+                            {subjects.length > 3 && (
+                              <span className="px-3 py-1 bg-surface-raised text-muted-foreground text-xs font-medium rounded-full">
+                                +{subjects.length - 3} more
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-1 text-muted-foreground">
+                              <BookOpen className="w-4 h-4" />
+                              <span className="text-sm">
+                                <span className="font-semibold text-foreground">
+                                  {journal.articleCount.toLocaleString()}
+                                </span>{" "}
+                                articles in graph
+                              </span>
+                            </div>
+                            {journal.coverage && (
+                              <>
+                                <div className="h-8 w-px bg-gray-200" />
+                                <span className="text-sm text-muted-foreground">
+                                  Coverage: {journal.coverage}
+                                </span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </Card>
+                    </Card>
                   );
                 })}
               </div>
 
               {/* Pagination */}
               {!isLoading && filteredJournals.length > 0 && (
-              <div className="flex items-center justify-between mt-8">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage === 1}
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.max(1, prev - 1))
-                  }
-                  className="h-9"
-                >
-                  <ChevronLeft className="w-4 h-4 mr-1" />
-                  Previous
-                </Button>
+                <div className="flex items-center justify-between mt-8">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === 1}
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(1, prev - 1))
+                    }
+                    className="h-9"
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Previous
+                  </Button>
 
-                <div className="flex items-center gap-2">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                    (page) => (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
-                          currentPage === page
-                            ? "bg-primary text-white"
-                            : "bg-card border border-border text-muted-foreground hover:bg-accent"
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    ),
-                  )}
+                  <div className="flex items-center gap-2">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (page) => (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                            currentPage === page
+                              ? "bg-primary text-white"
+                              : "bg-card border border-border text-muted-foreground hover:bg-accent"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ),
+                    )}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === totalPages}
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                    }
+                    className="h-9"
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
                 </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage === totalPages}
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                  }
-                  className="h-9"
-                >
-                  Next
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </div>
               )}
             </div>
           </div>

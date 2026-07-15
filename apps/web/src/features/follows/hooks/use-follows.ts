@@ -39,15 +39,18 @@ export function useFollows(objectType?: FollowObjectType) {
       objectId: string,
       notifyMode: NotifyMode = "IN_APP",
     ) => {
-      const result = await toggleFollow({ objectType: type, objectId, notifyMode });
+      const result = await toggleFollow({
+        objectType: type,
+        objectId,
+        notifyMode,
+      });
 
       if (result.followed) {
         await reload();
       } else {
         setItems((prev) =>
           prev.filter(
-            (item) =>
-              !(item.objectType === type && item.objectId === objectId),
+            (item) => !(item.objectType === type && item.objectId === objectId),
           ),
         );
       }

@@ -98,7 +98,9 @@ export default function NotificationCenter() {
             <Bell className="w-5 h-5 text-white" strokeWidth={1.75} />
           </div>
           <div className="min-w-0">
-            <h1 className="font-heading text-lg text-foreground">Notifications</h1>
+            <h1 className="font-heading text-lg text-foreground">
+              Notifications
+            </h1>
             <p className="text-xs text-muted-foreground">
               {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
             </p>
@@ -202,7 +204,9 @@ export default function NotificationCenter() {
                       <h3 className="font-medium text-foreground mb-1">
                         {item.title}
                       </h3>
-                      <p className="text-sm text-muted-foreground">{item.message}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.message}
+                      </p>
                       {href && (
                         <Link
                           href={href}

@@ -143,7 +143,9 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
               <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-base text-muted-foreground pb-6 border-b border-border">
                 <div className="flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-muted-foreground" />
-                  <span className="font-medium">{getArticleJournal(article)}</span>
+                  <span className="font-medium">
+                    {getArticleJournal(article)}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-muted-foreground" />
@@ -180,7 +182,9 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
                 <Button
                   variant="outline"
                   className="h-10"
-                  onClick={() => window.open(`https://doi.org/${doi}`, "_blank")}
+                  onClick={() =>
+                    window.open(`https://doi.org/${doi}`, "_blank")
+                  }
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
                   Open DOI
@@ -189,7 +193,9 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
             </div>
 
             <section className="space-y-4">
-              <h2 className="font-heading text-2xl text-foreground">Abstract</h2>
+              <h2 className="font-heading text-2xl text-foreground">
+                Abstract
+              </h2>
               <p className="text-lg text-foreground leading-relaxed">
                 {getArticleAbstract(article)}
               </p>
@@ -197,7 +203,9 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
 
             {keywords.length > 0 && (
               <section className="space-y-4">
-                <h2 className="font-heading text-2xl text-foreground">Keywords</h2>
+                <h2 className="font-heading text-2xl text-foreground">
+                  Keywords
+                </h2>
                 <div className="flex flex-wrap gap-3">
                   {keywords.map((keyword) => (
                     <span
@@ -235,7 +243,9 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
             )}
 
             <section className="space-y-4">
-              <h2 className="font-heading text-2xl text-foreground">Citation</h2>
+              <h2 className="font-heading text-2xl text-foreground">
+                Citation
+              </h2>
               <Card className="p-6 bg-background border-border">
                 <div className="space-y-4">
                   <div>

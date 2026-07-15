@@ -70,7 +70,9 @@ export default function JournalDetail({ journalId }: JournalDetailProps) {
               Back to Journals
             </Button>
             <Card className="p-8 border-border text-center">
-              <p className="text-destructive">{error ?? "Journal not found."}</p>
+              <p className="text-destructive">
+                {error ?? "Journal not found."}
+              </p>
             </Card>
           </PageContainer>
         </main>
@@ -114,14 +116,20 @@ export default function JournalDetail({ journalId }: JournalDetailProps) {
                     <div className="flex items-center gap-4 text-muted-foreground mb-4 flex-wrap">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">ISSN:</span>
-                        <span className="text-sm">{getJournalIssn(journal)}</span>
+                        <span className="text-sm">
+                          {getJournalIssn(journal)}
+                        </span>
                       </div>
                       <span className="text-border">•</span>
-                      <span className="text-sm">{getJournalPublisher(journal)}</span>
+                      <span className="text-sm">
+                        {getJournalPublisher(journal)}
+                      </span>
                       <span className="text-border">•</span>
                       <div className="flex items-center gap-1">
                         <Globe className="w-4 h-4" />
-                        <span className="text-sm">{getJournalCountry(journal)}</span>
+                        <span className="text-sm">
+                          {getJournalCountry(journal)}
+                        </span>
                       </div>
                     </div>
                   </div>

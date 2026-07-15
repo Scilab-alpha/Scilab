@@ -32,7 +32,9 @@ export function listJournals(
 }
 
 /** GET /academic/journals/:journalId */
-export function getJournalById(journalId: string): Promise<JournalDetailResponse> {
+export function getJournalById(
+  journalId: string,
+): Promise<JournalDetailResponse> {
   return apiRequest<JournalListItem>({
     method: "GET",
     path: `/academic/journals/${encodeURIComponent(journalId)}`,

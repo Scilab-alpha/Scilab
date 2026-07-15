@@ -105,7 +105,10 @@ export default function ArticleSearch() {
     [items, doiSearch, authorSearch, journalSearch, selectedYear],
   );
 
-  const totalPages = Math.max(1, Math.ceil(filteredArticles.length / itemsPerPage));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredArticles.length / itemsPerPage),
+  );
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentArticles = filteredArticles.slice(startIndex, endIndex);
@@ -360,7 +363,9 @@ export default function ArticleSearch() {
                         <span className="text-border">•</span>
                         <div className="flex items-center gap-1">
                           <Quote className="w-4 h-4" />
-                          <span>{article.citedArticleIds.length} citations</span>
+                          <span>
+                            {article.citedArticleIds.length} citations
+                          </span>
                         </div>
                       </div>
 

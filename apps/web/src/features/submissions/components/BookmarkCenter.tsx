@@ -120,7 +120,8 @@ export default function BookmarkCenter() {
                       <div className="flex items-center gap-1">
                         <BookOpen className="w-4 h-4" />
                         <span>
-                          Saved {new Date(item.bookmarkedAt).toLocaleDateString()}
+                          Saved{" "}
+                          {new Date(item.bookmarkedAt).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
