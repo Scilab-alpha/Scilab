@@ -9,7 +9,11 @@ import {
 
 export function transformOpenAlexWorkToArticleGraph(
   work: OpenAlexWorkRecord,
-  options: { includeReferences?: boolean } = {},
+  options: {
+    includeReferences?: boolean;
+    includeRelatedWorks?: boolean;
+    relatedSyncEligible?: boolean;
+  } = {},
 ): ArticleGraph | null {
   const articleId = normalizeOpenAlexId(work.id);
   const title = work.title ?? work.display_name;
@@ -32,6 +36,8 @@ export function transformOpenAlexWorkToArticleGraph(
       volumeNumber: work.biblio?.volume ?? null,
       issueNumber: work.biblio?.issue ?? null,
       citationCount: work.cited_by_count ?? null,
+      workType: work.type ?? null,
+      relatedSyncEligible: options.relatedSyncEligible,
       hydrationState: 'HYDRATED',
       createdAt: work.created_date ?? null,
       updatedAt: work.updated_date ?? null,
@@ -46,7 +52,28 @@ export function transformOpenAlexWorkToArticleGraph(
         : (work.referenced_works ?? [])
             .map(normalizeOpenAlexId)
             .filter((id): id is string => Boolean(id)),
+    relatedWorkReferences: options.includeRelatedWorks
+      ? toRelatedWorkReferences(work.related_works, articleId)
+      : undefined,
   };
+}
+
+function toRelatedWorkReferences(
+  relatedWorks: string[] | null | undefined,
+  sourceId: string,
+) {
+  const seen = new Set<string>();
+
+  return (relatedWorks ?? []).flatMap((relatedWork, index) => {
+    const id = normalizeOpenAlexId(relatedWork);
+
+    if (!id || id === sourceId || seen.has(id)) {
+      return [];
+    }
+
+    seen.add(id);
+    return [{ id, rank: index + 1 }];
+  });
 }
 
 function transformSource(

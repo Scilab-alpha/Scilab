@@ -6,6 +6,8 @@ export const ACADEMIC_PIPELINE_QUEUES = {
   scimagoReload: 'scimago-reload',
   journalSourceSync: 'journal-source-sync',
   journalArticleSync: 'journal-article-sync',
+  relatedWorkSync: 'related-work-sync',
+  relatedWorkHydration: 'related-work-hydration',
   outgoingReference: 'outgoing-reference',
   referenceHydration: 'reference-hydration',
   incomingCitation: 'incoming-citation',
@@ -26,6 +28,10 @@ export class AcademicPipelineQueueProducer {
     journalSourceSync: Queue,
     @InjectQueue(ACADEMIC_PIPELINE_QUEUES.journalArticleSync)
     journalArticleSync: Queue,
+    @InjectQueue(ACADEMIC_PIPELINE_QUEUES.relatedWorkSync)
+    relatedWorkSync: Queue,
+    @InjectQueue(ACADEMIC_PIPELINE_QUEUES.relatedWorkHydration)
+    relatedWorkHydration: Queue,
     @InjectQueue(ACADEMIC_PIPELINE_QUEUES.outgoingReference)
     outgoingReference: Queue,
     @InjectQueue(ACADEMIC_PIPELINE_QUEUES.referenceHydration)
@@ -39,6 +45,8 @@ export class AcademicPipelineQueueProducer {
       [ACADEMIC_PIPELINE_QUEUES.scimagoReload]: scimagoReload,
       [ACADEMIC_PIPELINE_QUEUES.journalSourceSync]: journalSourceSync,
       [ACADEMIC_PIPELINE_QUEUES.journalArticleSync]: journalArticleSync,
+      [ACADEMIC_PIPELINE_QUEUES.relatedWorkSync]: relatedWorkSync,
+      [ACADEMIC_PIPELINE_QUEUES.relatedWorkHydration]: relatedWorkHydration,
       [ACADEMIC_PIPELINE_QUEUES.outgoingReference]: outgoingReference,
       [ACADEMIC_PIPELINE_QUEUES.referenceHydration]: referenceHydration,
       [ACADEMIC_PIPELINE_QUEUES.incomingCitation]: incomingCitation,

@@ -34,6 +34,9 @@ export interface OpenAlexWorkSource {
   fetchWorksByIds(
     input: FetchOpenAlexWorksByIdsInput,
   ): Promise<OpenAlexWorksPage>;
+  fetchRelatedWorksByIds?(
+    input: FetchOpenAlexWorksByIdsInput,
+  ): Promise<OpenAlexWorksPage>;
   fetchWorkDetailsByIds?(
     input: FetchOpenAlexWorksByIdsInput,
   ): Promise<OpenAlexWorksPage>;
@@ -67,6 +70,7 @@ export interface OpenAlexWorkRecord {
   topics?: OpenAlexTopicRecord[] | null;
   primary_topic?: OpenAlexTopicRecord | null;
   referenced_works?: string[] | null;
+  related_works?: string[] | null;
 }
 
 export interface OpenAlexLocationRecord {

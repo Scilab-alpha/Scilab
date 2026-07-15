@@ -21,6 +21,7 @@ import {
   JournalListItem,
   JournalNode,
   KeywordNode,
+  RelatedWorkSnapshot,
   TopicNode,
 } from '@/academic/domain/academic-graph.model';
 import { normalizeExactName } from '@/academic/domain/normalize-exact-name';
@@ -110,6 +111,11 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
           article.volume_number = graph.article.volume_number,
           article.issue_number = graph.article.issue_number,
           article.citation_count = graph.article.citation_count,
+          article.work_type = coalesce(graph.article.work_type, article.work_type),
+          article.related_sync_eligible = CASE
+            WHEN graph.article.related_sync_eligible = true THEN true
+            ELSE coalesce(article.related_sync_eligible, false)
+          END,
           article.hydration_state = 'HYDRATED',
           article.ingested_at = datetime(),
           article.citation_count_updated_at = CASE
@@ -163,6 +169,35 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
         ON CREATE SET cited.hydration_state = 'PLACEHOLDER',
                       cited.reference_discovered_at = datetime()
         MERGE (article)-[:CITES]->(cited)
+      )
+      FOREACH (_ IN CASE
+        WHEN graph.related_work_references IS NULL THEN []
+        ELSE [1]
+      END |
+        FOREACH (stale_relationship IN [
+          (article)-[candidate:RELATED_TO]->(stale_target:Article)
+          WHERE NOT (stale_target.id IN [reference IN graph.related_work_references | reference.id])
+          | candidate
+        ] | DELETE stale_relationship)
+        FOREACH (related_input IN graph.related_work_references |
+          MERGE (target:Article {id: related_input.id})
+          ON CREATE SET target.hydration_state = 'PLACEHOLDER',
+                        target.related_work_discovered_at = datetime()
+          MERGE (article)-[related:RELATED_TO]->(target)
+          SET related.rank = related_input.rank,
+              related.status = CASE
+                WHEN target.hydration_state = 'HYDRATED'
+                  AND target.work_type = 'article' THEN 'ACTIVE'
+                ELSE 'PENDING'
+              END,
+              related.resolve_attempts = CASE
+                WHEN target.hydration_state = 'HYDRATED'
+                  AND target.work_type = 'article' THEN 0
+                ELSE coalesce(related.resolve_attempts, 0)
+              END,
+              related.synced_at = datetime()
+        )
+        SET article.related_works_synced_at = datetime()
       )
       RETURN count(article) AS count
       `,
@@ -805,6 +840,166 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
     );
   }
 
+  async backfillRelatedWorkSyncEligibility(): Promise<void> {
+    await this.neo4j.executeWrite(
+      `
+      MATCH (article:Article)-[:PUBLISHED_IN]->(journal:Journal)
+      WHERE article.hydration_state = 'HYDRATED'
+        AND journal.scimago_source_id IS NOT NULL
+      SET article.related_sync_eligible = true
+      `,
+    );
+  }
+
+  async listRelatedWorkSyncRootIds(input: {
+    limit: number;
+    staleBefore: Date;
+  }): Promise<string[]> {
+    const result = await this.neo4j.executeRead<string>(
+      `
+      MATCH (article:Article)
+      WHERE article.hydration_state = 'HYDRATED'
+        AND article.related_sync_eligible = true
+        AND (
+          article.related_works_synced_at IS NULL
+          OR article.related_works_synced_at < datetime($stale_before)
+        )
+      RETURN article.id AS id
+      ORDER BY article.related_works_synced_at ASC, article.id ASC
+      LIMIT $limit
+      `,
+      {
+        limit: neo4j.int(input.limit),
+        stale_before: input.staleBefore.toISOString(),
+      },
+      (record) => String(record.get('id')),
+    );
+
+    return result.records;
+  }
+
+  async listPendingRelatedWorkTargetIds(limit: number): Promise<string[]> {
+    const result = await this.neo4j.executeRead<string>(
+      `
+      MATCH ()-[related:RELATED_TO {status: 'PENDING'}]->(target:Article)
+      WITH target, min(related.synced_at) AS first_pending_at
+      RETURN target.id AS id
+      ORDER BY first_pending_at ASC, target.id ASC
+      LIMIT $limit
+      `,
+      { limit: neo4j.int(limit) },
+      (record) => String(record.get('id')),
+    );
+
+    return result.records;
+  }
+
+  async activatePendingRelatedWorkTargets(ids: string[]): Promise<void> {
+    if (ids.length === 0) {
+      return;
+    }
+
+    await this.neo4j.executeWrite(
+      `
+      MATCH ()-[related:RELATED_TO {status: 'PENDING'}]->(target:Article)
+      WHERE target.id IN $ids
+        AND target.hydration_state = 'HYDRATED'
+        AND target.work_type = 'article'
+      SET related.status = 'ACTIVE',
+          related.resolve_attempts = 0,
+          related.synced_at = datetime()
+      `,
+      { ids },
+    );
+  }
+
+  async discardPendingRelatedWorkTargets(ids: string[]): Promise<void> {
+    if (ids.length === 0) {
+      return;
+    }
+
+    await this.neo4j.executeWrite(
+      `
+      MATCH ()-[related:RELATED_TO {status: 'PENDING'}]->(target:Article)
+      WHERE target.id IN $ids
+      DELETE related
+      `,
+      { ids },
+    );
+  }
+
+  async incrementPendingRelatedWorkAttempts(
+    ids: string[],
+    maxAttempts: number,
+  ): Promise<void> {
+    if (ids.length === 0) {
+      return;
+    }
+
+    await this.neo4j.executeWrite(
+      `
+      MATCH ()-[related:RELATED_TO {status: 'PENDING'}]->(target:Article)
+      WHERE target.id IN $ids
+      SET related.resolve_attempts = coalesce(related.resolve_attempts, 0) + 1
+      WITH related
+      WHERE related.resolve_attempts >= $max_attempts
+      DELETE related
+      `,
+      { ids, max_attempts: neo4j.int(maxAttempts) },
+    );
+  }
+
+  async replaceRelatedWorkSnapshots(
+    snapshots: RelatedWorkSnapshot[],
+  ): Promise<void> {
+    if (snapshots.length === 0) {
+      return;
+    }
+
+    await this.neo4j.executeWrite(
+      `
+      UNWIND $snapshots AS snapshot
+      MATCH (source:Article {id: snapshot.source_id})
+      WITH source, snapshot,
+        [(source)-[stale:RELATED_TO]->(stale_target:Article)
+          WHERE NOT (stale_target.id IN snapshot.target_ids) | stale] AS stale_relationships
+      FOREACH (stale IN stale_relationships | DELETE stale)
+      WITH source, snapshot
+      FOREACH (reference IN snapshot.references |
+        MERGE (target:Article {id: reference.id})
+        ON CREATE SET target.hydration_state = 'PLACEHOLDER',
+                      target.related_work_discovered_at = datetime()
+        MERGE (source)-[related:RELATED_TO]->(target)
+        SET related.rank = reference.rank,
+            related.status = CASE
+              WHEN target.hydration_state = 'HYDRATED'
+                AND target.work_type = 'article' THEN 'ACTIVE'
+              ELSE 'PENDING'
+            END,
+            related.resolve_attempts = CASE
+              WHEN target.hydration_state = 'HYDRATED'
+                AND target.work_type = 'article' THEN 0
+              ELSE coalesce(related.resolve_attempts, 0)
+            END,
+            related.synced_at = datetime()
+      )
+      SET source.work_type = coalesce(snapshot.work_type, source.work_type),
+          source.related_works_synced_at = datetime()
+      `,
+      {
+        snapshots: snapshots.map((snapshot) => ({
+          source_id: snapshot.sourceId,
+          work_type: snapshot.workType ?? null,
+          target_ids: snapshot.references.map((reference) => reference.id),
+          references: snapshot.references.map((reference) => ({
+            id: reference.id,
+            rank: neo4j.int(reference.rank),
+          })),
+        })),
+      },
+    );
+  }
+
   async findFollowTargetsByReferences(
     refs: FollowTargetReference[],
   ): Promise<FollowTargetRecord[]> {
@@ -1333,6 +1528,8 @@ function toNeo4jArticle(article: ArticleNode) {
     volume_number: article.volumeNumber ?? null,
     issue_number: article.issueNumber ?? null,
     citation_count: article.citationCount ?? null,
+    work_type: article.workType ?? null,
+    related_sync_eligible: article.relatedSyncEligible,
     created_at: article.createdAt ?? null,
     updated_at: article.updatedAt ?? null,
   });
@@ -1376,6 +1573,13 @@ function toNeo4jGraph(graph: ArticleGraph) {
     keywords: (graph.keywords ?? []).map(toNeo4jKeyword),
     topics: (graph.topics ?? []).map(toNeo4jTopic),
     cited_article_ids: graph.citedArticleIds ?? [],
+    related_work_references:
+      graph.relatedWorkReferences === undefined
+        ? null
+        : graph.relatedWorkReferences.map((reference) => ({
+            id: reference.id,
+            rank: reference.rank,
+          })),
   };
 }
 

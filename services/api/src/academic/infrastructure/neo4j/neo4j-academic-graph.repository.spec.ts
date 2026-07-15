@@ -178,6 +178,7 @@ describe('Neo4jAcademicGraphRepository', () => {
         citationCount: 3,
       },
       citedArticleIds: ['article-2'],
+      relatedWorkReferences: [{ id: 'article-3', rank: 1 }],
     });
 
     const [cypher, parameters] = executeWrite.mock.calls[0] as [
@@ -188,10 +189,48 @@ describe('Neo4jAcademicGraphRepository', () => {
     expect(cypher).toContain(
       "ON CREATE SET cited.hydration_state = 'PLACEHOLDER'",
     );
+    expect(cypher).toContain('graph.related_work_references');
+    expect(cypher).toContain('MERGE (article)-[related:RELATED_TO]->(target)');
+    expect(executeWrite).toHaveBeenCalledTimes(1);
     const [graph] = parameters.graphs as Array<{
       article: { citation_count: number };
+      related_work_references: Array<{ id: string; rank: number }>;
     }>;
     expect(graph.article.citation_count).toBe(3);
+    expect(graph.related_work_references).toEqual([
+      { id: 'article-3', rank: 1 },
+    ]);
+  });
+
+  it('replaces only the source outgoing related-work snapshot', async () => {
+    const executeWrite = jest
+      .fn()
+      .mockResolvedValue({ records: [], summary: {} });
+    const repository = new Neo4jAcademicGraphRepository({
+      executeWrite,
+    } as never);
+
+    await repository.replaceRelatedWorkSnapshots([
+      {
+        sourceId: 'article-1',
+        workType: 'article',
+        references: [{ id: 'article-2', rank: 1 }],
+      },
+    ]);
+
+    const [cypher, parameters] = executeWrite.mock.calls[0] as [
+      string,
+      { snapshots: Array<{ target_ids: string[] }> },
+    ];
+    expect(cypher).toContain(
+      '(source)-[stale:RELATED_TO]->(stale_target:Article)',
+    );
+    expect(cypher).toContain(
+      'FOREACH (stale IN stale_relationships | DELETE stale)',
+    );
+    expect(cypher).toContain('MERGE (source)-[related:RELATED_TO]->(target)');
+    expect(cypher).not.toContain('CITES');
+    expect(parameters.snapshots[0]?.target_ids).toEqual(['article-2']);
   });
 
   it('uses legacy string-safe datetime conversion for alert article matching', async () => {

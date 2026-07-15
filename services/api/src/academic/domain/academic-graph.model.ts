@@ -18,9 +18,22 @@ export interface ArticleNode {
   volumeNumber?: number | string | null;
   issueNumber?: string | null;
   citationCount?: number | null;
+  workType?: string | null;
+  relatedSyncEligible?: boolean;
   hydrationState?: ArticleHydrationState;
   createdAt?: string | Date | null;
   updatedAt?: string | Date | null;
+}
+
+export interface RelatedWorkReference {
+  id: string;
+  rank: number;
+}
+
+export interface RelatedWorkSnapshot {
+  sourceId: string;
+  workType?: string | null;
+  references: RelatedWorkReference[];
 }
 
 export interface AuthorNode {
@@ -68,6 +81,11 @@ export interface ArticleGraph {
   keywords?: KeywordNode[];
   topics?: TopicNode[];
   citedArticleIds?: string[];
+  /**
+   * Undefined means this write is not authoritative for related-work edges.
+   * An empty array is an authoritative OpenAlex snapshot with no related works.
+   */
+  relatedWorkReferences?: RelatedWorkReference[];
 }
 
 export interface CursorPaginationInput {

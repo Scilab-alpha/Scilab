@@ -41,6 +41,13 @@ function createGraphRepository(): jest.Mocked<AcademicGraphRepository> {
     markIncomingCitationCrawled: jest.fn(),
     listHydratedArticleIdsNeedingCitation: jest.fn(),
     updateArticleCitationCounts: jest.fn(),
+    backfillRelatedWorkSyncEligibility: jest.fn(),
+    listRelatedWorkSyncRootIds: jest.fn(),
+    listPendingRelatedWorkTargetIds: jest.fn(),
+    activatePendingRelatedWorkTargets: jest.fn(),
+    discardPendingRelatedWorkTargets: jest.fn(),
+    incrementPendingRelatedWorkAttempts: jest.fn(),
+    replaceRelatedWorkSnapshots: jest.fn(),
   };
 }
 

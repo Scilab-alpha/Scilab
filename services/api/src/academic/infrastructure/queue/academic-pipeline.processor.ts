@@ -8,6 +8,8 @@ import { ReloadScimagoDatasetUseCase } from '@/academic/application/use-cases/re
 import { ResolveScimagoJournalsUseCase } from '@/academic/application/use-cases/resolve-scimago-journals/resolve-scimago-journals.use-case';
 import { RunJournalArticleSyncPipelineUseCase } from '@/academic/application/use-cases/run-journal-article-sync-pipeline/run-journal-article-sync-pipeline.use-case';
 import { CrawlOutgoingReferencesUseCase } from '@/academic/application/use-cases/crawl-outgoing-references/crawl-outgoing-references.use-case';
+import { HydrateRelatedWorksUseCase } from '@/academic/application/use-cases/hydrate-related-works/hydrate-related-works.use-case';
+import { SyncRelatedWorksUseCase } from '@/academic/application/use-cases/sync-related-works/sync-related-works.use-case';
 import { ACADEMIC_PIPELINE_QUEUES } from '@/academic/infrastructure/queue/academic-pipeline.queue';
 import { OpenAlexEnvConfigReader } from '@/academic/infrastructure/config/openalex-env-config.reader';
 import { PrismaAcademicSyncLogRepository } from '@/academic/infrastructure/persistence/prisma-academic-sync-log.repository';
@@ -27,6 +29,8 @@ class AcademicPipelineJobRunner {
         | 'SCIMAGO_RELOAD'
         | 'JOURNAL_SOURCE_SYNC'
         | 'JOURNAL_ARTICLE_SYNC'
+        | 'RELATED_WORK_SYNC'
+        | 'RELATED_WORK_HYDRATION'
         | 'OUTGOING_REFERENCE_CRAWL'
         | 'REFERENCE_HYDRATION'
         | 'INCOMING_CITATION_CRAWL'
@@ -150,6 +154,52 @@ export class JournalArticleSyncProcessor extends WorkerHost {
   }
 }
 
+@Processor(ACADEMIC_PIPELINE_QUEUES.relatedWorkSync)
+export class RelatedWorkSyncProcessor extends WorkerHost {
+  constructor(
+    private readonly jobs: AcademicPipelineJobRunner,
+    private readonly sync: SyncRelatedWorksUseCase,
+  ) {
+    super();
+  }
+
+  async process(job: Job<PipelineJobData>): Promise<unknown> {
+    void job;
+    return this.jobs.run(
+      { source: 'OPENALEX', type: 'RELATED_WORK_SYNC' },
+      () => this.sync.execute(),
+      (output) => ({
+        fetched: output.rootsSelected,
+        inserted: output.rootsSynced,
+        updated: output.batches,
+      }),
+    );
+  }
+}
+
+@Processor(ACADEMIC_PIPELINE_QUEUES.relatedWorkHydration)
+export class RelatedWorkHydrationProcessor extends WorkerHost {
+  constructor(
+    private readonly jobs: AcademicPipelineJobRunner,
+    private readonly hydrate: HydrateRelatedWorksUseCase,
+  ) {
+    super();
+  }
+
+  async process(job: Job<PipelineJobData>): Promise<unknown> {
+    void job;
+    return this.jobs.run(
+      { source: 'OPENALEX', type: 'RELATED_WORK_HYDRATION' },
+      () => this.hydrate.execute(),
+      (output) => ({
+        fetched: output.requested,
+        inserted: output.hydrated,
+        updated: output.discarded,
+      }),
+    );
+  }
+}
+
 @Processor(ACADEMIC_PIPELINE_QUEUES.outgoingReference)
 export class OutgoingReferenceProcessor extends WorkerHost {
   constructor(
@@ -247,6 +297,8 @@ export const ACADEMIC_PIPELINE_PROCESSORS = [
   ScimagoReloadProcessor,
   JournalSourceSyncProcessor,
   JournalArticleSyncProcessor,
+  RelatedWorkSyncProcessor,
+  RelatedWorkHydrationProcessor,
   OutgoingReferenceProcessor,
   ReferenceHydrationProcessor,
   IncomingCitationProcessor,

@@ -7,6 +7,7 @@ import {
   CursorPaginationInput,
   JournalListItem,
   JournalNode,
+  RelatedWorkSnapshot,
 } from '@/academic/domain/academic-graph.model';
 
 export const ACADEMIC_GRAPH_REPOSITORY = Symbol('ACADEMIC_GRAPH_REPOSITORY');
@@ -96,4 +97,17 @@ export interface AcademicGraphRepository {
   updateArticleCitationCounts(
     updates: Array<{ id: string; citationCount: number }>,
   ): Promise<void>;
+  backfillRelatedWorkSyncEligibility(): Promise<void>;
+  listRelatedWorkSyncRootIds(input: {
+    limit: number;
+    staleBefore: Date;
+  }): Promise<string[]>;
+  listPendingRelatedWorkTargetIds(limit: number): Promise<string[]>;
+  activatePendingRelatedWorkTargets(ids: string[]): Promise<void>;
+  discardPendingRelatedWorkTargets(ids: string[]): Promise<void>;
+  incrementPendingRelatedWorkAttempts(
+    ids: string[],
+    maxAttempts: number,
+  ): Promise<void>;
+  replaceRelatedWorkSnapshots(snapshots: RelatedWorkSnapshot[]): Promise<void>;
 }

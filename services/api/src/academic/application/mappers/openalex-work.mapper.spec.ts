@@ -96,4 +96,43 @@ describe('transformOpenAlexWorkToArticleGraph', () => {
       citedArticleIds: ['W999'],
     });
   });
+
+  it('captures related works only when requested and preserves their OpenAlex rank', () => {
+    const work: OpenAlexWorkRecord = {
+      id: 'https://openalex.org/W123',
+      display_name: 'A test work',
+      type: 'article',
+      related_works: [
+        'https://openalex.org/W456',
+        'https://openalex.org/W123',
+        'https://openalex.org/W456',
+        'https://openalex.org/W789',
+      ],
+    };
+
+    expect(
+      transformOpenAlexWorkToArticleGraph(work, {
+        includeReferences: false,
+        includeRelatedWorks: true,
+        relatedSyncEligible: true,
+      }),
+    ).toMatchObject({
+      article: {
+        id: 'W123',
+        relatedSyncEligible: true,
+        workType: 'article',
+      },
+      relatedWorkReferences: [
+        { id: 'W456', rank: 1 },
+        { id: 'W789', rank: 4 },
+      ],
+    });
+
+    expect(
+      transformOpenAlexWorkToArticleGraph(work, {
+        includeReferences: false,
+        includeRelatedWorks: false,
+      })?.relatedWorkReferences,
+    ).toBeUndefined();
+  });
 });

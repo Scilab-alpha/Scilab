@@ -18,6 +18,18 @@ const OPENALEX_SOURCE_BATCH_SIZE_CONFIG_KEY = 'OPENALEX_SOURCE_BATCH_SIZE';
 const OPENALEX_JOURNAL_BATCH_SIZE_CONFIG_KEY = 'OPENALEX_JOURNAL_BATCH_SIZE';
 const OPENALEX_OUTGOING_REFERENCE_BATCH_SIZE_CONFIG_KEY =
   'OPENALEX_OUTGOING_REFERENCE_BATCH_SIZE';
+const OPENALEX_RELATED_REFRESH_DAYS_CONFIG_KEY =
+  'OPENALEX_RELATED_REFRESH_DAYS';
+const OPENALEX_RELATED_ROOT_BATCH_SIZE_CONFIG_KEY =
+  'OPENALEX_RELATED_ROOT_BATCH_SIZE';
+const OPENALEX_RELATED_ROOT_MAX_BATCHES_CONFIG_KEY =
+  'OPENALEX_RELATED_ROOT_MAX_BATCHES';
+const OPENALEX_RELATED_TARGET_BATCH_SIZE_CONFIG_KEY =
+  'OPENALEX_RELATED_TARGET_BATCH_SIZE';
+const OPENALEX_RELATED_TARGET_MAX_BATCHES_CONFIG_KEY =
+  'OPENALEX_RELATED_TARGET_MAX_BATCHES';
+const OPENALEX_RELATED_TARGET_MAX_ATTEMPTS_CONFIG_KEY =
+  'OPENALEX_RELATED_TARGET_MAX_ATTEMPTS';
 
 const DEFAULT_OPENALEX_API_BASE_URL = 'https://api.openalex.org';
 
@@ -66,6 +78,34 @@ export class OpenAlexEnvConfigReader implements OpenAlexConfigReader {
         100,
         1,
         100,
+      ),
+      relatedRefreshDays: this.readPositiveInteger(
+        OPENALEX_RELATED_REFRESH_DAYS_CONFIG_KEY,
+        30,
+      ),
+      relatedRootBatchSize: this.readPositiveInteger(
+        OPENALEX_RELATED_ROOT_BATCH_SIZE_CONFIG_KEY,
+        100,
+        1,
+        100,
+      ),
+      relatedRootMaxBatches: this.readPositiveInteger(
+        OPENALEX_RELATED_ROOT_MAX_BATCHES_CONFIG_KEY,
+        10,
+      ),
+      relatedTargetBatchSize: this.readPositiveInteger(
+        OPENALEX_RELATED_TARGET_BATCH_SIZE_CONFIG_KEY,
+        100,
+        1,
+        100,
+      ),
+      relatedTargetMaxBatches: this.readPositiveInteger(
+        OPENALEX_RELATED_TARGET_MAX_BATCHES_CONFIG_KEY,
+        10,
+      ),
+      relatedTargetMaxAttempts: this.readPositiveInteger(
+        OPENALEX_RELATED_TARGET_MAX_ATTEMPTS_CONFIG_KEY,
+        3,
       ),
     };
   }

@@ -13,6 +13,8 @@ tags:
     description: Authenticated user profile and admin user management.
   - name: Academic
     description: Public academic article and journal discovery.
+  - name: Academic Graph
+    description: Public graph exploration for OpenAlex related academic articles.
   - name: Bookmarks
     description: Authenticated user article bookmarks.
   - name: Follows
@@ -175,6 +177,30 @@ paths:
                 $ref: "#/components/schemas/AcademicArticleResponseEnvelope"
         "404":
           $ref: "#/components/responses/ArticleNotFound"
+  /academic/graphs/article/{id}:
+    get:
+      summary: Return a graph of OpenAlex related academic articles
+      operationId: getAcademicArticleGraph
+      tags:
+        - Academic Graph
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/AcademicGraphArticleId"
+        - $ref: "#/components/parameters/AcademicCursor"
+        - $ref: "#/components/parameters/AcademicLimit"
+      responses:
+        "200":
+          description: Article graph retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AcademicArticleGraphVisualizationResponseEnvelope"
+        "400":
+          $ref: "#/components/responses/AcademicArticleGraphInvalid"
+        "404":
+          $ref: "#/components/responses/ArticleNotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /academic/authors:
     get:
       summary: List academic authors with cursor pagination
@@ -838,6 +864,13 @@ components:
       required: true
       schema:
         type: string
+    AcademicGraphArticleId:
+      name: id
+      in: path
+      required: true
+      description: OpenAlex work identifier for the hydrated root article.
+      schema:
+        type: string
     JournalId:
       name: journalId
       in: path
@@ -1241,6 +1274,35 @@ components:
                 success: false
                 message: publicationYear cannot be combined with publicationYearFrom or publicationYearTo
                 data: {}
+    AcademicArticleGraphInvalid:
+      description: Article graph query is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponseEnvelope"
+          examples:
+            invalidLimit:
+              value:
+                success: false
+                message: limit must be an integer between 1 and 100
+                data: {}
+            invalidCursor:
+              value:
+                success: false
+                message: cursor is invalid for this article graph
+                data: {}
+    InternalServerError:
+      description: The server could not retrieve the article graph.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponseEnvelope"
+          examples:
+            error:
+              value:
+                success: false
+                message: Internal server error
+                data: {}
     ArticleNotFound:
       description: Article not found.
       content:
@@ -1577,6 +1639,24 @@ components:
               example: Articles retrieved
             data:
               $ref: "#/components/schemas/AcademicArticleCursorPage"
+    AcademicArticleGraphVisualizationResponseEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/ApiResponseBase"
+        - type: object
+          required:
+            - success
+            - message
+            - data
+          properties:
+            success:
+              type: boolean
+              enum:
+                - true
+            message:
+              type: string
+              example: Article graph retrieved
+            data:
+              $ref: "#/components/schemas/AcademicArticleGraphVisualization"
     AcademicAuthorListResponseEnvelope:
       allOf:
         - $ref: "#/components/schemas/ApiResponseBase"
@@ -2447,6 +2527,68 @@ components:
           type: array
           items:
             type: string
+    AcademicArticleGraphVisualization:
+      type: object
+      required:
+        - nodes
+        - edges
+        - truncated
+        - nextCursor
+      additionalProperties: false
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/AcademicArticleGraphNode"
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/AcademicArticleGraphEdge"
+        truncated:
+          type: boolean
+        nextCursor:
+          type: string
+          nullable: true
+    AcademicArticleGraphNode:
+      type: object
+      required:
+        - id
+        - type
+        - label
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          example: article:W123
+        type:
+          type: string
+          enum:
+            - article
+            - year
+        label:
+          type: string
+          example: Machine Learning...
+    AcademicArticleGraphEdge:
+      type: object
+      required:
+        - id
+        - sourceId
+        - targetId
+        - type
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          example: article:W123->year:2024
+        sourceId:
+          type: string
+        targetId:
+          type: string
+        type:
+          type: string
+          enum:
+            - RELATED_TO
+            - PUBLISHED_IN_YEAR
     AcademicArticle:
       type: object
       required:
@@ -2626,7 +2768,7 @@ components:
         countryCode:
           type: string
           nullable: true
-          pattern: '^[A-Z]{2}$'
+          pattern: "^[A-Z]{2}$"
           example: US
     AcademicAuthor:
       type: object

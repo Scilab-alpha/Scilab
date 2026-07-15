@@ -30,6 +30,8 @@ import { ReloadScimagoDatasetUseCase } from '@/academic/application/use-cases/re
 import { ResolveScimagoJournalsUseCase } from '@/academic/application/use-cases/resolve-scimago-journals/resolve-scimago-journals.use-case';
 import { RunJournalArticleSyncPipelineUseCase } from '@/academic/application/use-cases/run-journal-article-sync-pipeline/run-journal-article-sync-pipeline.use-case';
 import { CrawlOutgoingReferencesUseCase } from '@/academic/application/use-cases/crawl-outgoing-references/crawl-outgoing-references.use-case';
+import { HydrateRelatedWorksUseCase } from '@/academic/application/use-cases/hydrate-related-works/hydrate-related-works.use-case';
+import { SyncRelatedWorksUseCase } from '@/academic/application/use-cases/sync-related-works/sync-related-works.use-case';
 import { BackfillAcademicSearchDataUseCase } from '@/academic/application/use-cases/backfill-academic-search-data/backfill-academic-search-data.use-case';
 import { GetArticleByIdUseCase } from '@/academic/application/use-cases/get-article-by-id/get-article-by-id.use-case';
 import { GetAuthorByIdUseCase } from '@/academic/application/use-cases/get-author-by-id/get-author-by-id.use-case';
@@ -173,6 +175,38 @@ import { PrismaModule } from '@/prisma/prisma.module';
         works: AxiosOpenAlexWorksClient,
         graph: AcademicGraphRepository,
       ) => new CrawlOutgoingReferencesUseCase(configReader, works, graph),
+      inject: [
+        OpenAlexEnvConfigReader,
+        AxiosOpenAlexWorksClient,
+        ACADEMIC_GRAPH_REPOSITORY,
+      ],
+    },
+    {
+      provide: SyncRelatedWorksUseCase,
+      useFactory: (
+        configReader: OpenAlexEnvConfigReader,
+        worksClient: AxiosOpenAlexWorksClient,
+        graphRepository: AcademicGraphRepository,
+      ) =>
+        new SyncRelatedWorksUseCase(configReader, worksClient, graphRepository),
+      inject: [
+        OpenAlexEnvConfigReader,
+        AxiosOpenAlexWorksClient,
+        ACADEMIC_GRAPH_REPOSITORY,
+      ],
+    },
+    {
+      provide: HydrateRelatedWorksUseCase,
+      useFactory: (
+        configReader: OpenAlexEnvConfigReader,
+        worksClient: AxiosOpenAlexWorksClient,
+        graphRepository: AcademicGraphRepository,
+      ) =>
+        new HydrateRelatedWorksUseCase(
+          configReader,
+          worksClient,
+          graphRepository,
+        ),
       inject: [
         OpenAlexEnvConfigReader,
         AxiosOpenAlexWorksClient,

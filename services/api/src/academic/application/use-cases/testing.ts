@@ -39,6 +39,13 @@ export function createAcademicGraphRepositoryDouble(
     markIncomingCitationCrawled: jest.fn().mockResolvedValue(undefined),
     listHydratedArticleIdsNeedingCitation: jest.fn().mockResolvedValue([]),
     updateArticleCitationCounts: jest.fn().mockResolvedValue(undefined),
+    backfillRelatedWorkSyncEligibility: jest.fn().mockResolvedValue(undefined),
+    listRelatedWorkSyncRootIds: jest.fn().mockResolvedValue([]),
+    listPendingRelatedWorkTargetIds: jest.fn().mockResolvedValue([]),
+    activatePendingRelatedWorkTargets: jest.fn().mockResolvedValue(undefined),
+    discardPendingRelatedWorkTargets: jest.fn().mockResolvedValue(undefined),
+    incrementPendingRelatedWorkAttempts: jest.fn().mockResolvedValue(undefined),
+    replaceRelatedWorkSnapshots: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }

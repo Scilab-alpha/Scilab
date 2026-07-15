@@ -119,6 +119,8 @@ export class RunJournalArticleSyncPipelineUseCase {
           .map((work) =>
             transformOpenAlexWorkToArticleGraph(work, {
               includeReferences: false,
+              includeRelatedWorks: true,
+              relatedSyncEligible: true,
             }),
           )
           .filter(

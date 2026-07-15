@@ -46,6 +46,12 @@ export class AxiosOpenAlexWorksClient implements OpenAlexWorkSource {
     return this.fetchByIds(input, 'id,cited_by_count');
   }
 
+  async fetchRelatedWorksByIds(
+    input: FetchOpenAlexWorksByIdsInput,
+  ): Promise<OpenAlexWorksPage> {
+    return this.fetchByIds(input, 'id,type,related_works');
+  }
+
   async fetchCitingWorks(
     input: FetchOpenAlexCitingWorksInput,
   ): Promise<OpenAlexWorksPage> {

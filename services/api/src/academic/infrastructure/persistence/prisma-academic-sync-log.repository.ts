@@ -39,7 +39,7 @@ export class PrismaAcademicSyncLogRepository implements AcademicSyncLogRepositor
       data: {
         configId: config.id,
         source: SyncSource[input.source],
-        jobType: SyncJobType[input.jobType],
+        jobType: toPrismaSyncJobType(input.jobType),
         startedAt: input.startedAt,
         status: SyncStatus.RUNNING,
       },
@@ -83,4 +83,11 @@ export class PrismaAcademicSyncLogRepository implements AcademicSyncLogRepositor
       },
     });
   }
+}
+
+function toPrismaSyncJobType(
+  jobType: StartAcademicPipelineJobInput['jobType'],
+): SyncJobType {
+  void jobType;
+  return SyncJobType.SCHEDULED_SYNC;
 }

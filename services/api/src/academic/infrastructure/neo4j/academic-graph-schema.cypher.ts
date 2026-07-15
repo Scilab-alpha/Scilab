@@ -17,6 +17,12 @@ export const ACADEMIC_GRAPH_SCHEMA_CYPHER = [
    FOR (a:Article) ON (a.citation_count_updated_at)`,
   `CREATE INDEX article_outgoing_references_crawled_at_index IF NOT EXISTS
    FOR (a:Article) ON (a.outgoing_references_crawled_at)`,
+  `CREATE INDEX article_related_sync_eligible_index IF NOT EXISTS
+   FOR (a:Article) ON (a.related_sync_eligible)`,
+  `CREATE INDEX article_related_works_synced_at_index IF NOT EXISTS
+   FOR (a:Article) ON (a.related_works_synced_at)`,
+  `CREATE INDEX article_work_type_index IF NOT EXISTS
+   FOR (a:Article) ON (a.work_type)`,
   `CREATE FULLTEXT INDEX article_title_abstract_fulltext IF NOT EXISTS
    FOR (a:Article) ON EACH [a.title, a.abstract]
    OPTIONS {indexConfig: {

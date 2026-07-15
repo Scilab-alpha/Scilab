@@ -13,6 +13,7 @@ import { NotificationModule } from '@/notification/notification.module';
 import { PrismaModule } from '@/prisma/prisma.module';
 import { PushModule } from '@/push/push.module';
 import { UserModule } from '@/user/user.module';
+import { VisualizeModule } from '@/visualize/visualize.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { UserModule } from '@/user/user.module';
     PrismaModule,
     Neo4jModule,
     AcademicModule,
+    VisualizeModule,
     AuthModule,
     UserModule,
     EventsModule,

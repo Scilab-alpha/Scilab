@@ -40,6 +40,24 @@ export class AcademicPipelineScheduler {
     await this.enqueue(ACADEMIC_PIPELINE_QUEUES.journalArticleSync);
   }
 
+  @Cron('0 0 5 * * *', {
+    name: 'related-work-sync-producer',
+    timeZone: TIME_ZONE,
+    waitForCompletion: true,
+  })
+  async enqueueRelatedWorkSync(): Promise<void> {
+    await this.enqueue(ACADEMIC_PIPELINE_QUEUES.relatedWorkSync);
+  }
+
+  @Cron('0 30 5 * * *', {
+    name: 'related-work-hydration-producer',
+    timeZone: TIME_ZONE,
+    waitForCompletion: true,
+  })
+  async enqueueRelatedWorkHydration(): Promise<void> {
+    await this.enqueue(ACADEMIC_PIPELINE_QUEUES.relatedWorkHydration);
+  }
+
   @Cron('0 0 6 * * *', {
     name: 'outgoing-reference-producer',
     timeZone: TIME_ZONE,
