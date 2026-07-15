@@ -1,11 +1,23 @@
 export type AcademicSyncStatus = 'SUCCESS' | 'FAILED' | 'PARTIAL';
+export type AcademicSyncSource = 'OPENALEX' | 'SCIMAGO';
+export type AcademicSyncJobType =
+  | 'SCIMAGO_RELOAD'
+  | 'JOURNAL_SOURCE_SYNC'
+  | 'JOURNAL_ARTICLE_SYNC'
+  | 'OUTGOING_REFERENCE_CRAWL'
+  | 'REFERENCE_HYDRATION'
+  | 'INCOMING_CITATION_CRAWL'
+  | 'CITATION_COUNT_REFRESH';
 
-export interface StartOpenAlexSyncLogInput {
-  startedAt: Date;
+export interface StartAcademicPipelineJobInput {
+  apiName: string;
   apiEndpoint: string;
+  source: AcademicSyncSource;
+  jobType: AcademicSyncJobType;
+  startedAt: Date;
 }
 
-export interface CompleteOpenAlexSyncLogInput {
+export interface CompleteAcademicPipelineJobInput {
   finishedAt: Date;
   status: Exclude<AcademicSyncStatus, 'FAILED'>;
   totalFetched: number;
@@ -14,7 +26,7 @@ export interface CompleteOpenAlexSyncLogInput {
   totalErrors: number;
 }
 
-export interface FailOpenAlexSyncLogInput {
+export interface FailAcademicPipelineJobInput {
   finishedAt: Date;
   totalFetched: number;
   totalInserted: number;
@@ -24,13 +36,13 @@ export interface FailOpenAlexSyncLogInput {
 }
 
 export interface AcademicSyncLogRepository {
-  startOpenAlexScheduledSync(input: StartOpenAlexSyncLogInput): Promise<string>;
-  completeOpenAlexSync(
+  startPipelineJob(input: StartAcademicPipelineJobInput): Promise<string>;
+  completePipelineJob(
     syncLogId: string,
-    input: CompleteOpenAlexSyncLogInput,
+    input: CompleteAcademicPipelineJobInput,
   ): Promise<void>;
-  failOpenAlexSync(
+  failPipelineJob(
     syncLogId: string,
-    input: FailOpenAlexSyncLogInput,
+    input: FailAcademicPipelineJobInput,
   ): Promise<void>;
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Upload,
   Camera,
@@ -22,66 +23,76 @@ import { Card } from "@/shared/components/ui/card";
 import PageContainer from "@/shared/components/layout/PageContainer";
 import StudentTopHeader from "@/shared/components/layout/StudentTopHeader";
 import { Label } from "@/shared/components/ui/label";
+import { getUserProfile } from "@/features/auth/api/auth.api";
+import { ROLE_LABELS } from "@/shared/constants/permissions";
 
 export default function ProfileManagement() {
+  const profileQuery = useQuery({
+    queryKey: ["auth", "profile"],
+    queryFn: getUserProfile,
+    retry: 1,
+  });
   const [activeTab, setActiveTab] = useState("personal");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [notificationPreference, setNotificationPreference] = useState("daily");
 
-  // Form states
-  const [firstName, setFirstName] = useState("Jane");
-  const [lastName, setLastName] = useState("Smith");
-  const [dateOfBirth, setDateOfBirth] = useState("1985-06-15");
-  const [gender, setGender] = useState("female");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [gender, setGender] = useState("OTHER");
+  const [profileNotice, setProfileNotice] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const sessions = [
-    {
-      device: "Chrome on macOS",
-      location: "San Francisco, CA",
-      ip: "192.168.1.1",
-      lastActive: "Active now",
-      current: true,
-    },
-    {
-      device: "Chrome on Windows",
-      location: "New York, NY",
-      ip: "192.168.1.2",
-      lastActive: "2 hours ago",
-      current: false,
-    },
-    {
-      device: "Safari on iPhone",
-      location: "Boston, MA",
-      ip: "192.168.1.3",
-      lastActive: "1 day ago",
-      current: false,
-    },
-  ];
+  const sessions: Array<{
+    device: string;
+    location: string;
+    ip: string;
+    lastActive: string;
+    current: boolean;
+  }> = [];
+
+  useEffect(() => {
+    if (!profileQuery.data) return;
+    setFirstName(profileQuery.data.firstName ?? "");
+    setLastName(profileQuery.data.lastName ?? "");
+    setDateOfBirth(profileQuery.data.dateOfBirth?.slice(0, 10) ?? "");
+    setGender(profileQuery.data.gender ?? "OTHER");
+  }, [profileQuery.data]);
 
   const handleSavePersonalInfo = () => {
-    // Save personal information
-    console.log("Saving personal info...");
+    setProfileNotice("Profile editing is not available yet.");
   };
 
   const handleChangePassword = () => {
-    // Change password logic
-    console.log("Changing password...");
+    setProfileNotice("Password changes are not available yet.");
   };
 
   const handleDisconnectGoogle = () => {
-    // Disconnect Google account
-    console.log("Disconnecting Google...");
+    setProfileNotice("Connected account changes are not available yet.");
   };
 
   const handleRevokeSession = (index: number) => {
-    // Revoke session
-    console.log(`Revoking session ${index}...`);
+    setProfileNotice(`Session ${index + 1} cannot be revoked here yet.`);
   };
+
+  if (profileQuery.isPending) {
+    return <ProfileState message="Loading your profile..." />;
+  }
+
+  if (profileQuery.isError || !profileQuery.data) {
+    return (
+      <ProfileState
+        message="We could not load your profile."
+        onRetry={() => void profileQuery.refetch()}
+      />
+    );
+  }
+
+  const profile = profileQuery.data;
 
   return (
     <>
@@ -96,7 +107,7 @@ export default function ProfileManagement() {
               <div className="relative group">
                 <div className="w-24 h-24 bg-primary rounded-[var(--radius-card)] flex items-center justify-center">
                   <span className="font-heading text-3xl text-primary-foreground">
-                    JS
+                    {profile.initials}
                   </span>
                 </div>
                 <button className="absolute inset-0 bg-black/50 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -109,17 +120,17 @@ export default function ProfileManagement() {
                 <div className="flex items-start justify-between gap-4 mb-2">
                   <div className="min-w-0">
                     <h1 className="font-heading text-3xl text-foreground mb-1">
-                      Dr. Jane Smith
+                      {profile.displayName}
                     </h1>
                     <p className="text-base text-muted-foreground mb-3">
-                      jane.smith@uni.edu
+                      {profile.email}
                     </p>
                     <div className="flex items-center gap-2">
                       <span className="px-3 py-1 bg-accent text-tag text-sm font-semibold rounded-lg border border-border">
-                        Researcher
+                        {ROLE_LABELS[profile.role]}
                       </span>
                       <span className="px-3 py-1 bg-teal/10 text-teal text-sm font-semibold rounded-lg border border-border">
-                        Verified
+                        {profile.status}
                       </span>
                     </div>
                   </div>
@@ -240,12 +251,9 @@ export default function ProfileManagement() {
                         value={gender}
                         onChange={(e) => setGender(e.target.value)}
                       >
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
-                        <option value="prefer-not-to-say">
-                          Prefer not to say
-                        </option>
+                        <option value="MALE">Male</option>
+                        <option value="FEMALE">Female</option>
+                        <option value="OTHER">Other</option>
                       </select>
                     </div>
                   </div>
@@ -260,7 +268,7 @@ export default function ProfileManagement() {
                 <div className="flex items-center gap-6">
                   <div className="w-20 h-20 bg-primary rounded-[var(--radius-card)] flex items-center justify-center">
                     <span className="font-heading text-2xl text-primary-foreground">
-                      JS
+                      {profile.initials}
                     </span>
                   </div>
 
@@ -297,6 +305,9 @@ export default function ProfileManagement() {
                   <Check className="w-4 h-4 mr-2" />
                   Save Changes
                 </Button>
+                <p className="sr-only" aria-live="polite">
+                  {profileNotice}
+                </p>
               </div>
             </div>
           )}
@@ -448,6 +459,11 @@ export default function ProfileManagement() {
                 </h2>
 
                 <div className="space-y-3">
+                  {sessions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      Active session details are not available yet.
+                    </p>
+                  ) : null}
                   {sessions.map((session, index) => (
                     <div
                       key={index}
@@ -683,5 +699,28 @@ export default function ProfileManagement() {
         </PageContainer>
       </main>
     </>
+  );
+}
+
+function ProfileState({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry?: () => void;
+}) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-card px-6">
+      <div className="space-y-4 text-center">
+        <p role="status" className="text-sm text-muted-foreground">
+          {message}
+        </p>
+        {onRetry ? (
+          <Button type="button" variant="outline" onClick={onRetry}>
+            Try again
+          </Button>
+        ) : null}
+      </div>
+    </main>
   );
 }

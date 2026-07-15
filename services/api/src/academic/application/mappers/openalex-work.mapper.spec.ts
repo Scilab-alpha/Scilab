@@ -8,6 +8,7 @@ describe('transformOpenAlexWorkToArticleGraph', () => {
       doi: 'https://doi.org/10.1234/example',
       display_name: 'A test work',
       publication_year: 2026,
+      cited_by_count: 42,
       abstract_inverted_index: {
         A: [0],
         useful: [1],
@@ -63,6 +64,8 @@ describe('transformOpenAlexWorkToArticleGraph', () => {
         abstract: 'A useful abstract',
         doi: '10.1234/example',
         publicationYear: 2026,
+        citationCount: 42,
+        hydrationState: 'HYDRATED',
       },
       journal: {
         id: 'S456',

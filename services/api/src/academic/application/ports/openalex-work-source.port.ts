@@ -1,7 +1,22 @@
-import { OpenAlexSyncConfig } from '@/academic/application/ports/openalex-config.port';
+import {
+  OpenAlexConfig,
+  OpenAlexWorksQueryConfig,
+} from '@/academic/application/ports/openalex-config.port';
 
 export interface FetchOpenAlexWorksInput {
-  config: OpenAlexSyncConfig;
+  config: OpenAlexWorksQueryConfig;
+  cursor?: string | null;
+}
+
+export interface FetchOpenAlexWorksByIdsInput {
+  config: OpenAlexConfig;
+  ids: string[];
+}
+
+export interface FetchOpenAlexCitingWorksInput {
+  config: OpenAlexConfig;
+  workId: string;
+  limit: number;
 }
 
 export interface OpenAlexWorksPage {
@@ -9,12 +24,22 @@ export interface OpenAlexWorksPage {
     count?: number;
     page?: number;
     per_page?: number;
+    next_cursor?: string | null;
   };
   results: OpenAlexWorkRecord[];
 }
 
 export interface OpenAlexWorkSource {
   fetchWorks(input: FetchOpenAlexWorksInput): Promise<OpenAlexWorksPage>;
+  fetchWorksByIds(
+    input: FetchOpenAlexWorksByIdsInput,
+  ): Promise<OpenAlexWorksPage>;
+  fetchWorkDetailsByIds?(
+    input: FetchOpenAlexWorksByIdsInput,
+  ): Promise<OpenAlexWorksPage>;
+  fetchCitingWorks?(
+    input: FetchOpenAlexCitingWorksInput,
+  ): Promise<OpenAlexWorksPage>;
 }
 
 export interface OpenAlexWorkRecord {
@@ -23,6 +48,7 @@ export interface OpenAlexWorkRecord {
   title?: string | null;
   display_name?: string | null;
   publication_year?: number | null;
+  cited_by_count?: number | null;
   abstract_inverted_index?: Record<string, number[]> | null;
   type?: string | null;
   version?: string | null;

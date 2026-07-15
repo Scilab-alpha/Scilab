@@ -50,7 +50,6 @@ const journalSchema = {
     'isOaDiamond',
     'coverage',
     'country',
-    'region',
     'issnList',
     'publisherName',
     'publisherImageUrl',
@@ -67,7 +66,6 @@ const journalSchema = {
     isOaDiamond: { type: 'boolean', nullable: true },
     coverage: nullableStringSchema,
     country: nullableStringSchema,
-    region: nullableStringSchema,
     issnList: {
       type: 'array',
       nullable: true,
@@ -95,6 +93,7 @@ const articleNodeSchema = {
     'version',
     'volumeNumber',
     'issueNumber',
+    'citationCount',
     'createdAt',
     'updatedAt',
   ],
@@ -111,6 +110,7 @@ const articleNodeSchema = {
       nullable: true,
     },
     issueNumber: nullableStringSchema,
+    citationCount: { type: 'integer', nullable: true, minimum: 0 },
     createdAt: nullableStringSchema,
     updatedAt: nullableStringSchema,
   },
@@ -235,6 +235,85 @@ const journalListResponseSchema = envelopeSchema(
   'Journals retrieved',
 );
 
+const journalRankingListItemSchema = {
+  type: 'object',
+  required: [
+    'scimagoSourceId',
+    'journalId',
+    'issns',
+    'matchStatus',
+    'title',
+    'type',
+    'sjr',
+    'hIndex',
+    'totalDocs',
+    'totalDocs3Years',
+    'totalRefs',
+    'totalCitations3Years',
+    'citableDocs3Years',
+    'citationsPerDoc2Years',
+    'refsPerDoc',
+    'femalePercentage',
+    'countryCode',
+  ],
+  additionalProperties: false,
+  properties: {
+    scimagoSourceId: { type: 'string', example: '28773' },
+    journalId: { type: 'string', nullable: true, example: 'S123456789' },
+    issns: { type: 'array', items: { type: 'string' }, example: ['1542-4863'] },
+    matchStatus: {
+      type: 'string',
+      enum: ['PENDING', 'MATCHED', 'UNMATCHED', 'CONFLICT', 'OUT_OF_SCOPE'],
+      example: 'MATCHED',
+    },
+    title: { type: 'string', example: 'CA-A Cancer Journal for Clinicians' },
+    type: nullableStringSchema,
+    sjr: { type: 'number', nullable: true, example: 106.094 },
+    hIndex: { type: 'integer', nullable: true, example: 236 },
+    totalDocs: {
+      type: 'integer',
+      nullable: true,
+      description: 'Total Docs. for the requested ranking year.',
+      example: 43,
+    },
+    totalDocs3Years: { type: 'integer', nullable: true, example: 124 },
+    totalRefs: { type: 'integer', nullable: true, example: 3952 },
+    totalCitations3Years: { type: 'integer', nullable: true, example: 35985 },
+    citableDocs3Years: { type: 'integer', nullable: true, example: 89 },
+    citationsPerDoc2Years: {
+      type: 'number',
+      nullable: true,
+      example: 387.59,
+    },
+    refsPerDoc: {
+      type: 'number',
+      nullable: true,
+      description: 'SCImago Ref. / Doc. for the requested ranking year.',
+      example: 91.91,
+    },
+    femalePercentage: { type: 'number', nullable: true, example: 45.26 },
+    countryCode: {
+      type: 'string',
+      nullable: true,
+      pattern: '^[A-Z]{2}$',
+      example: 'US',
+    },
+  },
+};
+
+const journalRankingListResponseSchema = envelopeSchema(
+  {
+    type: 'object',
+    required: ['items', 'nextCursor'],
+    additionalProperties: false,
+    properties: {
+      items: { type: 'array', items: journalRankingListItemSchema },
+      nextCursor: { type: 'string', nullable: true },
+    },
+  },
+  'Journal rankings retrieved',
+);
+
 const articleResponseSchema = envelopeSchema(
   articleGraphSchema,
   'Article retrieved',
@@ -250,15 +329,18 @@ const journalResponseSchema = envelopeSchema(
 const invalidCursorSchema = errorEnvelopeSchema(
   'limit must be an integer between 1 and 100',
 );
-const invalidArticleKeywordCursorSchema = errorEnvelopeSchema(
-  'cursor is invalid for keyword article search',
+const invalidArticleListCursorSchema = errorEnvelopeSchema(
+  'cursor is invalid for this article query',
 );
 const invalidArticleListQuerySchema = {
-  oneOf: [invalidCursorSchema, invalidArticleKeywordCursorSchema],
+  oneOf: [invalidCursorSchema, invalidArticleListCursorSchema],
 };
 const articleNotFoundSchema = errorEnvelopeSchema('Article not found');
 const authorNotFoundSchema = errorEnvelopeSchema('Author not found');
 const journalNotFoundSchema = errorEnvelopeSchema('Journal not found');
+const journalRankingDatasetNotFoundSchema = errorEnvelopeSchema(
+  'SCImago ranking dataset for 2023 was not found',
+);
 
 function ApiCursorQuery() {
   return applyDecorators(
@@ -284,15 +366,78 @@ function ApiCursorQuery() {
 export function ApiListArticles() {
   return applyDecorators(
     ApiOperation({
-      summary:
-        'List academic articles with cursor pagination and keyword search',
+      summary: 'Search and filter academic articles with cursor pagination',
     }),
     ApiQuery({
-      name: 'keyword',
+      name: 'q',
+      required: false,
+      schema: { type: 'string', maxLength: 200 },
+      description: 'Search article titles, abstracts, keywords, and topics.',
+    }),
+    ApiQuery({
+      name: 'keywordId',
       required: false,
       schema: { type: 'string' },
+      description: 'Require an exact related keyword id.',
+    }),
+    ApiQuery({
+      name: 'topicId',
+      required: false,
+      schema: { type: 'string' },
+      description: 'Require an exact related topic id.',
+    }),
+    ApiQuery({
+      name: 'authorId',
+      required: false,
+      schema: { type: 'string' },
+      description: 'Require an exact author id.',
+    }),
+    ApiQuery({
+      name: 'journalId',
+      required: false,
+      schema: { type: 'string' },
+      description: 'Require an exact journal id.',
+    }),
+    ApiQuery({
+      name: 'publicationYear',
+      required: false,
+      schema: { type: 'integer', minimum: 1000 },
       description:
-        'Keyword text used to search articles by related keyword display name.',
+        'Exact publication year; mutually exclusive with year range.',
+    }),
+    ApiQuery({
+      name: 'publicationYearFrom',
+      required: false,
+      schema: { type: 'integer', minimum: 1000 },
+      description: 'Inclusive publication year lower bound.',
+    }),
+    ApiQuery({
+      name: 'publicationYearTo',
+      required: false,
+      schema: { type: 'integer', minimum: 1000 },
+      description: 'Inclusive publication year upper bound.',
+    }),
+    ApiQuery({
+      name: 'publisher',
+      required: false,
+      schema: { type: 'string', maxLength: 255 },
+      description: 'Publisher name matched exactly after normalization.',
+    }),
+    ApiQuery({
+      name: 'country',
+      required: false,
+      schema: { type: 'string', minLength: 2, maxLength: 2 },
+      description: 'ISO 3166-1 alpha-2 journal country code.',
+    }),
+    ApiQuery({
+      name: 'sort',
+      required: false,
+      schema: {
+        type: 'string',
+        enum: ['relevant', 'newest', 'most_cited'],
+      },
+      description:
+        'Defaults to relevant for research queries and newest otherwise.',
     }),
     ApiCursorQuery(),
     ApiOkResponse({
@@ -364,6 +509,34 @@ export function ApiListJournals() {
     ApiOkResponse({
       description: 'Journals retrieved',
       schema: journalListResponseSchema,
+    }),
+  );
+}
+
+export function ApiListJournalRankings() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'List SCImago journal rankings for one exact year',
+    }),
+    ApiQuery({
+      name: 'year',
+      required: true,
+      schema: { type: 'integer', minimum: 1000 },
+      description: 'Exact SCImago ranking year. No fallback is applied.',
+    }),
+    ApiCursorQuery(),
+    ApiOkResponse({
+      description: 'Journal rankings retrieved',
+      schema: journalRankingListResponseSchema,
+    }),
+    ApiBadRequestResponse({
+      description: 'Journal ranking list query is invalid',
+      schema: invalidCursorSchema,
+    }),
+    ApiNotFoundResponse({
+      description:
+        'SCImago ranking dataset was not found for the requested year',
+      schema: journalRankingDatasetNotFoundSchema,
     }),
   );
 }

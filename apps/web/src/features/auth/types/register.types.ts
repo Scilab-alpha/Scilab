@@ -2,7 +2,10 @@ export type AuthRole = "Lecturer/Student" | "Researcher" | "System Admin";
 
 export type RegisterRequest = {
   email: string;
-  displayName: string;
+  firstName: string;
+  lastName: string;
+  gender: "MALE" | "FEMALE" | "OTHER";
+  dateOfBirth: string;
   password: string;
   confirmPassword: string;
 };
@@ -15,13 +18,14 @@ export type AuthUser = {
 
 export type AuthSession = {
   accessToken: string;
-  expiresAt: string;
+  refreshToken?: string;
+  expiresAt?: string;
 };
 
 export type RegisterResponse = {
-  user: AuthUser;
-  role: AuthRole;
-  session: AuthSession;
+  user: import("@/features/auth/types/auth.types").AuthUser;
+  role: import("@/features/auth/types/auth.types").UserRole;
+  session: import("@/features/auth/types/auth.types").AuthSession;
 };
 
 export type RegisterFieldErrors = Partial<
