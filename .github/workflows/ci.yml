@@ -248,7 +248,7 @@ jobs:
         run: >-
           pnpm --filter academic-worker check-types &&
           pnpm --filter academic-worker build &&
-          pnpm --filter academic-worker test -- --passWithNoTests
+          pnpm --filter academic-worker test --passWithNoTests
 
       - name: database Prisma migrate deploy
         run: pnpm --filter @repo/database prisma:deploy
