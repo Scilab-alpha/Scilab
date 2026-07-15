@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { AcademicGraphRepository } from '@/academic/application/ports/academic-graph.port';
+import { AcademicGraphRepository } from '@repo/academic/domain';
 import { FollowRepository } from '@/follow/application/ports/follow.ports';
 import { ListFollowsUseCase } from '@/follow/application/use-cases/list-follows/list-follows.use-case';
 import { ToggleFollowUseCase } from '@/follow/application/use-cases/toggle-follow/toggle-follow.use-case';

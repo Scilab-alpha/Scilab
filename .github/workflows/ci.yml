@@ -193,8 +193,20 @@ jobs:
       - name: services/api setup install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: services/api prisma generate
-        run: pnpm --filter api prisma:generate
+      - name: shared database prisma generate
+        run: pnpm --filter @repo/database prisma:generate
+
+      - name: shared packages build
+        run: >-
+          pnpm --filter @repo/database build &&
+          pnpm --filter @repo/neo4j build &&
+          pnpm --filter @repo/academic-queue build &&
+          pnpm --filter @repo/academic build
+
+      - name: shared academic package tests
+        run: >-
+          pnpm --filter @repo/academic-queue test &&
+          pnpm --filter @repo/academic test
 
       - name: services/api format check
         run: pnpm --filter api format:check
@@ -214,8 +226,20 @@ jobs:
       - name: services/api e2e tests
         run: pnpm --filter api test:e2e
 
-      - name: services/api Prisma migrate deploy
-        run: pnpm --filter api prisma:deploy
+      - name: schedule validation
+        run: >-
+          pnpm --filter schedule check-types &&
+          pnpm --filter schedule build &&
+          pnpm --filter schedule test
+
+      - name: academic worker validation
+        run: >-
+          pnpm --filter academic-worker check-types &&
+          pnpm --filter academic-worker build &&
+          pnpm --filter academic-worker test -- --passWithNoTests
+
+      - name: database Prisma migrate deploy
+        run: pnpm --filter @repo/database prisma:deploy
 
   packages:
     name: packages/* validation
@@ -250,18 +274,8 @@ jobs:
       - name: packages typecheck
         run: pnpm --filter @repo/eslint-config --filter @repo/typescript-config check-types
 
-      - name: packages test if declared
-        shell: bash
-        run: |
-          packages_with_tests="$(node -e "const fs=require('node:fs'); const path=require('node:path'); for (const dir of fs.readdirSync('packages')) { const packagePath=path.join('packages', dir, 'package.json'); if (!fs.existsSync(packagePath)) continue; const pkg=JSON.parse(fs.readFileSync(packagePath, 'utf8')); if (pkg.scripts?.test) console.log(pkg.name); }")"
-
-          if [[ -z "$packages_with_tests" ]]; then
-            echo "No packages/* test scripts declared; skipping optional tests."
-          else
-            while IFS= read -r package_name; do
-              pnpm --filter "$package_name" test
-            done <<< "$packages_with_tests"
-          fi
+      - name: shared runtime package coverage
+        run: echo "Runtime package builds and tests run in the backend validation job."
 
   ci-summary:
     name: CI summary

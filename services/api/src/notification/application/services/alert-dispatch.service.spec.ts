@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { AcademicGraphRepository } from '@/academic/application/ports/academic-graph.port';
+import { AcademicGraphRepository } from '@repo/academic/domain';
 import { FollowRecipient } from '@/follow/application/ports/follow.ports';
 import { PrismaFollowRepository } from '@/follow/infrastructure/persistence/prisma-follow.repository';
 import { UserEventsService } from '@/events/application/user-events.service';

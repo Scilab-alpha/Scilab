@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { AcademicGraphRepository } from '@/academic/application/ports/academic-graph.port';
+import { AcademicGraphRepository } from '@repo/academic/domain';
 import { BookmarkRepository } from '@/bookmark/application/ports/bookmark.ports';
 import { ListBookmarksUseCase } from '@/bookmark/application/use-cases/list-bookmarks/list-bookmarks.use-case';
 import { ToggleBookmarkUseCase } from '@/bookmark/application/use-cases/toggle-bookmark/toggle-bookmark.use-case';

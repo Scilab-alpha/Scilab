@@ -1,4 +1,4 @@
-import { AcademicGraphRepository } from '@/academic/application/ports/academic-graph.port';
+import { AcademicGraphRepository } from '@repo/academic/domain';
 import { BookmarkRepository } from '@/bookmark/application/ports/bookmark.ports';
 import {
   ToggleBookmarkInput,

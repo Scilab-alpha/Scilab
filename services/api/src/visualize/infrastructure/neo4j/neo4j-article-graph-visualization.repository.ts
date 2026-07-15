@@ -8,7 +8,7 @@ import {
   VisualizedArticle,
   VisualizedNeighbor,
 } from '@/visualize/domain/article-graph-visualization.model';
-import { Neo4jService } from '@/neo4j/neo4j.service';
+import { Neo4jService } from '@repo/neo4j';
 
 @Injectable()
 export class Neo4jArticleGraphVisualizationRepository implements ArticleGraphVisualizationRepository {

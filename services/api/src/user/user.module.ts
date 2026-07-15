@@ -11,7 +11,7 @@ import { PrismaUserManagementRepository } from '@/user/infrastructure/persistenc
 import { AdminGuard } from '@/user/interfaces/guards/admin.guard';
 import { UserController } from '@/user/interfaces/http/user.controller';
 import { AuthModule } from '@/auth/auth.module';
-import { PrismaModule } from '@/prisma/prisma.module';
+import { PrismaModule } from '@repo/database';
 
 @Module({
   imports: [PrismaModule, AuthModule],

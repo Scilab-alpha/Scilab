@@ -15,7 +15,7 @@ import { PrismaSessionRepository } from '@/auth/infrastructure/persistence/prism
 import { PrismaUserRepository } from '@/auth/infrastructure/persistence/prisma-user.repository';
 import { AuthController } from '@/auth/interfaces/http/auth.controller';
 import { JwtAuthGuard } from '@/auth/interfaces/guards/jwt-auth.guard';
-import { PrismaModule } from '@/prisma/prisma.module';
+import { PrismaModule } from '@repo/database';
 
 @Module({
   imports: [
