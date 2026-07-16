@@ -1,4 +1,5 @@
 import { AxiosOpenAlexSourcesClient } from './axios-openalex-sources.client';
+import { formatOpenAlexError } from './axios-openalex-works.client';
 
 describe('AxiosOpenAlexSourcesClient', () => {
   it('uses one exact-ISSN Sources request for batches of at most 100 ISSNs', async () => {
@@ -41,5 +42,46 @@ describe('AxiosOpenAlexSourcesClient', () => {
         issns: Array.from({ length: 101 }, (_, index) => String(index)),
       }),
     ).rejects.toThrow('must not exceed 100');
+  });
+
+  it('retries a temporary DNS error before returning sources', async () => {
+    jest.useFakeTimers();
+
+    try {
+      const dnsError = Object.assign(
+        new Error('getaddrinfo EAI_AGAIN api.openalex.org'),
+        { isAxiosError: true, code: 'EAI_AGAIN' },
+      );
+      const get = jest
+        .fn()
+        .mockRejectedValueOnce(dnsError)
+        .mockResolvedValue({ data: { results: [{ id: 'S1' }] } });
+      const client = new AxiosOpenAlexSourcesClient();
+      (client as unknown as { http: { get: typeof get } }).http.get = get;
+
+      const result = client.fetchSourcesByIssns({
+        config: { baseUrl: 'https://api.openalex.org' },
+        issns: ['1542-4863'],
+      });
+
+      await jest.runAllTimersAsync();
+
+      await expect(result).resolves.toEqual({ results: [{ id: 'S1' }] });
+      expect(get).toHaveBeenCalledTimes(2);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('retains Axios diagnostics when a Sources request ultimately fails', () => {
+    const error = Object.assign(new Error('stream truncated'), {
+      isAxiosError: true,
+      code: 'ERR_BAD_RESPONSE',
+      response: { status: 200, statusText: 'OK' },
+    });
+
+    expect(formatOpenAlexError(error, 'OpenAlex sources request failed')).toBe(
+      'OpenAlex sources request failed: HTTP 200: code ERR_BAD_RESPONSE: OK: stream truncated',
+    );
   });
 });

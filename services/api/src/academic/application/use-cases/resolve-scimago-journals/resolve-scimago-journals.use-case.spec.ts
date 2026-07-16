@@ -147,4 +147,57 @@ describe('ResolveScimagoJournalsUseCase', () => {
       }),
     );
   });
+
+  it('reports the failing OpenAlex source batch before any journal state is persisted', async () => {
+    const secondJournal = {
+      ...records[0],
+      sourceId: 'scimago-2',
+      title: 'Journal Two',
+      issns: ['0007-9235'],
+    };
+    const fetchSourcesByIssns = jest
+      .fn()
+      .mockResolvedValueOnce({ results: [] })
+      .mockRejectedValueOnce(new Error('code EAI_AGAIN: getaddrinfo failed'));
+    const rankings = {
+      upsertScimagoTaxonomy: jest.fn(),
+      upsertScimagoJournalRanking: jest.fn(),
+    };
+    const states = {
+      findByScimagoSourceIds: jest.fn(),
+      listMatchedForArticleSync: jest.fn(),
+      upsert: jest.fn(),
+    };
+    const useCase = new ResolveScimagoJournalsUseCase(
+      {
+        getJournalSyncConfig: () => ({
+          apiKey: 'key',
+          baseUrl: 'https://api.openalex.org',
+          journalBackfillFromYear: 2020,
+          dailyPageBudget: 1000,
+          maxPagesPerPass: 10,
+          sourceBatchSize: 1,
+          journalBatchSize: 100,
+          outgoingReferenceBatchSize: 100,
+        }),
+        getOpenAlexConfig: jest.fn(),
+      },
+      {
+        load: jest
+          .fn()
+          .mockResolvedValue(buildScimagoDataset([records[0], secondJournal])),
+      },
+      { fetchSourcesByIssns },
+      states,
+      { upsertJournal: jest.fn() } as never,
+      rankings,
+    );
+
+    await expect(useCase.execute()).rejects.toThrow(
+      'OpenAlex source batch 2/2 (1 ISSNs) failed: code EAI_AGAIN: getaddrinfo failed',
+    );
+    expect(fetchSourcesByIssns).toHaveBeenCalledTimes(2);
+    expect(rankings.upsertScimagoTaxonomy).not.toHaveBeenCalled();
+    expect(states.upsert).not.toHaveBeenCalled();
+  });
 });
