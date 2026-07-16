@@ -25,12 +25,11 @@ describe("RouteGuard", () => {
   it("shows loading state while API-backed auth is loading", () => {
     vi.mocked(useAuth).mockReturnValue({
       user: null,
-      session: null,
       status: "loading",
       isLoading: true,
       isAuthenticated: false,
       login: vi.fn(),
-      registerSession: vi.fn(),
+      register: vi.fn(),
       logout: vi.fn(),
       can: vi.fn(),
     });
@@ -47,12 +46,11 @@ describe("RouteGuard", () => {
   it("redirects unauthenticated users to login", async () => {
     vi.mocked(useAuth).mockReturnValue({
       user: null,
-      session: null,
       status: "anonymous",
       isLoading: false,
       isAuthenticated: false,
       login: vi.fn(),
-      registerSession: vi.fn(),
+      register: vi.fn(),
       logout: vi.fn(),
       can: vi.fn(),
     });

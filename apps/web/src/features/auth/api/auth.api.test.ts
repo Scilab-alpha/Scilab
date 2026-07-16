@@ -5,14 +5,10 @@ import {
   getGoogleOAuthAvailability,
   getUserProfile,
 } from "./auth.api";
-import {
-  apiRequest,
-  rememberSessionFromResponse,
-} from "@/shared/api/http-client";
+import { apiRequest } from "@/shared/api/http-client";
 
 vi.mock("@/shared/api/http-client", () => ({
   apiRequest: vi.fn(),
-  rememberSessionFromResponse: vi.fn(),
 }));
 
 describe("auth.api", () => {
@@ -20,15 +16,18 @@ describe("auth.api", () => {
     vi.clearAllMocks();
   });
 
-  it("logs in through the API and remembers the returned session", async () => {
+  it("logs in through the BFF and returns the authenticated user", async () => {
     vi.mocked(apiRequest).mockResolvedValueOnce({
-      accessToken: "access",
-      refreshToken: "refresh",
+      id: "user-1",
+      email: "user@example.edu",
+      role: "STUDENT",
+      status: "ACTIVE",
     });
 
-    const session = await login({
+    const user = await login({
       email: " USER@Example.edu ",
       password: "secret",
+      rememberMe: true,
     });
 
     expect(apiRequest).toHaveBeenCalledWith({
@@ -37,13 +36,14 @@ describe("auth.api", () => {
       data: {
         email: "user@example.edu",
         password: "secret",
+        rememberMe: true,
       },
     });
-    expect(session).toEqual({
-      accessToken: "access",
-      refreshToken: "refresh",
+    expect(user).toMatchObject({
+      id: "user-1",
+      email: "user@example.edu",
+      role: "student",
     });
-    expect(rememberSessionFromResponse).toHaveBeenCalledWith(session);
   });
 
   it("maps registration form values to the backend contract", () => {

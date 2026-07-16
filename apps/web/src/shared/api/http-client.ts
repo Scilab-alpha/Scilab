@@ -1,36 +1,13 @@
 import axios, { AxiosError, type AxiosRequestConfig } from "axios";
 import { AuthApiError } from "@/features/auth/types/auth.types";
 import type { ApiEnvelope } from "@/features/auth/types/auth-api.types";
-import {
-  getAccessToken,
-  saveAuthSession,
-} from "@/features/auth/api/auth-token-storage";
-
-export function resolveApiBaseUrl(
-  value = process.env.NEXT_PUBLIC_API_BASE_URL ??
-    process.env.NEXT_PUBLIC_API_URL,
-) {
-  const trimmed = value?.trim();
-  if (!trimmed) {
-    return "/backend";
-  }
-  return trimmed.replace(/\/$/, "");
-}
 
 export const httpClient = axios.create({
-  baseURL: resolveApiBaseUrl(),
+  baseURL: "/api",
   timeout: 15_000,
   headers: {
     "Content-Type": "application/json",
   },
-});
-
-httpClient.interceptors.request.use((config) => {
-  const token = getAccessToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
 });
 
 export async function apiRequest<TData>(
@@ -105,12 +82,21 @@ function fromAxiosError(
       : "Authentication service is unavailable right now.");
 
   return new AuthApiError({
-    code: status ? `HTTP_${status}` : (error.code ?? "NETWORK_ERROR"),
+    code:
+      getErrorCode(error.response?.data) ??
+      (status ? `HTTP_${status}` : (error.code ?? "NETWORK_ERROR")),
     message,
     status,
     fieldErrors: getFieldErrors(error.response?.data),
     retryable: !status || status >= 500,
   });
+}
+
+function getErrorCode(payload: unknown) {
+  if (!payload || typeof payload !== "object") return undefined;
+  const value = payload as { code?: unknown; data?: { code?: unknown } };
+  const code = value.code ?? value.data?.code;
+  return typeof code === "string" ? code : undefined;
 }
 
 function getFieldErrors(payload: unknown) {
@@ -136,18 +122,4 @@ function getFieldErrors(payload: unknown) {
       typeof message === "string" ? [[field, message]] : [],
     ),
   );
-}
-
-export function rememberSessionFromResponse<
-  TData extends {
-    accessToken?: string;
-    refreshToken?: string;
-  },
->(data: TData) {
-  if (data.accessToken) {
-    saveAuthSession({
-      accessToken: data.accessToken,
-      refreshToken: data.refreshToken,
-    });
-  }
 }

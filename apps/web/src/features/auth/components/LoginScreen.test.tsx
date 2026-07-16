@@ -32,12 +32,11 @@ describe("LoginScreen", () => {
     vi.clearAllMocks();
     vi.mocked(useAuth).mockReturnValue({
       user: null,
-      session: null,
       status: "anonymous",
       isLoading: false,
       isAuthenticated: false,
       login,
-      registerSession: vi.fn(),
+      register: vi.fn(),
       logout: vi.fn(),
       can: vi.fn(),
     });
@@ -51,14 +50,68 @@ describe("LoginScreen", () => {
     });
 
     render(<LoginScreen />);
+    expect(screen.getAllByText("Scilab").length).toBeGreaterThan(0);
     await userEvent.type(screen.getByLabelText("Email"), "student@example.edu");
     await userEvent.type(screen.getByLabelText("Password"), "Strong123");
-    await userEvent.click(screen.getByRole("button", { name: "Sign In" }));
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
     await waitFor(() =>
       expect(push).toHaveBeenCalledWith("/student/dashboard"),
     );
-    expect(login).toHaveBeenCalledWith("student@example.edu", "Strong123");
+    expect(login).toHaveBeenCalledWith(
+      "student@example.edu",
+      "Strong123",
+      false,
+    );
+  });
+
+  it("lets the user reveal and hide the password", async () => {
+    render(<LoginScreen />);
+    const password = screen.getByLabelText("Password");
+
+    expect(password).toHaveAttribute("type", "password");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Show password" }),
+    );
+    expect(password).toHaveAttribute("type", "text");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Hide password" }),
+    );
+    expect(password).toHaveAttribute("type", "password");
+  });
+
+  it("explains that password recovery is not available yet", async () => {
+    render(<LoginScreen />);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Forgot password?" }),
+    );
+
+    expect(toast.info).toHaveBeenCalledWith(
+      "Password recovery is coming soon.",
+    );
+  });
+
+  it("passes the remember-me preference to the BFF login", async () => {
+    login.mockResolvedValueOnce({
+      ok: true,
+      user: createTestAuthUser(),
+      redirectTo: "/student/dashboard",
+    });
+
+    render(<LoginScreen />);
+    await userEvent.type(screen.getByLabelText("Email"), "student@example.edu");
+    await userEvent.type(screen.getByLabelText("Password"), "Strong123");
+    await userEvent.click(screen.getByLabelText("Remember me"));
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+    await waitFor(() =>
+      expect(login).toHaveBeenCalledWith(
+        "student@example.edu",
+        "Strong123",
+        true,
+      ),
+    );
   });
 
   it("shows a safe error after API-backed login failure", async () => {
@@ -70,7 +123,7 @@ describe("LoginScreen", () => {
     render(<LoginScreen />);
     await userEvent.type(screen.getByLabelText("Email"), "student@demo.com");
     await userEvent.type(screen.getByLabelText("Password"), "123456");
-    await userEvent.click(screen.getByRole("button", { name: "Sign In" }));
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith("Authentication failed"),

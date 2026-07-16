@@ -2,16 +2,6 @@ import { apiConfig } from "@/core/api/config";
 import { ApiError } from "@/core/api/errors";
 import type { ApiEnvelope, ApiRequestOptions } from "@/core/api/types";
 
-let accessTokenGetter: (() => string | null | Promise<string | null>) | null =
-  null;
-
-/** Wire this from auth provider when JWT login is enabled. */
-export function setApiAccessTokenGetter(
-  getter: () => string | null | Promise<string | null>,
-) {
-  accessTokenGetter = getter;
-}
-
 /**
  * Call the Scilab backend and return unwrapped `data`.
  * Backend responses use `{ success, message, data }`.
@@ -38,13 +28,10 @@ export async function apiRequest<T>({
       signal?.addEventListener("abort", abortFromSignal, { once: true });
     }
 
-    const requestHeaders = await buildHeaders(
-      headers,
-      authenticated,
-      body !== undefined,
-    );
+    const requestHeaders = buildHeaders(headers, body !== undefined);
+    const apiUrl = authenticated ? apiConfig.bffApiUrl : apiConfig.publicApiUrl;
 
-    const response = await fetch(`${apiConfig.apiUrl}${normalizePath(path)}`, {
+    const response = await fetch(`${apiUrl}${normalizePath(path)}`, {
       ...init,
       body: body === undefined ? undefined : JSON.stringify(body),
       headers: requestHeaders,
@@ -88,11 +75,7 @@ export async function apiRequest<T>({
   }
 }
 
-async function buildHeaders(
-  headers: HeadersInit | undefined,
-  authenticated: boolean,
-  hasBody: boolean,
-) {
+function buildHeaders(headers: HeadersInit | undefined, hasBody: boolean) {
   const requestHeaders = new Headers(headers);
 
   if (!requestHeaders.has("Accept")) {
@@ -101,14 +84,6 @@ async function buildHeaders(
 
   if (hasBody && !requestHeaders.has("Content-Type")) {
     requestHeaders.set("Content-Type", "application/json");
-  }
-
-  if (authenticated && accessTokenGetter) {
-    const token = await accessTokenGetter();
-
-    if (token) {
-      requestHeaders.set("Authorization", `Bearer ${token}`);
-    }
   }
 
   return requestHeaders;

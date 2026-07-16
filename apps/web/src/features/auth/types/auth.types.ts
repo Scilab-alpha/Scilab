@@ -17,26 +17,7 @@ export interface AuthUser {
   initials: string;
 }
 
-export interface DemoUser {
-  id: string;
-  email: string;
-  name: string;
-  role: UserRole;
-  initials: string;
-}
-
-export interface AuthSession {
-  accessToken: string;
-  refreshToken?: string;
-  expiresAt?: string;
-}
-
-export type AuthStatus =
-  | "anonymous"
-  | "loading"
-  | "authenticated"
-  | "refreshing"
-  | "expired";
+export type AuthStatus = "anonymous" | "loading" | "authenticated" | "expired";
 
 export interface AuthFieldErrors {
   [field: string]: string | undefined;

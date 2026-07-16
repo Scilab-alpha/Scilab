@@ -1,29 +1,23 @@
-import {
-  apiRequest,
-  rememberSessionFromResponse,
-} from "@/shared/api/http-client";
+import { apiRequest } from "@/shared/api/http-client";
 import type {
   LoginRequest,
-  RefreshRequest,
   RegisterApiRequest,
   RegisterRequest,
-  TokenPairResponse,
 } from "@/features/auth/types/auth-api.types";
-import type { AuthSession, AuthUser } from "@/features/auth/types/auth.types";
+import type { AuthUser } from "@/features/auth/types/auth.types";
 import { mapApiUser } from "@/features/auth/api/auth-mappers";
 
-export async function login(request: LoginRequest): Promise<AuthSession> {
-  const tokens = await apiRequest<TokenPairResponse>({
+export async function login(request: LoginRequest): Promise<AuthUser> {
+  const user = await apiRequest<unknown>({
     method: "POST",
     url: "/auth/login",
     data: {
       email: request.email.trim().toLowerCase(),
       password: request.password,
+      rememberMe: request.rememberMe,
     },
   });
-  const session = toSession(tokens);
-  rememberSessionFromResponse(session);
-  return session;
+  return mapApiUser(user as Parameters<typeof mapApiUser>[0]);
 }
 
 export async function register(request: RegisterRequest): Promise<AuthUser> {
@@ -35,21 +29,10 @@ export async function register(request: RegisterRequest): Promise<AuthUser> {
   return mapApiUser(user as Parameters<typeof mapApiUser>[0]);
 }
 
-export async function refresh(request: RefreshRequest): Promise<AuthSession> {
-  const tokens = await apiRequest<TokenPairResponse>({
-    method: "POST",
-    url: "/auth/refresh",
-    data: request,
-  });
-  const session = toSession(tokens);
-  rememberSessionFromResponse(session);
-  return session;
-}
-
 export async function getCurrentUser(): Promise<AuthUser> {
   const user = await apiRequest<unknown>({
     method: "GET",
-    url: "/auth/me",
+    url: "/auth/session",
   });
   return mapApiUser(user as Parameters<typeof mapApiUser>[0]);
 }
@@ -86,12 +69,5 @@ export function toRegisterApiRequest(
     lastname: request.lastName.trim(),
     gender: request.gender,
     dataofbirth: request.dateOfBirth,
-  };
-}
-
-function toSession(tokens: TokenPairResponse): AuthSession {
-  return {
-    accessToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
   };
 }
