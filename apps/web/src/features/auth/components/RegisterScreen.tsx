@@ -5,16 +5,15 @@ import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import {
   AlertCircle,
-  Atom,
   BarChart3,
   Check,
-  FlaskConical,
   Loader2,
   Sparkles,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { registerAccount } from "@/features/auth/api/register.api";
+import AuthShell from "@/features/auth/components/AuthShell";
+import PasswordInput from "@/features/auth/components/PasswordInput";
 import {
   getAuthErrorMessage,
   getAuthFieldErrors,
@@ -41,6 +40,7 @@ import {
   type RegisterFormValues,
   validateRegisterForm,
 } from "@/shared/schemas/register.schema";
+import { APP_NAME } from "@/shared/constants/app";
 
 interface RegisterScreenProps {
   onNavigateToLogin?: () => void;
@@ -66,6 +66,26 @@ const strengthColor = [
   "bg-teal",
 ];
 
+const REGISTER_FEATURES = [
+  {
+    icon: BarChart3,
+    title: "Trend analysis",
+    description: "Compare publication patterns by keyword, topic, and year.",
+  },
+  {
+    icon: Sparkles,
+    title: "Saved discovery",
+    description:
+      "Keep useful journals and articles close for dashboard review.",
+  },
+] as const;
+
+const REGISTER_CAPABILITIES = [
+  "Journal search",
+  "Article bookmarks",
+  "Role-aware access",
+] as const;
+
 function calculatePasswordStrength(password: string) {
   return [
     password.length >= 8,
@@ -81,7 +101,7 @@ export default function RegisterScreen({
   onRegisterSuccess,
 }: RegisterScreenProps) {
   const router = useRouter();
-  const { registerSession } = useAuth();
+  const { register: registerWithAuth } = useAuth();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [globalError, setGlobalError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
@@ -117,7 +137,7 @@ export default function RegisterScreen({
   const onSubmit = handleSubmit(async (values) => {
     clearErrors();
     setGlobalError("");
-    setStatusMessage("Creating your ScholarTrend account.");
+    setStatusMessage(`Creating your ${APP_NAME} account.`);
 
     const validationErrors = validateRegisterForm(values);
     if (Object.keys(validationErrors).length > 0) {
@@ -130,10 +150,9 @@ export default function RegisterScreen({
     }
 
     try {
-      const result = await registerAccount(values);
-      await registerSession(result.session);
+      await registerWithAuth(values);
       setStatusMessage("Account created. Opening your dashboard.");
-      toast.success("ScholarTrend account created.");
+      toast.success(`${APP_NAME} account created.`);
 
       if (onRegisterSuccess) {
         onRegisterSuccess();
@@ -153,7 +172,7 @@ export default function RegisterScreen({
     }
   });
 
-  const handleGoogleRegister = async () => {
+  const handleGoogleRegister = () => {
     setIsGoogleLoading(true);
     setGlobalError("");
     setStatusMessage("Google registration is waiting for backend support.");
@@ -167,467 +186,365 @@ export default function RegisterScreen({
   };
 
   return (
-    <div className="min-h-screen w-full flex bg-background">
-      {/* Left — editorial hero */}
-      <div className="hidden lg:flex lg:w-1/2 bg-surface-raised border-r border-border">
-        <div className="flex flex-col justify-between py-12 px-16 xl:px-24 w-full">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-primary rounded-[var(--radius-card)] flex items-center justify-center">
-              <Atom
-                className="w-6 h-6 text-primary-foreground"
-                strokeWidth={1.75}
+    <AuthShell
+      eyebrow="Metadata and trend tracking"
+      heroTitle="Create your research workspace"
+      heroDescription={`Follow journals, bookmark publication metadata, and compare topic trends from one ${APP_NAME} account.`}
+      features={REGISTER_FEATURES}
+      footerItems={REGISTER_CAPABILITIES}
+      formTitle="Create your account"
+      formDescription="Start tracking publication metadata and research trends."
+      formWidth="register"
+    >
+      <Card>
+        <CardHeader className="border-b border-border/60 pb-8 pt-8 px-8">
+          {globalError ? (
+            <Alert
+              variant="destructive"
+              className="auth-feedback-enter mb-5"
+              aria-live="polite"
+            >
+              <AlertCircle className="h-4 w-4" strokeWidth={1.75} />
+              <AlertTitle>Registration issue</AlertTitle>
+              <AlertDescription>{globalError}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          <form onSubmit={onSubmit} className="space-y-5" noValidate>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder="name@university.edu"
+                className="h-11 bg-input-background/80 hover:border-primary/25 focus-visible:bg-card"
+                aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? "email-error" : undefined}
+                disabled={isBusy}
+                {...register("email", {
+                  onChange: () => {
+                    clearErrors("email");
+                    setGlobalError("");
+                  },
+                })}
               />
-            </div>
-            <span className="font-heading text-2xl text-foreground">
-              ScholarTrend
-            </span>
-          </div>
-
-          <div className="space-y-8 max-w-lg">
-            <span className="inline-flex items-center gap-2 rounded-[var(--radius-input)] bg-accent px-4 py-2 text-sm text-accent-foreground">
-              <FlaskConical className="h-4 w-4" strokeWidth={1.75} />
-              Metadata and trend tracking
-            </span>
-
-            <h1 className="font-heading text-5xl xl:text-6xl text-foreground leading-tight">
-              Create your research workspace
-            </h1>
-
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              Follow journals, bookmark publication metadata, and compare topic
-              trends from one ScholarTrend account.
-            </p>
-
-            <div className="space-y-6 pt-4">
-              {[
-                {
-                  title: "Trend analysis",
-                  desc: "Compare publication patterns by keyword, topic, and year.",
-                },
-                {
-                  title: "Saved discovery",
-                  desc: "Keep useful journals and articles close for dashboard review.",
-                },
-              ].map((item, i) => (
-                <div key={item.title} className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-[var(--radius-card)] bg-accent flex items-center justify-center flex-shrink-0">
-                    {i === 0 ? (
-                      <BarChart3
-                        className="h-5 w-5 text-primary"
-                        strokeWidth={1.75}
-                      />
-                    ) : (
-                      <Sparkles
-                        className="h-5 w-5 text-primary"
-                        strokeWidth={1.75}
-                      />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-heading text-lg text-foreground">
-                      {item.title}
-                    </h3>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                      {item.desc}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-8 pt-8 border-t border-border">
-            {["Journal search", "Article bookmarks", "Role-aware access"].map(
-              (label) => (
-                <div key={label} className="text-sm text-muted-foreground">
-                  {label}
-                </div>
-              ),
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Right — registration form */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12 lg:px-12">
-        <div className="w-full max-w-[560px]">
-          <div className="mb-8 text-center">
-            <div className="mb-6 inline-flex items-center gap-3 lg:hidden">
-              <div className="w-10 h-10 bg-primary rounded-[var(--radius-card)] flex items-center justify-center">
-                <Atom
-                  className="w-5 h-5 text-primary-foreground"
-                  strokeWidth={1.75}
-                />
-              </div>
-              <span className="font-heading text-2xl text-foreground">
-                ScholarTrend
-              </span>
-            </div>
-
-            <h2 className="font-heading text-4xl text-foreground">
-              Create your account
-            </h2>
-            <p className="mx-auto mt-3 max-w-sm text-muted-foreground">
-              Start tracking publication metadata and research trends.
-            </p>
-          </div>
-
-          <Card>
-            <CardHeader className="border-b border-border/60 pb-8 pt-8 px-8">
-              {globalError ? (
-                <Alert
-                  variant="destructive"
-                  className="mb-5"
-                  aria-live="polite"
+              {errors.email ? (
+                <p
+                  id="email-error"
+                  className="flex items-center gap-1 text-sm text-destructive"
                 >
-                  <AlertCircle className="h-4 w-4" strokeWidth={1.75} />
-                  <AlertTitle>Registration issue</AlertTitle>
-                  <AlertDescription>{globalError}</AlertDescription>
-                </Alert>
+                  <X className="h-4 w-4" strokeWidth={1.75} />
+                  {errors.email.message}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First name</Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  autoComplete="given-name"
+                  placeholder="Jane"
+                  className="h-11 bg-input-background/80 hover:border-primary/25 focus-visible:bg-card"
+                  aria-invalid={!!errors.firstName}
+                  aria-describedby={
+                    errors.firstName ? "firstName-error" : undefined
+                  }
+                  disabled={isBusy}
+                  {...register("firstName", {
+                    onChange: () => {
+                      clearErrors("firstName");
+                      setGlobalError("");
+                    },
+                  })}
+                />
+                {errors.firstName ? (
+                  <p
+                    id="firstName-error"
+                    className="flex items-center gap-1 text-sm text-destructive"
+                  >
+                    <X className="h-4 w-4" strokeWidth={1.75} />
+                    {errors.firstName.message}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last name</Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  autoComplete="family-name"
+                  placeholder="Smith"
+                  className="h-11 bg-input-background/80 hover:border-primary/25 focus-visible:bg-card"
+                  aria-invalid={!!errors.lastName}
+                  aria-describedby={
+                    errors.lastName ? "lastName-error" : undefined
+                  }
+                  disabled={isBusy}
+                  {...register("lastName", {
+                    onChange: () => {
+                      clearErrors("lastName");
+                      setGlobalError("");
+                    },
+                  })}
+                />
+                {errors.lastName ? (
+                  <p
+                    id="lastName-error"
+                    className="flex items-center gap-1 text-sm text-destructive"
+                  >
+                    <X className="h-4 w-4" strokeWidth={1.75} />
+                    {errors.lastName.message}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="gender">Gender</Label>
+                <Select
+                  defaultValue={defaultValues.gender}
+                  disabled={isBusy}
+                  onValueChange={(value) => {
+                    setValue("gender", value as RegisterFormValues["gender"], {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                    clearErrors("gender");
+                    setGlobalError("");
+                  }}
+                >
+                  <SelectTrigger
+                    id="gender"
+                    className="h-11 bg-input-background/80 hover:border-primary/25 focus:bg-card"
+                    aria-invalid={!!errors.gender}
+                    aria-describedby={
+                      errors.gender ? "gender-error" : undefined
+                    }
+                  >
+                    <SelectValue placeholder="Select gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FEMALE">Female</SelectItem>
+                    <SelectItem value="MALE">Male</SelectItem>
+                    <SelectItem value="OTHER">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+                <input type="hidden" {...register("gender")} />
+                {errors.gender ? (
+                  <p
+                    id="gender-error"
+                    className="flex items-center gap-1 text-sm text-destructive"
+                  >
+                    <X className="h-4 w-4" strokeWidth={1.75} />
+                    {errors.gender.message}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="dateOfBirth">Date of birth</Label>
+                <Input
+                  id="dateOfBirth"
+                  type="date"
+                  autoComplete="bday"
+                  className="h-11 bg-input-background/80 hover:border-primary/25 focus-visible:bg-card"
+                  aria-invalid={!!errors.dateOfBirth}
+                  aria-describedby={
+                    errors.dateOfBirth ? "dateOfBirth-error" : undefined
+                  }
+                  disabled={isBusy}
+                  {...register("dateOfBirth", {
+                    onChange: () => {
+                      clearErrors("dateOfBirth");
+                      setGlobalError("");
+                    },
+                  })}
+                />
+                {errors.dateOfBirth ? (
+                  <p
+                    id="dateOfBirth-error"
+                    className="flex items-center gap-1 text-sm text-destructive"
+                  >
+                    <X className="h-4 w-4" strokeWidth={1.75} />
+                    {errors.dateOfBirth.message}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <PasswordInput
+                id="password"
+                autoComplete="new-password"
+                placeholder="Create a strong password"
+                className="h-11 bg-input-background/80 hover:border-primary/25 focus-visible:bg-card"
+                aria-invalid={!!errors.password}
+                aria-describedby={
+                  errors.password ? "password-error" : "password-status"
+                }
+                disabled={isBusy}
+                {...register("password", {
+                  onChange: () => {
+                    clearErrors("password");
+                    setGlobalError("");
+                  },
+                })}
+              />
+              {errors.password ? (
+                <p
+                  id="password-error"
+                  className="flex items-center gap-1 text-sm text-destructive"
+                >
+                  <X className="h-4 w-4" strokeWidth={1.75} />
+                  {errors.password.message}
+                </p>
               ) : null}
 
-              <form onSubmit={onSubmit} className="space-y-5" noValidate>
+              {password && !errors.password ? (
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder="name@university.edu"
-                    className="h-11"
-                    aria-invalid={!!errors.email}
-                    aria-describedby={errors.email ? "email-error" : undefined}
-                    disabled={isBusy}
-                    {...register("email", {
-                      onChange: () => {
-                        clearErrors("email");
-                        setGlobalError("");
-                      },
-                    })}
-                  />
-                  {errors.email ? (
-                    <p
-                      id="email-error"
-                      className="flex items-center gap-1 text-sm text-destructive"
-                    >
-                      <X className="h-4 w-4" strokeWidth={1.75} />
-                      {errors.email.message}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">First name</Label>
-                    <Input
-                      id="firstName"
-                      type="text"
-                      autoComplete="given-name"
-                      placeholder="Jane"
-                      className="h-11"
-                      aria-invalid={!!errors.firstName}
-                      aria-describedby={
-                        errors.firstName ? "firstName-error" : undefined
-                      }
-                      disabled={isBusy}
-                      {...register("firstName", {
-                        onChange: () => {
-                          clearErrors("firstName");
-                          setGlobalError("");
-                        },
-                      })}
-                    />
-                    {errors.firstName ? (
-                      <p
-                        id="firstName-error"
-                        className="flex items-center gap-1 text-sm text-destructive"
-                      >
-                        <X className="h-4 w-4" strokeWidth={1.75} />
-                        {errors.firstName.message}
-                      </p>
-                    ) : null}
+                  <div className="flex gap-1" aria-hidden="true">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <div
+                        key={index}
+                        className={`h-1.5 flex-1 rounded-full transition-all duration-200 ${
+                          index < passwordStrength
+                            ? strengthColor[passwordStrength - 1]
+                            : "bg-surface-raised"
+                        }`}
+                      />
+                    ))}
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Last name</Label>
-                    <Input
-                      id="lastName"
-                      type="text"
-                      autoComplete="family-name"
-                      placeholder="Smith"
-                      className="h-11"
-                      aria-invalid={!!errors.lastName}
-                      aria-describedby={
-                        errors.lastName ? "lastName-error" : undefined
-                      }
-                      disabled={isBusy}
-                      {...register("lastName", {
-                        onChange: () => {
-                          clearErrors("lastName");
-                          setGlobalError("");
-                        },
-                      })}
-                    />
-                    {errors.lastName ? (
-                      <p
-                        id="lastName-error"
-                        className="flex items-center gap-1 text-sm text-destructive"
-                      >
-                        <X className="h-4 w-4" strokeWidth={1.75} />
-                        {errors.lastName.message}
-                      </p>
+                  <p
+                    id="password-status"
+                    className="auth-feedback-enter flex items-center gap-1 text-sm text-muted-foreground"
+                  >
+                    {passwordStrength >= 4 ? (
+                      <Check className="h-4 w-4 text-teal" strokeWidth={1.75} />
                     ) : null}
-                  </div>
+                    {passwordStatus}
+                  </p>
                 </div>
+              ) : null}
+            </div>
 
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="gender">Gender</Label>
-                    <Select
-                      defaultValue={defaultValues.gender}
-                      disabled={isBusy}
-                      onValueChange={(value) => {
-                        setValue(
-                          "gender",
-                          value as RegisterFormValues["gender"],
-                          {
-                            shouldDirty: true,
-                            shouldValidate: true,
-                          },
-                        );
-                        clearErrors("gender");
-                        setGlobalError("");
-                      }}
-                    >
-                      <SelectTrigger
-                        id="gender"
-                        className="h-11"
-                        aria-invalid={!!errors.gender}
-                        aria-describedby={
-                          errors.gender ? "gender-error" : undefined
-                        }
-                      >
-                        <SelectValue placeholder="Select gender" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="FEMALE">Female</SelectItem>
-                        <SelectItem value="MALE">Male</SelectItem>
-                        <SelectItem value="OTHER">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <input type="hidden" {...register("gender")} />
-                    {errors.gender ? (
-                      <p
-                        id="gender-error"
-                        className="flex items-center gap-1 text-sm text-destructive"
-                      >
-                        <X className="h-4 w-4" strokeWidth={1.75} />
-                        {errors.gender.message}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="dateOfBirth">Date of birth</Label>
-                    <Input
-                      id="dateOfBirth"
-                      type="date"
-                      autoComplete="bday"
-                      className="h-11"
-                      aria-invalid={!!errors.dateOfBirth}
-                      aria-describedby={
-                        errors.dateOfBirth ? "dateOfBirth-error" : undefined
-                      }
-                      disabled={isBusy}
-                      {...register("dateOfBirth", {
-                        onChange: () => {
-                          clearErrors("dateOfBirth");
-                          setGlobalError("");
-                        },
-                      })}
-                    />
-                    {errors.dateOfBirth ? (
-                      <p
-                        id="dateOfBirth-error"
-                        className="flex items-center gap-1 text-sm text-destructive"
-                      >
-                        <X className="h-4 w-4" strokeWidth={1.75} />
-                        {errors.dateOfBirth.message}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder="Create a strong password"
-                    className="h-11"
-                    aria-invalid={!!errors.password}
-                    aria-describedby={
-                      errors.password ? "password-error" : "password-status"
-                    }
-                    disabled={isBusy}
-                    {...register("password", {
-                      onChange: () => {
-                        clearErrors("password");
-                        setGlobalError("");
-                      },
-                    })}
-                  />
-                  {errors.password ? (
-                    <p
-                      id="password-error"
-                      className="flex items-center gap-1 text-sm text-destructive"
-                    >
-                      <X className="h-4 w-4" strokeWidth={1.75} />
-                      {errors.password.message}
-                    </p>
-                  ) : null}
-
-                  {password && !errors.password ? (
-                    <div className="space-y-2">
-                      <div className="flex gap-1" aria-hidden="true">
-                        {Array.from({ length: 5 }).map((_, index) => (
-                          <div
-                            key={index}
-                            className={`h-1.5 flex-1 rounded-full transition-colors ${
-                              index < passwordStrength
-                                ? strengthColor[passwordStrength - 1]
-                                : "bg-surface-raised"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <p
-                        id="password-status"
-                        className="flex items-center gap-1 text-sm text-muted-foreground"
-                      >
-                        {passwordStrength >= 4 ? (
-                          <Check
-                            className="h-4 w-4 text-teal"
-                            strokeWidth={1.75}
-                          />
-                        ) : null}
-                        {passwordStatus}
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder="Re-enter your password"
-                    className="h-11"
-                    aria-invalid={!!errors.confirmPassword}
-                    aria-describedby={
-                      errors.confirmPassword
-                        ? "confirmPassword-error"
-                        : "confirmPassword-status"
-                    }
-                    disabled={isBusy}
-                    {...register("confirmPassword", {
-                      onChange: () => {
-                        clearErrors("confirmPassword");
-                        setGlobalError("");
-                      },
-                    })}
-                  />
-                  {errors.confirmPassword ? (
-                    <p
-                      id="confirmPassword-error"
-                      className="flex items-center gap-1 text-sm text-destructive"
-                    >
-                      <X className="h-4 w-4" strokeWidth={1.75} />
-                      {errors.confirmPassword.message}
-                    </p>
-                  ) : null}
-                  {confirmPassword &&
-                  !errors.confirmPassword &&
-                  password === confirmPassword ? (
-                    <p
-                      id="confirmPassword-status"
-                      className="flex items-center gap-1 text-sm text-teal"
-                    >
-                      <Check className="h-4 w-4" strokeWidth={1.75} />
-                      Passwords match.
-                    </p>
-                  ) : null}
-                </div>
-
-                <div aria-live="polite" className="sr-only">
-                  {statusMessage}
-                </div>
-
-                <Button type="submit" className="h-11 w-full" disabled={isBusy}>
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating account
-                    </>
-                  ) : (
-                    "Create account"
-                  )}
-                </Button>
-              </form>
-            </CardHeader>
-
-            <CardContent className="px-8 pt-6 pb-8 space-y-5">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-card text-muted-foreground">
-                    Or continue with
-                  </span>
-                </div>
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 w-full"
-                onClick={handleGoogleRegister}
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm password</Label>
+              <PasswordInput
+                id="confirmPassword"
+                autoComplete="new-password"
+                placeholder="Re-enter your password"
+                className="h-11 bg-input-background/80 hover:border-primary/25 focus-visible:bg-card"
+                aria-invalid={!!errors.confirmPassword}
+                aria-describedby={
+                  errors.confirmPassword
+                    ? "confirmPassword-error"
+                    : "confirmPassword-status"
+                }
                 disabled={isBusy}
-              >
-                {isGoogleLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Connecting
-                  </>
-                ) : (
-                  "Continue with Google"
-                )}
-              </Button>
-
-              <p className="text-center text-sm text-muted-foreground">
-                Already have an account?{" "}
-                <button
-                  type="button"
-                  onClick={navigateToLogin}
-                  className="text-tag hover:underline font-medium"
-                  disabled={isBusy}
+                {...register("confirmPassword", {
+                  onChange: () => {
+                    clearErrors("confirmPassword");
+                    setGlobalError("");
+                  },
+                })}
+              />
+              {errors.confirmPassword ? (
+                <p
+                  id="confirmPassword-error"
+                  className="flex items-center gap-1 text-sm text-destructive"
                 >
-                  Sign in
-                </button>
-              </p>
-            </CardContent>
-          </Card>
+                  <X className="h-4 w-4" strokeWidth={1.75} />
+                  {errors.confirmPassword.message}
+                </p>
+              ) : null}
+              {confirmPassword &&
+              !errors.confirmPassword &&
+              password === confirmPassword ? (
+                <p
+                  id="confirmPassword-status"
+                  className="auth-feedback-enter flex items-center gap-1 text-sm text-teal"
+                >
+                  <Check className="h-4 w-4" strokeWidth={1.75} />
+                  Passwords match.
+                </p>
+              ) : null}
+            </div>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            By creating an account, you agree to ScholarTrend access policies
-            for research metadata and dashboard features.
+            <div aria-live="polite" className="sr-only">
+              {statusMessage}
+            </div>
+
+            <Button
+              type="submit"
+              className="auth-clickable h-11 w-full"
+              disabled={isBusy}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating account
+                </>
+              ) : (
+                "Create account"
+              )}
+            </Button>
+          </form>
+        </CardHeader>
+
+        <CardContent className="px-8 pt-6 pb-8 space-y-5">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-card text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="auth-clickable h-11 w-full"
+            onClick={handleGoogleRegister}
+            disabled={isBusy}
+          >
+            {isGoogleLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Connecting
+              </>
+            ) : (
+              "Continue with Google"
+            )}
+          </Button>
+
+          <p className="text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <button
+              type="button"
+              onClick={navigateToLogin}
+              className="auth-link disabled:pointer-events-none disabled:opacity-50"
+              disabled={isBusy}
+            >
+              Sign in
+            </button>
           </p>
-        </div>
-      </div>
-    </div>
+        </CardContent>
+      </Card>
+
+      <p className="mt-6 text-center text-sm text-muted-foreground">
+        By creating an account, you agree to {APP_NAME} access policies for
+        research metadata and dashboard features.
+      </p>
+    </AuthShell>
   );
 }

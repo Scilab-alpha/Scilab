@@ -1,3 +1,5 @@
+import type { UserRole } from "@/features/auth/types/auth.types";
+
 export const routes = {
   auth: {
     login: "/auth/login",
@@ -22,3 +24,7 @@ export const routes = {
     systemHealth: "/admin/system-health",
   },
 } as const;
+
+export function getPostLoginPath(role: UserRole) {
+  return role === "admin" ? routes.admin.users : routes.student.dashboard;
+}

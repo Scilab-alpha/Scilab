@@ -6,6 +6,7 @@ import { LogOut, Shield } from "lucide-react";
 import { ADMIN_NAV_ITEMS } from "@/shared/constants/admin-nav";
 import { ROLE_LABELS } from "@/shared/constants/permissions";
 import PageContainer from "@/shared/components/layout/PageContainer";
+import { APP_NAME } from "@/shared/constants/app";
 import { useAuth } from "@/providers/auth-provider";
 
 interface AdminShellProps {
@@ -44,7 +45,7 @@ export default function AdminShell({
           </div>
           <div>
             <span className="font-heading text-lg text-foreground">
-              ScholarTrend
+              {APP_NAME}
             </span>
             <p className="text-xs text-muted-foreground">
               {user ? ROLE_LABELS[user.role] : "Admin Panel"}

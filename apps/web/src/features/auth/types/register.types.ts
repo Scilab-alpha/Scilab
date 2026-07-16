@@ -16,16 +16,9 @@ export type AuthUser = {
   displayName: string;
 };
 
-export type AuthSession = {
-  accessToken: string;
-  refreshToken?: string;
-  expiresAt?: string;
-};
-
 export type RegisterResponse = {
   user: import("@/features/auth/types/auth.types").AuthUser;
   role: import("@/features/auth/types/auth.types").UserRole;
-  session: import("@/features/auth/types/auth.types").AuthSession;
 };
 
 export type RegisterFieldErrors = Partial<

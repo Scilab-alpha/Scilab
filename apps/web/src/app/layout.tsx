@@ -3,11 +3,16 @@ import { ThemeProvider } from "@/providers/theme-provider";
 import { AuthProvider } from "@/providers/auth-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import { Toaster } from "@/shared/components/ui/sonner";
+import { APP_NAME } from "@/shared/constants/app";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ScholarTrend",
-  description: "Research Intelligence Platform",
+  title: {
+    default: APP_NAME,
+    template: `%s | ${APP_NAME}`,
+  },
+  description:
+    "Scilab helps students and researchers discover journals, articles, and scientific publication trends.",
 };
 
 export default function RootLayout({
