@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Prisma } from '@prisma/client';
 import { PrismaNotificationRepository } from '@/notification/infrastructure/persistence/prisma-notification.repository';
-import { PrismaService } from '@/prisma/prisma.service';
+import { PrismaService } from '@repo/database';
 
 const userId = '11111111-1111-4111-8111-111111111111';
 const articleId = '22222222-2222-4222-8222-222222222222';

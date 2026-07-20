@@ -11,6 +11,10 @@ interface RouteGuardProps {
   children: React.ReactNode;
 }
 
+/**
+ * Lets the route mount immediately so pages can show their own API loading UI.
+ * Redirects only after the session check finishes.
+ */
 export default function RouteGuard({ children }: RouteGuardProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -35,18 +39,15 @@ export default function RouteGuard({ children }: RouteGuardProps) {
     }
   }, [pathname, user, isLoading, router]);
 
+  // Session still resolving — render the page so it can show API loading.
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <>{children}</>;
   }
 
   const { allowed } = canAccessRoute(pathname, user?.role ?? null);
   if (!allowed) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex-1 flex items-center justify-center min-h-[50vh]">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );

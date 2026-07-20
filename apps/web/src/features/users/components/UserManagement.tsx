@@ -239,7 +239,7 @@ export default function UserManagement() {
   };
 
   return (
-    <AdminShell
+    <AdminPageFrame
       title="User Management"
       subtitle={
         String(filteredUsers.length) +
@@ -264,6 +264,16 @@ export default function UserManagement() {
             }
           />
           <span className="hidden sm:inline">Refresh</span>
+        </Button>
+      }
+      headerAction={
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isLoading || isMutating}
+          onClick={() => void reload()}
+        >
+          Refresh
         </Button>
       }
     >

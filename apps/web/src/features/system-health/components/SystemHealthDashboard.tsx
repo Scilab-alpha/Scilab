@@ -10,8 +10,6 @@ import {
   FileText,
   Hash,
   RefreshCw,
-  ServerCrash,
-  Timer,
   TrendingUp,
   Users,
   Wifi,
@@ -31,10 +29,11 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import AdminShell from "@/shared/components/layout/AdminShell";
+import AdminPageFrame from "@/shared/components/layout/AdminPageFrame";
+import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
-import { mockSystemHealth } from "@/features/system-health/api/mockSystemHealth";
+import { useSystemHealth } from "@/features/system-health/hooks/use-system-health";
 import type {
   ErrorSeverity,
   PlatformMetric,
@@ -148,12 +147,12 @@ function MetricWidget({ metric }: { metric: PlatformMetric }) {
 }
 
 export default function SystemHealthDashboard() {
-  const data = mockSystemHealth;
-  const overall = getOverallStatus(data.overallStatus);
+  const { data, isLoading, error, reload } = useSystemHealth();
+  const overall = data ? getOverallStatus(data.overallStatus) : null;
 
   const failedSyncs = useMemo(
-    () => data.syncJobs.filter((job) => job.status === "failed").length,
-    [data.syncJobs],
+    () => data?.syncJobs.filter((job) => job.status === "failed").length ?? 0,
+    [data?.syncJobs],
   );
 
   const chartTooltipStyle = {
@@ -165,9 +164,13 @@ export default function SystemHealthDashboard() {
   };
 
   return (
-    <AdminShell
+    <AdminPageFrame
       title="System Health"
-      subtitle={`${data.uptimePercent}% uptime · last 24 hours`}
+      subtitle={
+        data
+          ? `${data.uptimePercent}% probe success · live API checks`
+          : "Checking SciLab services…"
+      }
       icon={
         <Activity
           className="w-5 h-5 text-primary-foreground"
@@ -175,445 +178,448 @@ export default function SystemHealthDashboard() {
         />
       }
       headerAction={
-        <Button variant="outline" className="bg-card">
+        <Button
+          variant="outline"
+          className="bg-card"
+          disabled={isLoading}
+          onClick={() => void reload()}
+        >
           <RefreshCw className="w-4 h-4" />
           Refresh
         </Button>
       }
     >
-      <div className="space-y-6">
-        {/* Status banner */}
-        <Card className="p-4 border-border bg-card">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-3">
-              <span
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium ${overall.className}`}
-              >
-                <span
-                  className={`w-2 h-2 rounded-full ${overall.dot} animate-pulse`}
-                />
-                {overall.label}
-              </span>
-              <span className="text-sm text-muted-foreground">
-                Monitoring ingestion pipelines, API adapters, and platform
-                services
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-3 text-sm">
-              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                <Wifi className="w-4 h-4 text-teal" />
-                {
-                  data.syncJobs.filter((j) => j.status === "success").length
-                }{" "}
-                syncs OK
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                <Timer className="w-4 h-4 text-amber-600" />
-                {
-                  data.syncJobs.filter((j) => j.status === "delayed").length
-                }{" "}
-                delayed
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                <WifiOff className="w-4 h-4 text-red-600" />
-                {failedSyncs} failed
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                <ServerCrash className="w-4 h-4 text-red-600" />
-                {data.apiFailures.length} API failures
-              </span>
-            </div>
-          </div>
+      {error && (
+        <Card className="p-4 border-border mb-6">
+          <p className="text-sm text-destructive mb-3">{error}</p>
+          <Button variant="outline" size="sm" onClick={() => void reload()}>
+            Try again
+          </Button>
         </Card>
+      )}
 
-        {/* Platform metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {data.metrics.map((metric) => (
-            <MetricWidget key={metric.id} metric={metric} />
-          ))}
-        </div>
+      {isLoading && <RouteDataLoading label="Probing system health…" />}
 
-        {/* Charts row */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <Card className="p-5 border-border bg-card xl:col-span-1">
-            <div className="mb-4">
-              <h3 className="text-sm font-semibold text-foreground">
-                Sync Performance
-              </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Records synced vs duration (24h)
-              </p>
+      {!isLoading && data && overall && (
+        <div className="space-y-6">
+          {/* Status banner */}
+          <Card className="p-4 border-border bg-card">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-center gap-3">
+                <span
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium ${overall.className}`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full ${overall.dot} animate-pulse`}
+                  />
+                  {overall.label}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  Live probes against academic catalog and user admin APIs
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-3 text-sm">
+                <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                  <Wifi className="w-4 h-4 text-teal" />
+                  {data.uptimePercent}% healthy
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                  <WifiOff className="w-4 h-4 text-destructive" />
+                  {failedSyncs} failed probes
+                </span>
+              </div>
             </div>
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={data.syncPerformance}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#f1f5f9"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="time"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#94a3b8", fontSize: 11 }}
-                />
-                <YAxis
-                  yAxisId="left"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#94a3b8", fontSize: 11 }}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#94a3b8", fontSize: 11 }}
-                  unit="s"
-                />
-                <Tooltip contentStyle={chartTooltipStyle} />
-                <Line
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="records"
-                  stroke="#D3AB9E"
-                  strokeWidth={1.75}
-                  dot={false}
-                  name="Records"
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="duration"
-                  stroke="#3AC9C1"
-                  strokeWidth={1.75}
-                  dot={false}
-                  name="Duration (s)"
-                />
-              </LineChart>
-            </ResponsiveContainer>
           </Card>
 
-          <Card className="p-5 border-border bg-card xl:col-span-1">
-            <div className="mb-4">
-              <h3 className="text-sm font-semibold text-foreground">
-                Data Growth
-              </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Platform catalog expansion (6 months)
-              </p>
-            </div>
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={data.dataGrowth}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="var(--border)"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-                  tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
-                />
-                <Tooltip contentStyle={chartTooltipStyle} />
-                <Area
-                  type="monotone"
-                  dataKey="articles"
-                  stroke="#D3AB9E"
-                  strokeWidth={1.75}
-                  fill="#D3AB9E"
-                  fillOpacity={0.15}
-                  name="Articles"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="journals"
-                  stroke="#3AC9C1"
-                  strokeWidth={1.75}
-                  dot={false}
-                  name="Journals"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </Card>
+          {/* Platform metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            {data.metrics.map((metric) => (
+              <MetricWidget key={metric.id} metric={metric} />
+            ))}
+          </div>
 
-          <Card className="p-5 border-border bg-card xl:col-span-1">
-            <div className="mb-4">
-              <h3 className="text-sm font-semibold text-foreground">
-                API Availability
-              </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Provider uptime % (24h rolling)
-              </p>
-            </div>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={data.apiAvailability}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#f1f5f9"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="hour"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#94a3b8", fontSize: 11 }}
-                />
-                <YAxis
-                  domain={[94, 100]}
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#94a3b8", fontSize: 11 }}
-                  unit="%"
-                />
-                <Tooltip contentStyle={chartTooltipStyle} />
-                <Legend wrapperStyle={{ fontSize: "11px" }} />
-                <Bar
-                  dataKey="openalex"
-                  fill="#D3AB9E"
-                  radius={[2, 2, 0, 0]}
-                  name="OpenAlex"
-                />
-                <Bar
-                  dataKey="crossref"
-                  fill="#3AC9C1"
-                  radius={[2, 2, 0, 0]}
-                  name="Crossref"
-                />
-                <Bar
-                  dataKey="semanticScholar"
-                  fill="#8AAFA8"
-                  radius={[2, 2, 0, 0]}
-                  name="Semantic Scholar"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
-        </div>
-
-        {/* Sync monitoring + Error summary */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <Card className="border-border bg-card overflow-hidden">
-            <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-              <div>
+          {/* Charts row */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <Card className="p-5 border-border bg-card xl:col-span-1">
+              <div className="mb-4">
                 <h3 className="text-sm font-semibold text-foreground">
-                  Sync Monitoring
+                  Sync Performance
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Ingestion jobs across data providers
+                  Records synced vs duration (24h)
                 </p>
               </div>
-              <TrendingUp className="w-4 h-4 text-muted-foreground" />
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-background border-b border-border">
-                    <th className="text-left py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Source
-                    </th>
-                    <th className="text-left py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Last Sync
-                    </th>
-                    <th className="text-left py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="text-right py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Records Updated
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {data.syncJobs.map((job) => (
-                    <tr key={job.id} className="hover:bg-background/80">
-                      <td className="py-3.5 px-6 font-medium text-foreground">
-                        {job.source}
-                      </td>
-                      <td className="py-3.5 px-6 text-muted-foreground font-mono text-xs">
-                        {formatTimestamp(job.lastSyncTime)}
-                      </td>
-                      <td className="py-3.5 px-6">
-                        <span
-                          className={`inline-flex px-2.5 py-1 rounded-full border text-xs font-medium capitalize ${getSyncStatusStyles(job.status)}`}
-                        >
-                          {job.status}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-6 text-right">
-                        <span className="font-semibold text-foreground">
-                          {formatNumber(job.recordsUpdated)}
-                        </span>
-                        <span className="text-xs text-muted-foreground ml-2">
-                          {formatDuration(job.durationMs)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={data.syncPerformance}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#f1f5f9"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="time"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  />
+                  <YAxis
+                    yAxisId="left"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#94a3b8", fontSize: 11 }}
+                    unit="s"
+                  />
+                  <Tooltip contentStyle={chartTooltipStyle} />
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="records"
+                    stroke="#D3AB9E"
+                    strokeWidth={1.75}
+                    dot={false}
+                    name="Records"
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="duration"
+                    stroke="#3AC9C1"
+                    strokeWidth={1.75}
+                    dot={false}
+                    name="Duration (s)"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </Card>
 
-          <Card className="border-border bg-card overflow-hidden">
-            <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-              <div>
+            <Card className="p-5 border-border bg-card xl:col-span-1">
+              <div className="mb-4">
                 <h3 className="text-sm font-semibold text-foreground">
-                  Recent Failures
+                  Data Growth
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Latest pipeline and sync incidents
+                  Platform catalog expansion (6 months)
                 </p>
               </div>
-              <AlertCircle className="w-4 h-4 text-red-500" />
-            </div>
-            <div className="divide-y divide-border">
-              {data.recentFailures.map((failure) => (
-                <div
-                  key={failure.id}
-                  className="px-6 py-4 hover:bg-background/80"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-foreground">
-                          {failure.service}
-                        </span>
-                        <span
-                          className={`inline-flex px-2 py-0.5 rounded border text-[10px] font-semibold uppercase tracking-wide ${getSeverityStyles(failure.severity)}`}
-                        >
-                          {failure.severity}
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {failure.message}
-                      </p>
-                    </div>
-                    <span className="text-[11px] font-mono text-muted-foreground flex-shrink-0">
-                      {formatTimestamp(failure.timestamp)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={data.dataGrowth}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--border)"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="month"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+                    tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                  />
+                  <Tooltip contentStyle={chartTooltipStyle} />
+                  <Area
+                    type="monotone"
+                    dataKey="articles"
+                    stroke="#D3AB9E"
+                    strokeWidth={1.75}
+                    fill="#D3AB9E"
+                    fillOpacity={0.15}
+                    name="Articles"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="journals"
+                    stroke="#3AC9C1"
+                    strokeWidth={1.75}
+                    dot={false}
+                    name="Journals"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </Card>
 
-        {/* Error logs + API failures */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <Card className="border-border bg-card overflow-hidden">
-            <div className="px-6 py-4 border-b border-border bg-surface-raised">
-              <h3 className="font-heading text-sm text-foreground font-mono">
-                Error Logs
-              </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Live platform event stream
-              </p>
-            </div>
-            <div className="bg-background max-h-[320px] overflow-y-auto">
-              {data.errorLogs.map((log) => (
-                <div
-                  key={log.id}
-                  className="px-4 py-3 border-b border-border font-mono text-xs hover:bg-accent/50"
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-muted-foreground">
-                      {formatTimestamp(log.timestamp)}
-                    </span>
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-[10px] uppercase ${
-                        log.severity === "critical"
-                          ? "bg-destructive/10 text-destructive"
-                          : log.severity === "warning"
-                            ? "bg-primary/15 text-tag"
-                            : "bg-teal/10 text-teal"
-                      }`}
-                    >
-                      {log.severity}
-                    </span>
-                    <span className="text-tag">[{log.service}]</span>
-                  </div>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {log.message}
+            <Card className="p-5 border-border bg-card xl:col-span-1">
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-foreground">
+                  API Availability
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Provider uptime % (24h rolling)
+                </p>
+              </div>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={data.apiAvailability}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#f1f5f9"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="hour"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  />
+                  <YAxis
+                    domain={[94, 100]}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#94a3b8", fontSize: 11 }}
+                    unit="%"
+                  />
+                  <Tooltip contentStyle={chartTooltipStyle} />
+                  <Legend wrapperStyle={{ fontSize: "11px" }} />
+                  <Bar
+                    dataKey="openalex"
+                    fill="#D3AB9E"
+                    radius={[2, 2, 0, 0]}
+                    name="OpenAlex"
+                  />
+                  <Bar
+                    dataKey="crossref"
+                    fill="#3AC9C1"
+                    radius={[2, 2, 0, 0]}
+                    name="Crossref"
+                  />
+                  <Bar
+                    dataKey="semanticScholar"
+                    fill="#8AAFA8"
+                    radius={[2, 2, 0, 0]}
+                    name="Semantic Scholar"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+          </div>
+
+          {/* Sync monitoring + Error summary */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <Card className="border-border bg-card overflow-hidden">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Sync Monitoring
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Ingestion jobs across data providers
                   </p>
                 </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card className="border-border bg-card overflow-hidden">
-            <div className="px-6 py-4 border-b border-border">
-              <h3 className="text-sm font-semibold text-foreground">
-                API Failures
-              </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                External provider errors (last 24h)
-              </p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-background border-b border-border">
-                    <th className="text-left py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Provider
-                    </th>
-                    <th className="text-left py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Endpoint
-                    </th>
-                    <th className="text-left py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Code
-                    </th>
-                    <th className="text-left py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Time
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {data.apiFailures.map((failure) => (
-                    <tr key={failure.id} className="hover:bg-background/80">
-                      <td className="py-3.5 px-6 font-medium text-foreground">
-                        {failure.provider}
-                      </td>
-                      <td className="py-3.5 px-6 font-mono text-xs text-muted-foreground">
-                        {failure.endpoint}
-                      </td>
-                      <td className="py-3.5 px-6">
-                        <span
-                          className={`inline-flex px-2 py-0.5 rounded text-xs font-bold font-mono ${
-                            failure.statusCode >= 500
-                              ? "bg-red-50 text-red-700"
-                              : failure.statusCode === 429
-                                ? "bg-amber-50 text-amber-700"
-                                : "bg-surface-raised text-muted-foreground"
-                          }`}
-                        >
-                          {failure.statusCode}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-6 text-xs font-mono text-muted-foreground">
-                        {formatTimestamp(failure.timestamp)}
-                      </td>
+                <TrendingUp className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-background border-b border-border">
+                      <th className="text-left py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Source
+                      </th>
+                      <th className="text-left py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Last Sync
+                      </th>
+                      <th className="text-left py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="text-right py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Records Updated
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="px-6 py-3 border-t border-border bg-background">
-              <p className="text-xs text-muted-foreground">
-                {failureSummary(data.apiFailures.length)} — correlate with API
-                Sources configuration
-              </p>
-            </div>
-          </Card>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {data.syncJobs.map((job) => (
+                      <tr key={job.id} className="hover:bg-background/80">
+                        <td className="py-3.5 px-6 font-medium text-foreground">
+                          {job.source}
+                        </td>
+                        <td className="py-3.5 px-6 text-muted-foreground font-mono text-xs">
+                          {formatTimestamp(job.lastSyncTime)}
+                        </td>
+                        <td className="py-3.5 px-6">
+                          <span
+                            className={`inline-flex px-2.5 py-1 rounded-full border text-xs font-medium capitalize ${getSyncStatusStyles(job.status)}`}
+                          >
+                            {job.status}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-6 text-right">
+                          <span className="font-semibold text-foreground">
+                            {formatNumber(job.recordsUpdated)}
+                          </span>
+                          <span className="text-xs text-muted-foreground ml-2">
+                            {formatDuration(job.durationMs)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+
+            <Card className="border-border bg-card overflow-hidden">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Recent Failures
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Latest pipeline and sync incidents
+                  </p>
+                </div>
+                <AlertCircle className="w-4 h-4 text-red-500" />
+              </div>
+              <div className="divide-y divide-border">
+                {data.recentFailures.map((failure) => (
+                  <div
+                    key={failure.id}
+                    className="px-6 py-4 hover:bg-background/80"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-foreground">
+                            {failure.service}
+                          </span>
+                          <span
+                            className={`inline-flex px-2 py-0.5 rounded border text-[10px] font-semibold uppercase tracking-wide ${getSeverityStyles(failure.severity)}`}
+                          >
+                            {failure.severity}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {failure.message}
+                        </p>
+                      </div>
+                      <span className="text-[11px] font-mono text-muted-foreground flex-shrink-0">
+                        {formatTimestamp(failure.timestamp)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+
+          {/* Error logs + API failures */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <Card className="border-border bg-card overflow-hidden">
+              <div className="px-6 py-4 border-b border-border bg-surface-raised">
+                <h3 className="font-heading text-sm text-foreground font-mono">
+                  Error Logs
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Live platform event stream
+                </p>
+              </div>
+              <div className="bg-background max-h-[320px] overflow-y-auto">
+                {data.errorLogs.map((log) => (
+                  <div
+                    key={log.id}
+                    className="px-4 py-3 border-b border-border font-mono text-xs hover:bg-accent/50"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-muted-foreground">
+                        {formatTimestamp(log.timestamp)}
+                      </span>
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[10px] uppercase ${
+                          log.severity === "critical"
+                            ? "bg-destructive/10 text-destructive"
+                            : log.severity === "warning"
+                              ? "bg-primary/15 text-tag"
+                              : "bg-teal/10 text-teal"
+                        }`}
+                      >
+                        {log.severity}
+                      </span>
+                      <span className="text-tag">[{log.service}]</span>
+                    </div>
+                    <p className="text-muted-foreground leading-relaxed">
+                      {log.message}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card className="border-border bg-card overflow-hidden">
+              <div className="px-6 py-4 border-b border-border">
+                <h3 className="text-sm font-semibold text-foreground">
+                  API Failures
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  External provider errors (last 24h)
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-background border-b border-border">
+                      <th className="text-left py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Provider
+                      </th>
+                      <th className="text-left py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Endpoint
+                      </th>
+                      <th className="text-left py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Code
+                      </th>
+                      <th className="text-left py-3 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Time
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {data.apiFailures.map((failure) => (
+                      <tr key={failure.id} className="hover:bg-background/80">
+                        <td className="py-3.5 px-6 font-medium text-foreground">
+                          {failure.provider}
+                        </td>
+                        <td className="py-3.5 px-6 font-mono text-xs text-muted-foreground">
+                          {failure.endpoint}
+                        </td>
+                        <td className="py-3.5 px-6">
+                          <span
+                            className={`inline-flex px-2 py-0.5 rounded text-xs font-bold font-mono ${
+                              failure.statusCode >= 500
+                                ? "bg-red-50 text-red-700"
+                                : failure.statusCode === 429
+                                  ? "bg-amber-50 text-amber-700"
+                                  : "bg-surface-raised text-muted-foreground"
+                            }`}
+                          >
+                            {failure.statusCode}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-6 text-xs font-mono text-muted-foreground">
+                          {formatTimestamp(failure.timestamp)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-6 py-3 border-t border-border bg-background">
+                <p className="text-xs text-muted-foreground">
+                  {failureSummary(data.apiFailures.length)} — correlate with API
+                  Sources configuration
+                </p>
+              </div>
+            </Card>
+          </div>
         </div>
-      </div>
-    </AdminShell>
+      )}
+    </AdminPageFrame>
   );
 }
 

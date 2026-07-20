@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { AuthProvider } from "@/providers/auth-provider";
 import { QueryProvider } from "@/providers/query-provider";
+import { RealtimeNotificationsProvider } from "@/providers/realtime-notifications-provider";
 import { Toaster } from "@/shared/components/ui/sonner";
 import { APP_NAME } from "@/shared/constants/app";
 import "./globals.css";
@@ -30,9 +31,13 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <QueryProvider>
-            <AuthProvider>{children}</AuthProvider>
+            <AuthProvider>
+              <RealtimeNotificationsProvider>
+                {children}
+              </RealtimeNotificationsProvider>
+            </AuthProvider>
           </QueryProvider>
-          <Toaster />
+          <Toaster richColors position="top-right" closeButton />
         </ThemeProvider>
       </body>
     </html>

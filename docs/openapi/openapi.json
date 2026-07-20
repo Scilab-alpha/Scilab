@@ -25,6 +25,10 @@
       "description": "Public academic article and journal discovery."
     },
     {
+      "name": "Academic Graph",
+      "description": "Public graph exploration for OpenAlex related academic articles."
+    },
+    {
       "name": "Bookmarks",
       "description": "Authenticated user article bookmarks."
     },
@@ -50,9 +54,7 @@
       "post": {
         "summary": "Register a student account",
         "operationId": "register",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "requestBody": {
           "required": true,
           "content": {
@@ -87,9 +89,7 @@
       "post": {
         "summary": "Sign in with credentials",
         "operationId": "login",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "requestBody": {
           "required": true,
           "content": {
@@ -127,9 +127,7 @@
       "post": {
         "summary": "Refresh access and refresh tokens",
         "operationId": "refreshTokens",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "requestBody": {
           "required": true,
           "content": {
@@ -164,9 +162,7 @@
       "get": {
         "summary": "Return the authenticated user",
         "operationId": "getCurrentUser",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [
           {
             "bearerAuth": []
@@ -193,9 +189,7 @@
       "post": {
         "summary": "Revoke the current authenticated session",
         "operationId": "logout",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [
           {
             "bearerAuth": []
@@ -222,9 +216,7 @@
       "get": {
         "summary": "Search and filter academic articles with cursor pagination",
         "operationId": "listAcademicArticles",
-        "tags": [
-          "Academic"
-        ],
+        "tags": ["Academic"],
         "parameters": [
           {
             "$ref": "#/components/parameters/AcademicQuery"
@@ -287,9 +279,7 @@
       "get": {
         "summary": "Return one academic article by id",
         "operationId": "getAcademicArticleById",
-        "tags": [
-          "Academic"
-        ],
+        "tags": ["Academic"],
         "parameters": [
           {
             "$ref": "#/components/parameters/ArticleId"
@@ -312,13 +302,51 @@
         }
       }
     },
+    "/academic/graphs/article/{id}": {
+      "get": {
+        "summary": "Return a graph of OpenAlex related academic articles",
+        "operationId": "getAcademicArticleGraph",
+        "tags": ["Academic Graph"],
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AcademicGraphArticleId"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicCursor"
+          },
+          {
+            "$ref": "#/components/parameters/AcademicLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Article graph retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcademicArticleGraphVisualizationResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/AcademicArticleGraphInvalid"
+          },
+          "404": {
+            "$ref": "#/components/responses/ArticleNotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/academic/authors": {
       "get": {
         "summary": "List academic authors with cursor pagination",
         "operationId": "listAcademicAuthors",
-        "tags": [
-          "Academic"
-        ],
+        "tags": ["Academic"],
         "parameters": [
           {
             "$ref": "#/components/parameters/AcademicCursor"
@@ -348,9 +376,7 @@
       "get": {
         "summary": "Return one academic author by id",
         "operationId": "getAcademicAuthorById",
-        "tags": [
-          "Academic"
-        ],
+        "tags": ["Academic"],
         "parameters": [
           {
             "$ref": "#/components/parameters/AuthorId"
@@ -377,9 +403,7 @@
       "get": {
         "summary": "List academic journals with cursor pagination",
         "operationId": "listAcademicJournals",
-        "tags": [
-          "Academic"
-        ],
+        "tags": ["Academic"],
         "parameters": [
           {
             "$ref": "#/components/parameters/AcademicCursor"
@@ -409,9 +433,7 @@
       "get": {
         "summary": "Return one academic journal by id",
         "operationId": "getAcademicJournalById",
-        "tags": [
-          "Academic"
-        ],
+        "tags": ["Academic"],
         "parameters": [
           {
             "$ref": "#/components/parameters/JournalId"
@@ -438,9 +460,7 @@
       "get": {
         "summary": "Return the authenticated user profile",
         "operationId": "getMyUser",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "security": [
           {
             "bearerAuth": []
@@ -468,9 +488,7 @@
       "patch": {
         "summary": "Update the authenticated user profile",
         "operationId": "patchMyUser",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "security": [
           {
             "bearerAuth": []
@@ -516,9 +534,7 @@
       "get": {
         "summary": "List users for admin management",
         "operationId": "listUsers",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "security": [
           {
             "bearerAuth": []
@@ -548,9 +564,7 @@
       "get": {
         "summary": "Return one user for admin management",
         "operationId": "getUserById",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "security": [
           {
             "bearerAuth": []
@@ -586,9 +600,7 @@
       "patch": {
         "summary": "Update one user profile for admin management",
         "operationId": "patchUserById",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "security": [
           {
             "bearerAuth": []
@@ -640,9 +652,7 @@
       "delete": {
         "summary": "Delete one user for admin management",
         "operationId": "deleteUserById",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "security": [
           {
             "bearerAuth": []
@@ -680,9 +690,7 @@
       "patch": {
         "summary": "Update one user role for admin management",
         "operationId": "patchUserRole",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "security": [
           {
             "bearerAuth": []
@@ -733,9 +741,7 @@
       "patch": {
         "summary": "Update one user status for admin management",
         "operationId": "patchUserStatus",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "security": [
           {
             "bearerAuth": []
@@ -786,9 +792,7 @@
       "get": {
         "summary": "List SCImago journal rankings for one exact year",
         "operationId": "listAcademicJournalRankings",
-        "tags": [
-          "Academic"
-        ],
+        "tags": ["Academic"],
         "parameters": [
           {
             "$ref": "#/components/parameters/AcademicRankingYear"
@@ -824,9 +828,7 @@
       "get": {
         "summary": "List current user bookmarks",
         "operationId": "listBookmarks",
-        "tags": [
-          "Bookmarks"
-        ],
+        "tags": ["Bookmarks"],
         "security": [
           {
             "bearerAuth": []
@@ -858,15 +860,54 @@
             "$ref": "#/components/responses/Unauthorized"
           }
         }
+      },
+      "post": {
+        "summary": "Toggle a bookmark for one article",
+        "operationId": "createBookmark",
+        "tags": ["Bookmarks"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToggleBookmarkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bookmark toggled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToggleBookmarkResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BookmarkInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/ArticleNotFound"
+          }
+        }
       }
     },
     "/bookmarks/toggle": {
       "post": {
         "summary": "Toggle a bookmark for one article",
         "operationId": "toggleBookmark",
-        "tags": [
-          "Bookmarks"
-        ],
+        "tags": ["Bookmarks"],
         "security": [
           {
             "bearerAuth": []
@@ -909,9 +950,7 @@
       "get": {
         "summary": "List current user follows",
         "operationId": "listFollows",
-        "tags": [
-          "Follows"
-        ],
+        "tags": ["Follows"],
         "security": [
           {
             "bearerAuth": []
@@ -952,9 +991,7 @@
       "post": {
         "summary": "Toggle follow for a journal, keyword, or topic",
         "operationId": "toggleFollow",
-        "tags": [
-          "Follows"
-        ],
+        "tags": ["Follows"],
         "security": [
           {
             "bearerAuth": []
@@ -997,9 +1034,7 @@
       "patch": {
         "summary": "Update notification mode for a followed target",
         "operationId": "updateFollowNotifyMode",
-        "tags": [
-          "Follows"
-        ],
+        "tags": ["Follows"],
         "security": [
           {
             "bearerAuth": []
@@ -1050,9 +1085,7 @@
       "get": {
         "summary": "Subscribe to current user realtime events",
         "operationId": "subscribeEvents",
-        "tags": [
-          "Events"
-        ],
+        "tags": ["Events"],
         "description": "Bearer-authenticated Server-Sent Events stream for current-user activity. Events are best-effort and are not replayed after reconnect.",
         "security": [
           {
@@ -1066,12 +1099,7 @@
               "text/event-stream": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "eventId",
-                    "occurredAt",
-                    "type",
-                    "data"
-                  ],
+                  "required": ["eventId", "occurredAt", "type", "data"],
                   "additionalProperties": false,
                   "properties": {
                     "eventId": {
@@ -1113,9 +1141,7 @@
       "get": {
         "summary": "List current user notifications",
         "operationId": "listNotifications",
-        "tags": [
-          "Notifications"
-        ],
+        "tags": ["Notifications"],
         "security": [
           {
             "bearerAuth": []
@@ -1156,9 +1182,7 @@
       "get": {
         "summary": "Get current user unread notification count",
         "operationId": "getUnreadNotificationCount",
-        "tags": [
-          "Notifications"
-        ],
+        "tags": ["Notifications"],
         "security": [
           {
             "bearerAuth": []
@@ -1185,9 +1209,7 @@
       "patch": {
         "summary": "Mark one notification as read",
         "operationId": "markNotificationRead",
-        "tags": [
-          "Notifications"
-        ],
+        "tags": ["Notifications"],
         "security": [
           {
             "bearerAuth": []
@@ -1225,9 +1247,7 @@
       "patch": {
         "summary": "Mark all current user notifications as read",
         "operationId": "markAllNotificationsRead",
-        "tags": [
-          "Notifications"
-        ],
+        "tags": ["Notifications"],
         "security": [
           {
             "bearerAuth": []
@@ -1254,9 +1274,7 @@
       "post": {
         "summary": "Register current user push device",
         "operationId": "registerPushDevice",
-        "tags": [
-          "Push"
-        ],
+        "tags": ["Push"],
         "security": [
           {
             "bearerAuth": []
@@ -1296,9 +1314,7 @@
       "post": {
         "summary": "Unregister current user push device",
         "operationId": "unregisterPushDevice",
-        "tags": [
-          "Push"
-        ],
+        "tags": ["Push"],
         "security": [
           {
             "bearerAuth": []
@@ -1350,6 +1366,15 @@
         "name": "articleId",
         "in": "path",
         "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "AcademicGraphArticleId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "OpenAlex work identifier for the hydrated root article.",
         "schema": {
           "type": "string"
         }
@@ -1475,11 +1500,7 @@
         "description": "Defaults to relevant for research queries and newest otherwise.",
         "schema": {
           "type": "string",
-          "enum": [
-            "relevant",
-            "newest",
-            "most_cited"
-          ]
+          "enum": ["relevant", "newest", "most_cited"]
         }
       },
       "AcademicLimit": {
@@ -1826,6 +1847,51 @@
           }
         }
       },
+      "AcademicArticleGraphInvalid": {
+        "description": "Article graph query is invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "invalidLimit": {
+                "value": {
+                  "success": false,
+                  "message": "limit must be an integer between 1 and 100",
+                  "data": {}
+                }
+              },
+              "invalidCursor": {
+                "value": {
+                  "success": false,
+                  "message": "cursor is invalid for this article graph",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "The server could not retrieve the article graph.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponseEnvelope"
+            },
+            "examples": {
+              "error": {
+                "value": {
+                  "success": false,
+                  "message": "Internal server error",
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      },
       "ArticleNotFound": {
         "description": "Article not found.",
         "content": {
@@ -2077,11 +2143,7 @@
     "schemas": {
       "ApiResponseBase": {
         "type": "object",
-        "required": [
-          "success",
-          "message",
-          "data"
-        ],
+        "required": ["success", "message", "data"],
         "additionalProperties": false,
         "properties": {
           "success": {
@@ -2144,10 +2206,7 @@
       },
       "LoginRequest": {
         "type": "object",
-        "required": [
-          "email",
-          "password"
-        ],
+        "required": ["email", "password"],
         "additionalProperties": false,
         "properties": {
           "email": {
@@ -2167,9 +2226,7 @@
       },
       "RefreshRequest": {
         "type": "object",
-        "required": [
-          "refreshToken"
-        ],
+        "required": ["refreshToken"],
         "additionalProperties": false,
         "properties": {
           "refreshToken": {
@@ -2213,9 +2270,7 @@
       },
       "UserRolePatchRequest": {
         "type": "object",
-        "required": [
-          "role"
-        ],
+        "required": ["role"],
         "additionalProperties": false,
         "properties": {
           "role": {
@@ -2225,9 +2280,7 @@
       },
       "UserStatusPatchRequest": {
         "type": "object",
-        "required": [
-          "status"
-        ],
+        "required": ["status"],
         "additionalProperties": false,
         "properties": {
           "status": {
@@ -2242,17 +2295,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -2272,17 +2319,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -2302,17 +2343,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -2332,17 +2367,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -2362,17 +2391,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -2440,17 +2463,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -2458,9 +2475,7 @@
               },
               "data": {
                 "type": "object",
-                "required": [
-                  "users"
-                ],
+                "required": ["users"],
                 "additionalProperties": false,
                 "properties": {
                   "users": {
@@ -2482,17 +2497,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -2514,17 +2523,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -2546,17 +2549,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  false
-                ]
+                "enum": [false]
               },
               "message": {
                 "type": "string",
@@ -2573,10 +2570,7 @@
       },
       "TokenPairData": {
         "type": "object",
-        "required": [
-          "accessToken",
-          "refreshToken"
-        ],
+        "required": ["accessToken", "refreshToken"],
         "additionalProperties": false,
         "properties": {
           "accessToken": {
@@ -2616,9 +2610,7 @@
           },
           "role": {
             "type": "string",
-            "enum": [
-              "STUDENT"
-            ],
+            "enum": ["STUDENT"],
             "description": "Public registration always creates STUDENT accounts."
           },
           "firstName": {
@@ -2743,41 +2735,23 @@
       },
       "StatusAccount": {
         "type": "string",
-        "enum": [
-          "ACTIVE",
-          "INACTIVE",
-          "BANNED"
-        ]
+        "enum": ["ACTIVE", "INACTIVE", "BANNED"]
       },
       "RoleAccount": {
         "type": "string",
-        "enum": [
-          "STUDENT",
-          "RESEARCHER",
-          "ADMIN"
-        ]
+        "enum": ["STUDENT", "RESEARCHER", "ADMIN"]
       },
       "PatchableRoleAccount": {
         "type": "string",
-        "enum": [
-          "STUDENT",
-          "RESEARCHER"
-        ]
+        "enum": ["STUDENT", "RESEARCHER"]
       },
       "Gender": {
         "type": "string",
-        "enum": [
-          "MALE",
-          "FEMALE",
-          "OTHER"
-        ]
+        "enum": ["MALE", "FEMALE", "OTHER"]
       },
       "AcademicArticleCursorPage": {
         "type": "object",
-        "required": [
-          "items",
-          "nextCursor"
-        ],
+        "required": ["items", "nextCursor"],
         "additionalProperties": false,
         "properties": {
           "items": {
@@ -2794,10 +2768,7 @@
       },
       "AcademicJournalCursorPage": {
         "type": "object",
-        "required": [
-          "items",
-          "nextCursor"
-        ],
+        "required": ["items", "nextCursor"],
         "additionalProperties": false,
         "properties": {
           "items": {
@@ -2819,17 +2790,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -2842,6 +2807,30 @@
           }
         ]
       },
+      "AcademicArticleGraphVisualizationResponseEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponseBase"
+          },
+          {
+            "type": "object",
+            "required": ["success", "message", "data"],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "enum": [true]
+              },
+              "message": {
+                "type": "string",
+                "example": "Article graph retrieved"
+              },
+              "data": {
+                "$ref": "#/components/schemas/AcademicArticleGraphVisualization"
+              }
+            }
+          }
+        ]
+      },
       "AcademicJournalListResponseEnvelope": {
         "allOf": [
           {
@@ -2849,17 +2838,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -2879,17 +2862,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -2909,17 +2886,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -2978,6 +2949,72 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "AcademicArticleGraphVisualization": {
+        "type": "object",
+        "required": ["nodes", "edges", "truncated", "nextCursor"],
+        "additionalProperties": false,
+        "properties": {
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicArticleGraphNode"
+            }
+          },
+          "edges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AcademicArticleGraphEdge"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AcademicArticleGraphNode": {
+        "type": "object",
+        "required": ["id", "type", "label"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "article:W123"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["article", "year"]
+          },
+          "label": {
+            "type": "string",
+            "example": "Machine Learning..."
+          }
+        }
+      },
+      "AcademicArticleGraphEdge": {
+        "type": "object",
+        "required": ["id", "sourceId", "targetId", "type"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "article:W123->year:2024"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["RELATED_TO", "PUBLISHED_IN_YEAR"]
           }
         }
       },
@@ -3162,11 +3199,7 @@
       },
       "AcademicKeyword": {
         "type": "object",
-        "required": [
-          "id",
-          "displayName",
-          "score"
-        ],
+        "required": ["id", "displayName", "score"],
         "additionalProperties": false,
         "properties": {
           "id": {
@@ -3184,12 +3217,7 @@
       },
       "AcademicTopic": {
         "type": "object",
-        "required": [
-          "id",
-          "displayName",
-          "score",
-          "isPrimary"
-        ],
+        "required": ["id", "displayName", "score", "isPrimary"],
         "additionalProperties": false,
         "properties": {
           "id": {
@@ -3211,10 +3239,7 @@
       },
       "AcademicAuthorCursorPage": {
         "type": "object",
-        "required": [
-          "items",
-          "nextCursor"
-        ],
+        "required": ["items", "nextCursor"],
         "additionalProperties": false,
         "properties": {
           "items": {
@@ -3236,17 +3261,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -3261,13 +3280,7 @@
       },
       "AcademicAuthorListItem": {
         "type": "object",
-        "required": [
-          "id",
-          "orcid",
-          "displayName",
-          "imageUrl",
-          "articleCount"
-        ],
+        "required": ["id", "orcid", "displayName", "imageUrl", "articleCount"],
         "additionalProperties": false,
         "properties": {
           "id": {
@@ -3298,17 +3311,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -3410,10 +3417,7 @@
       },
       "AcademicJournalRankingCursorPage": {
         "type": "object",
-        "required": [
-          "items",
-          "nextCursor"
-        ],
+        "required": ["items", "nextCursor"],
         "additionalProperties": false,
         "properties": {
           "items": {
@@ -3435,17 +3439,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -3461,15 +3459,11 @@
       "BookmarkItem": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "articleId",
-          "bookmarkedAt",
-          "article"
-        ],
+        "required": ["articleId", "bookmarkedAt", "article"],
         "properties": {
           "articleId": {
             "type": "string",
-            "format": "uuid"
+            "example": "W1234567890"
           },
           "bookmarkedAt": {
             "type": "string",
@@ -3483,12 +3477,7 @@
       "BookmarkListData": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "items",
-          "page",
-          "limit",
-          "hasMore"
-        ],
+        "required": ["items", "page", "limit", "hasMore"],
         "properties": {
           "items": {
             "type": "array",
@@ -3517,17 +3506,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -3543,27 +3526,22 @@
       "ToggleBookmarkRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "articleId"
-        ],
+        "required": ["articleId"],
         "properties": {
           "articleId": {
             "type": "string",
-            "format": "uuid"
+            "example": "W1234567890"
           }
         }
       },
       "ToggleBookmarkData": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "articleId",
-          "bookmarked"
-        ],
+        "required": ["articleId", "bookmarked"],
         "properties": {
           "articleId": {
             "type": "string",
-            "format": "uuid"
+            "example": "W1234567890"
           },
           "bookmarked": {
             "type": "boolean"
@@ -3582,17 +3560,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -3608,13 +3580,7 @@
       "NotificationItem": {
         "type": "object",
         "additionalProperties": true,
-        "required": [
-          "notificationId",
-          "type",
-          "title",
-          "isRead",
-          "createdAt"
-        ],
+        "required": ["notificationId", "type", "title", "isRead", "createdAt"],
         "properties": {
           "notificationId": {
             "type": "string",
@@ -3647,12 +3613,7 @@
       "NotificationListData": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "items",
-          "page",
-          "limit",
-          "hasMore"
-        ],
+        "required": ["items", "page", "limit", "hasMore"],
         "properties": {
           "items": {
             "type": "array",
@@ -3684,9 +3645,7 @@
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -3709,9 +3668,7 @@
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -3719,9 +3676,7 @@
               },
               "data": {
                 "type": "object",
-                "required": [
-                  "unreadCount"
-                ],
+                "required": ["unreadCount"],
                 "properties": {
                   "unreadCount": {
                     "type": "integer",
@@ -3743,9 +3698,7 @@
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -3768,9 +3721,7 @@
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -3778,9 +3729,7 @@
               },
               "data": {
                 "type": "object",
-                "required": [
-                  "markedReadCount"
-                ],
+                "required": ["markedReadCount"],
                 "properties": {
                   "markedReadCount": {
                     "type": "integer",
@@ -3794,29 +3743,16 @@
       },
       "FollowObjectType": {
         "type": "string",
-        "enum": [
-          "JOURNAL",
-          "KEYWORD",
-          "TOPIC"
-        ]
+        "enum": ["JOURNAL", "KEYWORD", "TOPIC"]
       },
       "FollowNotifyMode": {
         "type": "string",
-        "enum": [
-          "IN_APP",
-          "DAILY_EMAIL",
-          "WEEKLY_EMAIL",
-          "OFF"
-        ]
+        "enum": ["IN_APP", "DAILY_EMAIL", "WEEKLY_EMAIL", "OFF"]
       },
       "FollowTarget": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "type",
-          "id",
-          "displayName"
-        ],
+        "required": ["type", "id", "displayName"],
         "properties": {
           "type": {
             "$ref": "#/components/schemas/FollowObjectType"
@@ -3889,12 +3825,7 @@
       "FollowListData": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "items",
-          "page",
-          "limit",
-          "hasMore"
-        ],
+        "required": ["items", "page", "limit", "hasMore"],
         "properties": {
           "items": {
             "type": "array",
@@ -3923,17 +3854,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -3949,10 +3874,7 @@
       "ToggleFollowRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "objectType",
-          "objectId"
-        ],
+        "required": ["objectType", "objectId"],
         "properties": {
           "objectType": {
             "$ref": "#/components/schemas/FollowObjectType"
@@ -3969,11 +3891,7 @@
       "ToggleFollowData": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "objectType",
-          "objectId",
-          "followed"
-        ],
+        "required": ["objectType", "objectId", "followed"],
         "properties": {
           "objectType": {
             "$ref": "#/components/schemas/FollowObjectType"
@@ -4002,17 +3920,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -4028,9 +3940,7 @@
       "UpdateFollowNotifyModeRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "notifyMode"
-        ],
+        "required": ["notifyMode"],
         "properties": {
           "notifyMode": {
             "$ref": "#/components/schemas/FollowNotifyMode"
@@ -4044,17 +3954,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -4069,27 +3973,16 @@
       },
       "PushProvider": {
         "type": "string",
-        "enum": [
-          "EXPO",
-          "FCM"
-        ]
+        "enum": ["EXPO", "FCM"]
       },
       "PushPlatform": {
         "type": "string",
-        "enum": [
-          "IOS",
-          "ANDROID",
-          "WEB",
-          "UNKNOWN"
-        ]
+        "enum": ["IOS", "ANDROID", "WEB", "UNKNOWN"]
       },
       "RegisterPushDeviceRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "token",
-          "platform"
-        ],
+        "required": ["token", "platform"],
         "properties": {
           "token": {
             "type": "string",
@@ -4107,9 +4000,7 @@
       "UnregisterPushDeviceRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "token"
-        ],
+        "required": ["token"],
         "properties": {
           "token": {
             "type": "string",
@@ -4120,12 +4011,7 @@
       "PushDeviceRegisteredData": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "deviceId",
-          "provider",
-          "platform",
-          "isActive"
-        ],
+        "required": ["deviceId", "provider", "platform", "isActive"],
         "properties": {
           "deviceId": {
             "type": "string",
@@ -4149,17 +4035,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",
@@ -4175,10 +4055,7 @@
       "PushDeviceUnregisteredData": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "token",
-          "unregistered"
-        ],
+        "required": ["token", "unregistered"],
         "properties": {
           "token": {
             "type": "string"
@@ -4195,17 +4072,11 @@
           },
           {
             "type": "object",
-            "required": [
-              "success",
-              "message",
-              "data"
-            ],
+            "required": ["success", "message", "data"],
             "properties": {
               "success": {
                 "type": "boolean",
-                "enum": [
-                  true
-                ]
+                "enum": [true]
               },
               "message": {
                 "type": "string",

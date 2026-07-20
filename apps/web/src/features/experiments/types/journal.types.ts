@@ -24,6 +24,8 @@ export type JournalListItem = JournalNode & {
 
 export type JournalListParams = {
   cursor?: string | null;
+  /** Free-text search (`q` on GET /academic/journals). */
+  q?: string | null;
   limit?: number;
 };
 

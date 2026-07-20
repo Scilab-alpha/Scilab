@@ -1,6 +1,6 @@
 import { Link, useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
-import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import {
   AppButton,
@@ -14,6 +14,7 @@ import { useRegister } from "@/features/auth/hooks/use-register";
 import { createZodResolver, registerSchema } from "@/features/auth/schemas";
 import type { RegisterFormValues } from "@/features/auth/types";
 import { useAppTheme } from "@/theme";
+import { formatIsoDateInput } from "@/utils/date-input";
 
 const defaultValues: RegisterFormValues = {
   acceptsTerms: false,
@@ -36,9 +37,7 @@ const genderOptions: { label: string; value: RegisterFormValues["gender"] }[] =
 export function RegisterScreen() {
   const router = useRouter();
   const theme = useAppTheme();
-  const { width } = useWindowDimensions();
   const registerMutation = useRegister();
-  const compactLayout = width < 400;
   const {
     control,
     handleSubmit,
@@ -69,17 +68,17 @@ export function RegisterScreen() {
 
   return (
     <AuthScreen
-      description="Join a focused community built around credible research and academic discovery."
+      description="Create your research profile and start following credible academic signals."
       footer={<AuthFooter />}
-      title="Create Your Scholar Profile"
+      title="Create Scholar Profile"
     >
-      <View style={{ gap: theme.spacing.xxl }}>
+      <View style={{ gap: theme.spacing.lg }}>
         <View
           style={[
             styles.fieldRow,
             {
-              flexDirection: compactLayout ? "column" : "row",
-              gap: theme.spacing.lg,
+              flexDirection: "row",
+              gap: theme.spacing.md,
             },
           ]}
         >
@@ -91,7 +90,7 @@ export function RegisterScreen() {
                 <AppTextField
                   autoComplete="given-name"
                   error={errors.firstName?.message}
-                  label="First Name"
+                  label="First name"
                   onBlur={field.onBlur}
                   onChangeText={(firstName) => {
                     field.onChange(firstName);
@@ -112,7 +111,7 @@ export function RegisterScreen() {
                 <AppTextField
                   autoComplete="family-name"
                   error={errors.lastName?.message}
-                  label="Last Name"
+                  label="Last name"
                   onBlur={field.onBlur}
                   onChangeText={(lastName) => {
                     field.onChange(lastName);
@@ -136,7 +135,7 @@ export function RegisterScreen() {
               autoComplete="email"
               error={errors.email?.message}
               keyboardType="email-address"
-              label="Institutional Email"
+              label="Email"
               onBlur={field.onBlur}
               onChangeText={(email) => {
                 field.onChange(email);
@@ -153,17 +152,18 @@ export function RegisterScreen() {
           style={[
             styles.fieldRow,
             {
-              flexDirection: compactLayout ? "column" : "row",
-              gap: theme.spacing.lg,
+              flexDirection: "row",
+              gap: theme.spacing.sm,
             },
           ]}
         >
-          <View style={styles.nameField}>
+          <View style={styles.genderField}>
             <Controller
               control={control}
               name="gender"
               render={({ field }) => (
                 <AppSegmentedControl
+                  compact
                   error={errors.gender?.message}
                   label="Gender"
                   onChange={(gender) => {
@@ -177,7 +177,7 @@ export function RegisterScreen() {
             />
           </View>
 
-          <View style={styles.nameField}>
+          <View style={styles.birthdayField}>
             <Controller
               control={control}
               name="dateOfBirth"
@@ -185,14 +185,15 @@ export function RegisterScreen() {
                 <AppTextField
                   autoComplete="birthdate-full"
                   error={errors.dateOfBirth?.message}
-                  keyboardType="numbers-and-punctuation"
-                  label="Date of Birth"
+                  keyboardType="number-pad"
+                  label="Birthday"
+                  maxLength={10}
                   onBlur={field.onBlur}
                   onChangeText={(dateOfBirth) => {
-                    field.onChange(dateOfBirth);
+                    field.onChange(formatIsoDateInput(dateOfBirth));
                     resetFeedback();
                   }}
-                  placeholder="YYYY-MM-DD"
+                  placeholder="YYYYMMDD"
                   textContentType="birthdate"
                   value={field.value}
                 />
@@ -201,51 +202,65 @@ export function RegisterScreen() {
           </View>
         </View>
 
-        <Controller
-          control={control}
-          name="password"
-          render={({ field }) => (
-            <AppTextField
-              autoComplete="new-password"
-              error={errors.password?.message}
-              label="Password"
-              onBlur={field.onBlur}
-              onChangeText={(password) => {
-                field.onChange(password);
-                resetFeedback();
-              }}
-              password
-              placeholder="At least 8 characters"
-              textContentType="newPassword"
-              value={field.value}
+        <View
+          style={[
+            styles.fieldRow,
+            {
+              flexDirection: "column",
+              gap: theme.spacing.md,
+            },
+          ]}
+        >
+          <View style={styles.nameField}>
+            <Controller
+              control={control}
+              name="password"
+              render={({ field }) => (
+                <AppTextField
+                  autoComplete="new-password"
+                  error={errors.password?.message}
+                  label="Password"
+                  onBlur={field.onBlur}
+                  onChangeText={(password) => {
+                    field.onChange(password);
+                    resetFeedback();
+                  }}
+                  password
+                  placeholder="8+ characters"
+                  textContentType="newPassword"
+                  value={field.value}
+                />
+              )}
             />
-          )}
-        />
+          </View>
 
-        <Controller
-          control={control}
-          name="confirmPassword"
-          render={({ field }) => (
-            <AppTextField
-              autoComplete="new-password"
-              error={errors.confirmPassword?.message}
-              label="Confirm Password"
-              onBlur={field.onBlur}
-              onChangeText={(confirmPassword) => {
-                field.onChange(confirmPassword);
-                resetFeedback();
-              }}
-              onSubmitEditing={() => {
-                void handleSubmit(submit)();
-              }}
-              password
-              placeholder="Repeat your password"
-              returnKeyType="done"
-              textContentType="newPassword"
-              value={field.value}
+          <View style={styles.nameField}>
+            <Controller
+              control={control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <AppTextField
+                  autoComplete="new-password"
+                  error={errors.confirmPassword?.message}
+                  label="Confirm"
+                  onBlur={field.onBlur}
+                  onChangeText={(confirmPassword) => {
+                    field.onChange(confirmPassword);
+                    resetFeedback();
+                  }}
+                  onSubmitEditing={() => {
+                    void handleSubmit(submit)();
+                  }}
+                  password
+                  placeholder="Repeat password"
+                  returnKeyType="done"
+                  textContentType="newPassword"
+                  value={field.value}
+                />
+              )}
             />
-          )}
-        />
+          </View>
+        </View>
 
         <Controller
           control={control}
@@ -290,6 +305,12 @@ export function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
+  birthdayField: {
+    flex: 1,
+  },
+  genderField: {
+    flex: 1.4,
+  },
   nameField: {
     flex: 1,
   },

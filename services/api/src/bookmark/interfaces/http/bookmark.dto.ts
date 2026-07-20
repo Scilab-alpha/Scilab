@@ -9,6 +9,9 @@ export class BookmarkQueryDto {
 }
 
 export class ToggleBookmarkDto {
-  @ApiProperty({ format: 'uuid' })
+  @ApiProperty({
+    description: 'Academic article id, for example an OpenAlex work id.',
+    example: 'W1234567890',
+  })
   articleId!: string;
 }

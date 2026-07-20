@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { AcademicGraphRepository } from '@/academic/application/ports/academic-graph.port';
+import { AcademicGraphRepository } from '@repo/academic/domain';
 import { FollowRecipient } from '@/follow/application/ports/follow.ports';
 import { PrismaFollowRepository } from '@/follow/infrastructure/persistence/prisma-follow.repository';
 import { UserEventsService } from '@/events/application/user-events.service';
@@ -41,6 +41,13 @@ function createGraphRepository(): jest.Mocked<AcademicGraphRepository> {
     markIncomingCitationCrawled: jest.fn(),
     listHydratedArticleIdsNeedingCitation: jest.fn(),
     updateArticleCitationCounts: jest.fn(),
+    backfillRelatedWorkSyncEligibility: jest.fn(),
+    listRelatedWorkSyncRootIds: jest.fn(),
+    listPendingRelatedWorkTargetIds: jest.fn(),
+    activatePendingRelatedWorkTargets: jest.fn(),
+    discardPendingRelatedWorkTargets: jest.fn(),
+    incrementPendingRelatedWorkAttempts: jest.fn(),
+    replaceRelatedWorkSnapshots: jest.fn(),
   };
 }
 

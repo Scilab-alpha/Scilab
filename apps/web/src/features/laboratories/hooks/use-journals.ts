@@ -1,46 +1,71 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { getUserFriendlyApiErrorMessage } from "@/core/api";
+import {
+  academicListPageSize,
+  listQueryStaleTimeMs,
+} from "@/core/api/query-config";
 import { listJournals } from "@/features/experiments/api/journals.api";
-import type { JournalListItem } from "@/features/experiments/types/journal.types";
 
-export function useJournals() {
-  const [items, setItems] = useState<JournalListItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const searchDebounceMs = 350;
 
-  const reload = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const collected: JournalListItem[] = [];
-      let cursor: string | null = null;
-
-      do {
-        const page = await listJournals({ limit: 50, cursor });
-        collected.push(...page.items);
-        cursor = page.nextCursor;
-      } while (cursor);
-
-      setItems(collected);
-    } catch (fetchError) {
-      setItems([]);
-      setError(getUserFriendlyApiErrorMessage(fetchError));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+export function useJournals(searchText = "") {
+  const [debouncedSearch, setDebouncedSearch] = useState(searchText);
 
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(searchText);
+    }, searchDebounceMs);
+
+    return () => window.clearTimeout(timer);
+  }, [searchText]);
+
+  const trimmedQuery = debouncedSearch.trim();
+
+  const query = useInfiniteQuery({
+    queryKey: ["journals", trimmedQuery] as const,
+    initialPageParam: undefined as string | undefined,
+    staleTime: listQueryStaleTimeMs,
+    queryFn: async ({ pageParam }) =>
+      listJournals({
+        q: trimmedQuery || undefined,
+        limit: academicListPageSize,
+        cursor: pageParam,
+      }),
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+  });
+
+  const items = useMemo(
+    () => query.data?.pages.flatMap((page) => page.items) ?? [],
+    [query.data],
+  );
+
+  const reload = useCallback(async () => {
+    await query.refetch();
+  }, [query]);
+
+  const loadMore = useCallback(async () => {
+    if (!query.hasNextPage || query.isFetchingNextPage) {
+      return false;
+    }
+
+    try {
+      await query.fetchNextPage();
+      return true;
+    } catch {
+      return false;
+    }
+  }, [query]);
 
   return {
     items,
-    isLoading,
-    error,
+    isLoading: query.isLoading,
+    isLoadingMore: query.isFetchingNextPage,
+    hasMore: Boolean(query.hasNextPage),
+    error: query.error ? getUserFriendlyApiErrorMessage(query.error) : null,
     reload,
+    loadMore,
   };
 }

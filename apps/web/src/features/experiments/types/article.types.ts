@@ -57,7 +57,8 @@ export type ArticleGraph = {
 
 export type ArticleListParams = {
   cursor?: string | null;
-  keyword?: string | null;
+  /** Free-text search (`q` on GET /academic/articles). */
+  q?: string | null;
   limit?: number;
 };
 

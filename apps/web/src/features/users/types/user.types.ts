@@ -50,3 +50,23 @@ export interface ApiUpdateUserProfileInput {
   gender?: Gender;
   dateofbirth?: string;
 }
+
+/** Upstream GET /users item. */
+export type ApiUserProfile = {
+  id: string;
+  email: string;
+  status: "ACTIVE" | "INACTIVE" | "BANNED";
+  role: "STUDENT" | "RESEARCHER" | "ADMIN";
+  firstName: string | null;
+  lastName: string | null;
+  imageUrl: string | null;
+  gender: string | null;
+  dateOfBirth: string | null;
+};
+
+export type ApiUserListResponse = {
+  users: ApiUserProfile[];
+};
+
+export type PatchableApiRole = "STUDENT" | "RESEARCHER";
+export type ApiUserStatus = "ACTIVE" | "INACTIVE" | "BANNED";

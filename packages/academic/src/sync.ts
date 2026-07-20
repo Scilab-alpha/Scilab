@@ -1,0 +1,10 @@
+export { BackfillAcademicSearchDataUseCase } from './application/use-cases/backfill-academic-search-data/backfill-academic-search-data.use-case';
+export { CrawlIncomingCitationsUseCase } from './application/use-cases/crawl-incoming-citations/crawl-incoming-citations.use-case';
+export { CrawlOutgoingReferencesUseCase } from './application/use-cases/crawl-outgoing-references/crawl-outgoing-references.use-case';
+export { HydrateReferencedWorksUseCase } from './application/use-cases/hydrate-referenced-works/hydrate-referenced-works.use-case';
+export { HydrateRelatedWorksUseCase } from './application/use-cases/hydrate-related-works/hydrate-related-works.use-case';
+export { RefreshCitationCountsUseCase } from './application/use-cases/refresh-citation-counts/refresh-citation-counts.use-case';
+export { ReloadScimagoDatasetUseCase } from './application/use-cases/reload-scimago-dataset/reload-scimago-dataset.use-case';
+export { ResolveScimagoJournalsUseCase } from './application/use-cases/resolve-scimago-journals/resolve-scimago-journals.use-case';
+export { RunJournalArticleSyncPipelineUseCase } from './application/use-cases/run-journal-article-sync-pipeline/run-journal-article-sync-pipeline.use-case';
+export { SyncRelatedWorksUseCase } from './application/use-cases/sync-related-works/sync-related-works.use-case';

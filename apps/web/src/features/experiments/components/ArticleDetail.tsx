@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -12,14 +12,16 @@ import {
   Quote,
   Copy,
   Check,
-  Loader2,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import PageContainer from "@/shared/components/layout/PageContainer";
 import StudentTopHeader from "@/shared/components/layout/StudentTopHeader";
+import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import Can from "@/shared/components/auth/Can";
 import { Card } from "@/shared/components/ui/card";
 import { useArticleDetail } from "@/features/experiments/hooks/use-article-detail";
+import { toggleBookmark } from "@/features/submissions/api/bookmarks.api";
+import { isLocallyBookmarked } from "@/features/submissions/api/local-bookmarks";
 import {
   formatVolumeNumber,
   getArticleAbstract,
@@ -39,7 +41,37 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
   const router = useRouter();
   const { article, isLoading, error } = useArticleDetail(articleId);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isBookmarkPending, setIsBookmarkPending] = useState(false);
   const [copiedCitation, setCopiedCitation] = useState(false);
+
+  useEffect(() => {
+    setIsBookmarked(isLocallyBookmarked(articleId));
+  }, [articleId]);
+
+  const handleToggleBookmark = async () => {
+    if (isBookmarkPending || !article) {
+      return;
+    }
+
+    setIsBookmarkPending(true);
+    try {
+      const result = await toggleBookmark({
+        articleId,
+        article: {
+          id: articleId,
+          title: getArticleTitle(article),
+          abstract: article.article.abstract,
+          doi: article.article.doi,
+          publicationYear: article.article.publicationYear,
+        },
+      });
+      setIsBookmarked(result.bookmarked);
+    } catch {
+      // Keep previous bookmark state if the API call fails.
+    } finally {
+      setIsBookmarkPending(false);
+    }
+  };
 
   const copyCitation = () => {
     if (!article) {
@@ -65,10 +97,7 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
         <StudentTopHeader />
         <main className="flex-1 overflow-auto bg-card">
           <PageContainer size="narrow" className="py-12">
-            <div className="flex items-center justify-center py-24 text-muted-foreground">
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Loading article...
-            </div>
+            <RouteDataLoading label="Loading article…" />
           </PageContainer>
         </main>
       </>
@@ -162,7 +191,8 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
               <Can permission="bookmark">
                 <Button
                   variant={isBookmarked ? "default" : "outline"}
-                  onClick={() => setIsBookmarked(!isBookmarked)}
+                  disabled={isBookmarkPending}
+                  onClick={() => void handleToggleBookmark()}
                   className="h-10"
                 >
                   {isBookmarked ? (

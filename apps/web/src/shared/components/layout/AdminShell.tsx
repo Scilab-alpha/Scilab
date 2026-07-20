@@ -136,11 +136,9 @@ function AdminAccountFooter({ onNavigate }: { onNavigate?: () => void }) {
 
 export default function AdminShell({
   children,
-  title,
-  subtitle,
-  icon,
-  headerAction,
-}: AdminShellProps) {
+}: {
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 

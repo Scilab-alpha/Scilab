@@ -1,51 +1,60 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getUserFriendlyApiErrorMessage } from "@/core/api";
+import { listQueryStaleTimeMs } from "@/core/api/query-config";
 import {
   listBookmarks,
   toggleBookmark,
 } from "@/features/submissions/api/bookmarks.api";
 import type { BookmarkItem } from "@/features/submissions/types/bookmark.types";
 
+const bookmarksQueryKey = ["bookmarks", { page: 1, limit: 50 }] as const;
+
 export function useBookmarks() {
-  const [items, setItems] = useState<BookmarkItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: bookmarksQueryKey,
+    staleTime: listQueryStaleTimeMs,
+    queryFn: () => listBookmarks({ page: 1, limit: 50 }),
+  });
 
   const reload = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+    await query.refetch();
+  }, [query]);
 
-    try {
-      const page = await listBookmarks({ page: 1, limit: 50 });
-      setItems(page.items);
-    } catch (fetchError) {
-      setItems([]);
-      setError(getUserFriendlyApiErrorMessage(fetchError));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const remove = useCallback(
+    async (articleId: string) => {
+      const result = await toggleBookmark({ articleId });
 
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+      if (!result.bookmarked) {
+        queryClient.setQueryData(
+          bookmarksQueryKey,
+          (previous: { items: BookmarkItem[] } | undefined) => {
+            if (!previous) {
+              return previous;
+            }
+            return {
+              ...previous,
+              items: previous.items.filter(
+                (item) => item.articleId !== articleId,
+              ),
+            };
+          },
+        );
+      }
 
-  const remove = useCallback(async (articleId: string) => {
-    const result = await toggleBookmark({ articleId });
-
-    if (!result.bookmarked) {
-      setItems((prev) => prev.filter((item) => item.articleId !== articleId));
-    }
-
-    return result;
-  }, []);
+      return result;
+    },
+    [queryClient],
+  );
 
   return {
-    items,
-    isLoading,
-    error,
+    items: query.data?.items ?? [],
+    isLoading: query.isLoading,
+    error: query.error ? getUserFriendlyApiErrorMessage(query.error) : null,
     reload,
     remove,
   };

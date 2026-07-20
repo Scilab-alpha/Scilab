@@ -8,7 +8,6 @@ import {
   NotificationFailureReason,
   NotificationUseCaseError,
 } from '@/notification/domain/notification.errors';
-import { parseUuid } from '@/shared/validation/request-input';
 
 export class MarkNotificationReadUseCase {
   constructor(private readonly notifications: NotificationRepository) {}
@@ -16,7 +15,7 @@ export class MarkNotificationReadUseCase {
   async execute(
     input: MarkNotificationReadInput,
   ): Promise<MarkNotificationReadOutput> {
-    const notificationId = this.parseNotificationId(input.notificationId);
+    const notificationId = input.notificationId as string;
     const notification = await this.notifications.markRead(
       input.userId,
       notificationId,
@@ -31,16 +30,5 @@ export class MarkNotificationReadUseCase {
     }
 
     return toNotificationOutput(notification);
-  }
-
-  private parseNotificationId(value: unknown): string {
-    try {
-      return parseUuid(value, 'notificationId');
-    } catch {
-      throw new NotificationUseCaseError(
-        NotificationFailureReason.InvalidInput,
-        'notificationId is invalid',
-      );
-    }
   }
 }

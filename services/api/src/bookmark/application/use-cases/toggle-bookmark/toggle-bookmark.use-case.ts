@@ -1,4 +1,4 @@
-import { AcademicGraphRepository } from '@/academic/application/ports/academic-graph.port';
+import { AcademicGraphRepository } from '@repo/academic/domain';
 import { BookmarkRepository } from '@/bookmark/application/ports/bookmark.ports';
 import {
   ToggleBookmarkInput,
@@ -8,7 +8,6 @@ import {
   BookmarkFailureReason,
   BookmarkUseCaseError,
 } from '@/bookmark/domain/bookmark.errors';
-import { parseUuid } from '@/shared/validation/request-input';
 
 export class ToggleBookmarkUseCase {
   constructor(
@@ -47,13 +46,28 @@ export class ToggleBookmarkUseCase {
   }
 
   private parseArticleId(value: unknown): string {
-    try {
-      return parseUuid(value, 'articleId');
-    } catch {
+    if (typeof value !== 'string') {
       throw new BookmarkUseCaseError(
         BookmarkFailureReason.InvalidInput,
-        'articleId is invalid',
+        'articleId is required',
       );
     }
+
+    const articleId = value.trim();
+    if (!articleId) {
+      throw new BookmarkUseCaseError(
+        BookmarkFailureReason.InvalidInput,
+        'articleId is required',
+      );
+    }
+
+    if (articleId.length > 128) {
+      throw new BookmarkUseCaseError(
+        BookmarkFailureReason.InvalidInput,
+        'articleId must not exceed 128 characters',
+      );
+    }
+
+    return articleId;
   }
 }

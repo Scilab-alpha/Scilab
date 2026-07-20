@@ -9,10 +9,10 @@ import {
   Sparkles,
   FileCheck,
   Settings,
-  Loader2,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
+import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import { useNotifications } from "@/features/notifications/hooks/use-notifications";
 import type {
   NotificationItem,
@@ -102,7 +102,8 @@ export default function NotificationCenter() {
               Notifications
             </h1>
             <p className="text-xs text-muted-foreground">
-              {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
+              Alerts for followed journals, topics, and keywords
+              {unreadCount > 0 ? ` · ${unreadCount} unread` : ""}
             </p>
           </div>
         </div>
@@ -162,22 +163,25 @@ export default function NotificationCenter() {
             </Card>
           )}
 
-          {isLoading && (
-            <div className="flex items-center justify-center py-16 text-muted-foreground">
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Loading notifications...
-            </div>
-          )}
+          {isLoading && <RouteDataLoading label="Loading notifications…" />}
 
           {!isLoading && !error && filtered.length === 0 && (
             <Card className="p-12 border-border text-center">
               <Bell className="w-8 h-8 text-muted-foreground mx-auto mb-4" />
               <h3 className="font-heading text-lg text-foreground mb-2">
-                No notifications
+                {selectedCategory === "all"
+                  ? "No notifications yet"
+                  : "No notifications"}
               </h3>
-              <p className="text-sm text-muted-foreground">
-                You&apos;re all caught up for this filter.
+              <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
+                Notifications alert you when new articles match journals,
+                topics, or keywords you follow.
               </p>
+              {selectedCategory === "all" && (
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/student/journals">Follow a journal</Link>
+                </Button>
+              )}
             </Card>
           )}
 
@@ -201,10 +205,10 @@ export default function NotificationCenter() {
                           {formatTimeAgo(item.createdAt)}
                         </span>
                       </div>
-                      <h3 className="font-medium text-foreground mb-1">
+                      <div className="text-sm font-medium leading-snug text-foreground mb-1">
                         {item.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
+                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
                         {item.message}
                       </p>
                       {href && (

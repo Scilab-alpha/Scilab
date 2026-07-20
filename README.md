@@ -3,10 +3,26 @@
 ## Continuous Integration
 
 GitHub Actions CI runs on pull requests, protected branch pushes, and manual
-dispatches. Code-sensitive changes validate `apps/web`, `apps/mobile`,
-`services/api`, and `packages/*` with formatting, linting, type checks, builds
-where applicable, tests where declared, and API Prisma migration deploy against
+dispatches. Code-sensitive changes validate `apps/web`, `apps/mobile`, the
+HTTP API, scheduler, academic worker, and their shared packages with type
+checks, builds and tests. Prisma migrations run from `@repo/database` against
 an isolated PostgreSQL service.
+
+## Backend services
+
+```text
+services/api              HTTP API and the existing notification cron
+services/schedule         Academic Cron producers for BullMQ
+services/academic-worker  Academic BullMQ processors
+packages/academic         Shared academic domain, use cases and adapters
+packages/academic-queue   Versioned BullMQ contracts and producer
+packages/database         Prisma schema, migrations and client
+packages/neo4j            Neo4j client module
+```
+
+`docker compose up --build` runs the one-shot `migrate` job before the API and
+worker. Start the scheduler last; it only requires Redis and emits the existing
+nine queue names.
 
 Useful local commands:
 
@@ -17,6 +33,8 @@ pnpm lint
 pnpm check-types
 pnpm --filter api test
 pnpm --filter api test:e2e
+pnpm --filter schedule test
+pnpm --filter academic-worker build
 ```
 
 Documentation-only or metadata-only changes keep a CI status but skip code

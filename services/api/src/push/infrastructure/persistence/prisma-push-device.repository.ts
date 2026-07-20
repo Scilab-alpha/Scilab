@@ -7,7 +7,7 @@ import {
   PushProvider,
   RegisterPushDeviceInput,
 } from '@/push/application/ports/push.ports';
-import { PrismaService } from '@/prisma/prisma.service';
+import { PrismaService } from '@repo/database';
 
 @Injectable()
 export class PrismaPushDeviceRepository implements PushDeviceRepository {
