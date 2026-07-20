@@ -519,6 +519,32 @@ paths:
           $ref: "#/components/responses/BookmarkInputInvalid"
         "401":
           $ref: "#/components/responses/Unauthorized"
+    post:
+      summary: Toggle a bookmark for one article
+      operationId: createBookmark
+      tags:
+        - Bookmarks
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ToggleBookmarkRequest"
+      responses:
+        "200":
+          description: Bookmark toggled.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ToggleBookmarkResponseEnvelope"
+        "400":
+          $ref: "#/components/responses/BookmarkInputInvalid"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/ArticleNotFound"
   /bookmarks/toggle:
     post:
       summary: Toggle a bookmark for one article
@@ -1815,7 +1841,7 @@ components:
       properties:
         articleId:
           type: string
-          format: uuid
+          example: W1234567890
         bookmarkedAt:
           type: string
           format: date-time
@@ -1869,7 +1895,7 @@ components:
       properties:
         articleId:
           type: string
-          format: uuid
+          example: W1234567890
     ToggleBookmarkData:
       type: object
       additionalProperties: false
@@ -1879,7 +1905,7 @@ components:
       properties:
         articleId:
           type: string
-          format: uuid
+          example: W1234567890
         bookmarked:
           type: boolean
         bookmarkedAt:

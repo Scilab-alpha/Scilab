@@ -208,7 +208,7 @@ model AuthSession {
 model UserBookmark {
   id        String   @id @default(uuid()) @map("user_bookmark_id") @db.Uuid
   userId    String   @map("user_id") @db.Uuid
-  articleId String   @map("article_id") @db.Uuid
+  articleId String   @map("article_id") @db.VarChar(128)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
