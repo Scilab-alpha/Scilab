@@ -1,4 +1,4 @@
-import { AcademicGraphRepository } from '@/academic/application/ports/academic-graph.port';
+import { AcademicGraphRepository } from '@repo/academic/domain';
 import { FollowRepository } from '@/follow/application/ports/follow.ports';
 import {
   parseFollowObjectType,

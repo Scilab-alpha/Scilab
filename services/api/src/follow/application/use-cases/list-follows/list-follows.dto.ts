@@ -1,4 +1,4 @@
-import { FollowTargetOutput } from '@/academic/application/academic-graph.mapper';
+import { FollowTargetOutput } from '@repo/academic/domain';
 import {
   FollowNotifyMode,
   FollowObjectType,

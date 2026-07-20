@@ -1,11 +1,11 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { ACADEMIC_GRAPH_REPOSITORY } from '@/academic/application/ports/academic-graph.port';
+import { ACADEMIC_GRAPH_REPOSITORY } from '@repo/academic/domain';
 import type {
   AcademicGraphRepository,
   FollowTargetReference,
-} from '@/academic/application/ports/academic-graph.port';
-import { toArticleGraphOutput } from '@/academic/application/academic-graph.mapper';
+} from '@repo/academic/domain';
+import { toArticleGraphOutput } from '@repo/academic/domain';
 import type {
   FollowNotifyMode,
   FollowRecipient,

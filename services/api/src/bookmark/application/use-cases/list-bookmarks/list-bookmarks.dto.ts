@@ -1,4 +1,4 @@
-import { ArticleGraphOutput } from '@/academic/application/academic-graph.mapper';
+import { ArticleGraphOutput } from '@repo/academic/domain';
 
 export interface ListBookmarksInput {
   userId: string;
