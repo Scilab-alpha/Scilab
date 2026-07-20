@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Filter,
@@ -20,9 +20,12 @@ import { Input } from "@/shared/components/ui/input";
 import { Card } from "@/shared/components/ui/card";
 import PageContainer from "@/shared/components/layout/PageContainer";
 import StudentTopHeader from "@/shared/components/layout/StudentTopHeader";
+import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import Can from "@/shared/components/auth/Can";
 import { Label } from "@/shared/components/ui/label";
 import { useArticles } from "@/features/experiments/hooks/use-articles";
+import { toggleBookmark as toggleBookmarkApi } from "@/features/submissions/api/bookmarks.api";
+import { isLocallyBookmarked } from "@/features/submissions/api/local-bookmarks";
 import type { ArticleGraph } from "@/features/experiments/types/article.types";
 import {
   getArticleAbstract,
@@ -89,8 +92,12 @@ export default function ArticleSearch() {
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const [bookmarkPendingIds, setBookmarkPendingIds] = useState<Set<string>>(
+    new Set(),
+  );
 
-  const { items, isLoading, error, reload } = useArticles(searchQuery);
+  const { items, isLoading, isLoadingMore, hasMore, error, reload, loadMore } =
+    useArticles(searchQuery);
 
   const filteredArticles = useMemo(
     () =>
@@ -113,18 +120,55 @@ export default function ArticleSearch() {
   const endIndex = startIndex + itemsPerPage;
   const currentArticles = filteredArticles.slice(startIndex, endIndex);
 
-  const toggleBookmark = (articleId: string) => {
+  useEffect(() => {
     setBookmarkedIds((previous) => {
       const next = new Set(previous);
-
-      if (next.has(articleId)) {
-        next.delete(articleId);
-      } else {
-        next.add(articleId);
+      for (const graph of items) {
+        if (isLocallyBookmarked(graph.article.id)) {
+          next.add(graph.article.id);
+        }
       }
-
       return next;
     });
+  }, [items]);
+
+  const toggleBookmark = async (graph: ArticleGraph) => {
+    const articleId = graph.article.id;
+    if (bookmarkPendingIds.has(articleId)) {
+      return;
+    }
+
+    setBookmarkPendingIds((previous) => new Set(previous).add(articleId));
+
+    try {
+      const result = await toggleBookmarkApi({
+        articleId,
+        article: {
+          id: articleId,
+          title: getArticleTitle(graph),
+          abstract: graph.article.abstract,
+          doi: graph.article.doi,
+          publicationYear: graph.article.publicationYear,
+        },
+      });
+      setBookmarkedIds((previous) => {
+        const next = new Set(previous);
+        if (result.bookmarked) {
+          next.add(articleId);
+        } else {
+          next.delete(articleId);
+        }
+        return next;
+      });
+    } catch {
+      // Keep previous bookmark state if the API call fails.
+    } finally {
+      setBookmarkPendingIds((previous) => {
+        const next = new Set(previous);
+        next.delete(articleId);
+        return next;
+      });
+    }
   };
 
   const clearFilters = () => {
@@ -298,6 +342,7 @@ export default function ArticleSearch() {
                   of{" "}
                   <span className="font-medium text-foreground">
                     {filteredArticles.length}
+                    {hasMore ? "+" : ""}
                   </span>{" "}
                   articles
                 </>
@@ -315,10 +360,7 @@ export default function ArticleSearch() {
           )}
 
           {isLoading && (
-            <div className="flex items-center justify-center py-16 text-muted-foreground">
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Loading articles from API...
-            </div>
+            <RouteDataLoading label="Loading articles…" />
           )}
 
           {!isLoading && !error && currentArticles.length === 0 && (
@@ -405,7 +447,8 @@ export default function ArticleSearch() {
                         <Button
                           variant={isBookmarked ? "default" : "outline"}
                           size="sm"
-                          onClick={() => toggleBookmark(articleId)}
+                          disabled={bookmarkPendingIds.has(articleId)}
+                          onClick={() => void toggleBookmark(article)}
                           className="h-9 px-4"
                         >
                           {isBookmarked ? (
@@ -463,14 +506,34 @@ export default function ArticleSearch() {
               <Button
                 variant="outline"
                 size="sm"
-                disabled={currentPage === totalPages}
-                onClick={() =>
-                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                disabled={
+                  isLoadingMore || (currentPage === totalPages && !hasMore)
                 }
+                onClick={() => {
+                  if (currentPage < totalPages) {
+                    setCurrentPage((prev) => prev + 1);
+                    return;
+                  }
+
+                  void loadMore().then((loaded) => {
+                    if (loaded) {
+                      setCurrentPage((prev) => prev + 1);
+                    }
+                  });
+                }}
                 className="h-9"
               >
-                Next
-                <ChevronRight className="w-4 h-4 ml-1" />
+                {isLoadingMore ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    Loading
+                  </>
+                ) : (
+                  <>
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </>
+                )}
               </Button>
             </div>
           )}

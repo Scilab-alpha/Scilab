@@ -52,11 +52,18 @@ function stripTrailingSlash(url: string) {
 const dataSource = resolveApiDataSource();
 const upstreamOrigin = resolveUpstreamApiOrigin();
 
+/** Browser calls this (Next rewrite → upstream); never cross-origin in the client. */
+const browserApiBase = (
+  process.env.NEXT_PUBLIC_API_URL?.trim() || "/backend"
+).replace(/\/$/, "");
+
 export const apiConfig = {
   /** `public` = epsilon; `local` = Docker/local Nest. */
   dataSource,
-  /** Origin for unauthenticated browser → backend calls. */
-  publicApiUrl: upstreamOrigin,
+  /** Upstream origin (auth BFF / server-side). */
+  upstreamApiOrigin: upstreamOrigin,
+  /** Same-origin path for academic list/detail from the browser. */
+  publicApiUrl: browserApiBase,
   /** Same-origin Next BFF for authenticated calls. */
   bffApiUrl: "/api",
   requestTimeoutMs: 15_000,

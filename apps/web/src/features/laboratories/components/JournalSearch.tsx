@@ -19,6 +19,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
 import PageContainer from "@/shared/components/layout/PageContainer";
 import StudentTopHeader from "@/shared/components/layout/StudentTopHeader";
+import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Label } from "@/shared/components/ui/label";
 import { useJournals } from "@/features/laboratories/hooks/use-journals";
@@ -131,7 +132,8 @@ export default function JournalSearch() {
   const [showFilters, setShowFilters] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy] = useState("relevance");
-  const { items, isLoading, error, reload } = useJournals();
+  const { items, isLoading, isLoadingMore, hasMore, error, reload, loadMore } =
+    useJournals();
 
   const [filters, setFilters] = useState({
     subjectAreas: [] as string[],
@@ -434,6 +436,7 @@ export default function JournalSearch() {
                         of{" "}
                         <span className="font-medium text-foreground">
                           {filteredJournals.length}
+                          {hasMore ? "+" : ""}
                         </span>{" "}
                         journals
                       </>
@@ -467,10 +470,7 @@ export default function JournalSearch() {
               )}
 
               {isLoading && (
-                <div className="flex items-center justify-center py-16 text-muted-foreground">
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Loading journals from API...
-                </div>
+                <RouteDataLoading label="Loading journals…" />
               )}
 
               {!isLoading && !error && currentJournals.length === 0 && (
@@ -611,34 +611,55 @@ export default function JournalSearch() {
                   </Button>
 
                   <div className="flex items-center gap-2">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                      (page) => (
-                        <button
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
-                            currentPage === page
-                              ? "bg-primary text-white"
-                              : "bg-card border border-border text-muted-foreground hover:bg-accent"
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      ),
-                    )}
+                    {Array.from(
+                      { length: Math.min(totalPages, 5) },
+                      (_, i) => i + 1,
+                    ).map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                          currentPage === page
+                            ? "bg-primary text-white"
+                            : "bg-card border border-border text-muted-foreground hover:bg-accent"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
                   </div>
 
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={currentPage === totalPages}
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                    disabled={
+                      isLoadingMore || (currentPage === totalPages && !hasMore)
                     }
+                    onClick={() => {
+                      if (currentPage < totalPages) {
+                        setCurrentPage((prev) => prev + 1);
+                        return;
+                      }
+
+                      void loadMore().then((loaded) => {
+                        if (loaded) {
+                          setCurrentPage((prev) => prev + 1);
+                        }
+                      });
+                    }}
                     className="h-9"
                   >
-                    Next
-                    <ChevronRight className="w-4 h-4 ml-1" />
+                    {isLoadingMore ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        Loading
+                      </>
+                    ) : (
+                      <>
+                        Next
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </>
+                    )}
                   </Button>
                 </div>
               )}

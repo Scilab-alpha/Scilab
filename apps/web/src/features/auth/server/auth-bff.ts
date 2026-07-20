@@ -74,7 +74,7 @@ export async function readJsonBody<T>(request: NextRequest): Promise<T> {
 export async function requestUpstream<T>(
   path: string,
   input: {
-    method?: "GET" | "POST";
+    method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
     body?: unknown;
     accessToken?: string;
   } = {},
@@ -148,6 +148,10 @@ export async function requestUpstream<T>(
 export async function requestAuthenticated<T>(
   request: NextRequest,
   path: string,
+  input: {
+    method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+    body?: unknown;
+  } = {},
 ): Promise<AuthenticatedResult<T>> {
   const accessToken = request.cookies.get(ACCESS_COOKIE_NAME)?.value;
   let refreshedSession: RefreshedSession | undefined;
@@ -161,6 +165,8 @@ export async function requestAuthenticated<T>(
   }
 
   let result = await requestUpstream<T>(path, {
+    method: input.method,
+    body: input.body,
     accessToken: refreshedSession?.tokens.accessToken ?? accessToken,
   });
 
@@ -171,11 +177,64 @@ export async function requestAuthenticated<T>(
     }
     refreshedSession = refreshResult;
     result = await requestUpstream<T>(path, {
+      method: input.method,
+      body: input.body,
       accessToken: refreshedSession.tokens.accessToken,
     });
   }
 
   return { result, refreshedSession };
+}
+
+/** Proxy an authenticated browser call to the upstream API and sync cookies. */
+export async function proxyAuthenticated(
+  request: NextRequest,
+  path: string,
+  input: {
+    method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+    body?: unknown;
+  } = {},
+) {
+  try {
+    const authenticated = await requestAuthenticated(request, path, input);
+    const response = upstreamResponse(authenticated.result);
+    if (authenticated.result.ok) {
+      applyRefreshedCookies(response, authenticated);
+    } else if (authenticated.result.status === 401) {
+      clearAuthCookies(response);
+    }
+    return response;
+  } catch (error) {
+    return handleBffError(error);
+  }
+}
+
+/**
+ * Resolve a Bearer access token from cookies (refreshing when needed).
+ * Used by long-lived streams such as SSE `/events`.
+ */
+export async function resolveSessionAccessToken(request: NextRequest): Promise<{
+  accessToken: string;
+  refreshedSession?: RefreshedSession;
+} | null> {
+  const accessToken = request.cookies.get(ACCESS_COOKIE_NAME)?.value;
+  if (accessToken) {
+    return { accessToken };
+  }
+
+  const refreshResult = await refreshSession(request);
+  if ("result" in refreshResult) {
+    return null;
+  }
+
+  return {
+    accessToken: refreshResult.tokens.accessToken,
+    refreshedSession: refreshResult,
+  };
+}
+
+export function getUpstreamApiOrigin() {
+  return getUpstreamOrigin();
 }
 
 export function upstreamResponse<T>(result: UpstreamResult<T>) {

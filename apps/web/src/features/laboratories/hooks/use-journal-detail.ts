@@ -1,46 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getUserFriendlyApiErrorMessage } from "@/core/api";
+import { listQueryStaleTimeMs } from "@/core/api/query-config";
 import { getJournalById } from "@/features/experiments/api/journals.api";
-import type { JournalListItem } from "@/features/experiments/types/journal.types";
 
 export function useJournalDetail(journalId: string) {
-  const [journal, setJournal] = useState<JournalListItem | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery({
+    queryKey: ["journal", journalId] as const,
+    staleTime: listQueryStaleTimeMs,
+    enabled: Boolean(journalId),
+    queryFn: () => getJournalById(journalId),
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const data = await getJournalById(journalId);
-
-        if (!cancelled) {
-          setJournal(data);
-        }
-      } catch (fetchError) {
-        if (!cancelled) {
-          setJournal(null);
-          setError(getUserFriendlyApiErrorMessage(fetchError));
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [journalId]);
-
-  return { journal, isLoading, error };
+  return {
+    journal: query.data ?? null,
+    isLoading: query.isLoading,
+    error: query.error
+      ? getUserFriendlyApiErrorMessage(query.error)
+      : null,
+  };
 }

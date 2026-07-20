@@ -1,46 +1,58 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { getUserFriendlyApiErrorMessage } from "@/core/api";
+import {
+  academicListPageSize,
+  listQueryStaleTimeMs,
+} from "@/core/api/query-config";
 import { listJournals } from "@/features/experiments/api/journals.api";
-import type { JournalListItem } from "@/features/experiments/types/journal.types";
 
 export function useJournals() {
-  const [items, setItems] = useState<JournalListItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useInfiniteQuery({
+    queryKey: ["journals"] as const,
+    initialPageParam: undefined as string | undefined,
+    staleTime: listQueryStaleTimeMs,
+    queryFn: async ({ pageParam }) =>
+      listJournals({
+        limit: academicListPageSize,
+        cursor: pageParam,
+      }),
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+  });
+
+  const items = useMemo(
+    () => query.data?.pages.flatMap((page) => page.items) ?? [],
+    [query.data],
+  );
 
   const reload = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+    await query.refetch();
+  }, [query]);
+
+  const loadMore = useCallback(async () => {
+    if (!query.hasNextPage || query.isFetchingNextPage) {
+      return false;
+    }
 
     try {
-      const collected: JournalListItem[] = [];
-      let cursor: string | null = null;
-
-      do {
-        const page = await listJournals({ limit: 50, cursor });
-        collected.push(...page.items);
-        cursor = page.nextCursor;
-      } while (cursor);
-
-      setItems(collected);
-    } catch (fetchError) {
-      setItems([]);
-      setError(getUserFriendlyApiErrorMessage(fetchError));
-    } finally {
-      setIsLoading(false);
+      await query.fetchNextPage();
+      return true;
+    } catch {
+      return false;
     }
-  }, []);
-
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+  }, [query]);
 
   return {
     items,
-    isLoading,
-    error,
+    isLoading: query.isLoading,
+    isLoadingMore: query.isFetchingNextPage,
+    hasMore: Boolean(query.hasNextPage),
+    error: query.error
+      ? getUserFriendlyApiErrorMessage(query.error)
+      : null,
     reload,
+    loadMore,
   };
 }

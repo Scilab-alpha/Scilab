@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell, Search } from "lucide-react";
 import { Input } from "@/shared/components/ui/input";
 import { ROLE_LABELS } from "@/shared/constants/permissions";
 import { useAuth } from "@/providers/auth-provider";
 import Can from "@/shared/components/auth/Can";
+import { getUnreadNotificationCount } from "@/features/notifications/api/notifications.api";
+import { NOTIFICATION_UNREAD_EVENT } from "@/features/notifications/lib/notification-popup";
 
 interface StudentTopHeaderProps {
   searchPlaceholder?: string;
@@ -19,6 +22,41 @@ export default function StudentTopHeader({
   onSearchChange,
 }: StudentTopHeaderProps) {
   const { user } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void getUnreadNotificationCount()
+      .then((result) => {
+        if (!cancelled) {
+          setUnreadCount(result.unreadCount);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setUnreadCount(0);
+        }
+      });
+
+    const onUnread = (event: Event) => {
+      const delta = (event as CustomEvent<{ delta?: number }>).detail?.delta;
+      if (typeof delta === "number" && delta !== 0) {
+        setUnreadCount((previous) => Math.max(0, previous + delta));
+      } else {
+        void getUnreadNotificationCount()
+          .then((result) => setUnreadCount(result.unreadCount))
+          .catch(() => undefined);
+      }
+    };
+
+    window.addEventListener(NOTIFICATION_UNREAD_EVENT, onUnread);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener(NOTIFICATION_UNREAD_EVENT, onUnread);
+    };
+  }, [user?.id]);
 
   return (
     <header className="h-16 bg-card border-b border-border px-8 flex items-center justify-between gap-4">
@@ -51,12 +89,19 @@ export default function StudentTopHeader({
           <Link
             href="/student/notifications"
             className="relative p-2 hover:bg-accent rounded-[var(--radius-button)] transition-colors"
+            aria-label={
+              unreadCount > 0
+                ? `${unreadCount} unread notifications`
+                : "Notifications"
+            }
           >
             <Bell
               className="w-5 h-5 text-muted-foreground"
               strokeWidth={1.75}
             />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
+            )}
           </Link>
         </Can>
 

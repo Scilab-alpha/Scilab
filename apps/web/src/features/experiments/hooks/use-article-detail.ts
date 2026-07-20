@@ -1,46 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getUserFriendlyApiErrorMessage } from "@/core/api";
+import { listQueryStaleTimeMs } from "@/core/api/query-config";
 import { getArticleById } from "@/features/experiments/api/articles.api";
-import type { ArticleGraph } from "@/features/experiments/types/article.types";
 
 export function useArticleDetail(articleId: string) {
-  const [article, setArticle] = useState<ArticleGraph | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery({
+    queryKey: ["article", articleId] as const,
+    staleTime: listQueryStaleTimeMs,
+    enabled: Boolean(articleId),
+    queryFn: () => getArticleById(articleId),
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const data = await getArticleById(articleId);
-
-        if (!cancelled) {
-          setArticle(data);
-        }
-      } catch (fetchError) {
-        if (!cancelled) {
-          setArticle(null);
-          setError(getUserFriendlyApiErrorMessage(fetchError));
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [articleId]);
-
-  return { article, isLoading, error };
+  return {
+    article: query.data ?? null,
+    isLoading: query.isLoading,
+    error: query.error
+      ? getUserFriendlyApiErrorMessage(query.error)
+      : null,
+  };
 }

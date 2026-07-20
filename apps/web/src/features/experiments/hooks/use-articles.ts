@@ -1,54 +1,79 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { getUserFriendlyApiErrorMessage } from "@/core/api";
+import {
+  academicListPageSize,
+  listQueryStaleTimeMs,
+} from "@/core/api/query-config";
 import { listArticles } from "@/features/experiments/api/articles.api";
-import type { ArticleGraph } from "@/features/experiments/types/article.types";
+import { syncLocalFollowNotifications } from "@/features/notifications/api/local-notifications";
 
-const pageFetchLimit = 50;
-const maxArticles = 200;
+const searchDebounceMs = 350;
 
 export function useArticles(keyword: string) {
-  const [items, setItems] = useState<ArticleGraph[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const reload = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const collected: ArticleGraph[] = [];
-      let cursor: string | null = null;
-
-      do {
-        const page = await listArticles({
-          keyword: keyword.trim() || undefined,
-          limit: pageFetchLimit,
-          cursor,
-        });
-
-        collected.push(...page.items);
-        cursor = page.nextCursor;
-      } while (cursor && collected.length < maxArticles);
-
-      setItems(collected);
-    } catch (fetchError) {
-      setItems([]);
-      setError(getUserFriendlyApiErrorMessage(fetchError));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [keyword]);
+  const [debouncedKeyword, setDebouncedKeyword] = useState(keyword);
 
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    const timer = window.setTimeout(() => {
+      setDebouncedKeyword(keyword);
+    }, searchDebounceMs);
+
+    return () => window.clearTimeout(timer);
+  }, [keyword]);
+
+  const trimmedKeyword = debouncedKeyword.trim();
+  const queryKey = ["articles", trimmedKeyword] as const;
+
+  const query = useInfiniteQuery({
+    queryKey,
+    initialPageParam: undefined as string | undefined,
+    staleTime: listQueryStaleTimeMs,
+    queryFn: async ({ pageParam }) => {
+      const page = await listArticles({
+        keyword: trimmedKeyword || undefined,
+        limit: academicListPageSize,
+        cursor: pageParam,
+      });
+      syncLocalFollowNotifications(page.items);
+      return page;
+    },
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+  });
+
+  const items = useMemo(
+    () => query.data?.pages.flatMap((page) => page.items) ?? [],
+    [query.data],
+  );
+
+  const reload = useCallback(async () => {
+    await query.refetch();
+  }, [query]);
+
+  const loadMore = useCallback(async () => {
+    if (!query.hasNextPage || query.isFetchingNextPage) {
+      return false;
+    }
+
+    try {
+      await query.fetchNextPage();
+      return true;
+    } catch {
+      return false;
+    }
+  }, [query]);
 
   return {
     items,
-    isLoading,
-    error,
+    /** True on first visit until the API responds (cached revisits stay instant). */
+    isLoading: query.isLoading,
+    isLoadingMore: query.isFetchingNextPage,
+    hasMore: Boolean(query.hasNextPage),
+    error: query.error
+      ? getUserFriendlyApiErrorMessage(query.error)
+      : null,
     reload,
+    loadMore,
   };
 }
