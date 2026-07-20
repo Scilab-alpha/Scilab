@@ -1,4 +1,4 @@
-export type FollowObjectType = "JOURNAL" | "KEYWORD" | "TOPIC";
+export type FollowObjectType = "AUTHOR" | "JOURNAL" | "KEYWORD" | "TOPIC";
 
 export type FollowNotifyMode =
   | "IN_APP"

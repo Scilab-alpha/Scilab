@@ -114,11 +114,14 @@ function FollowingCard({ follow }: { follow: FollowListItem }) {
     </SurfaceCard>
   );
 
-  if (follow.objectType !== "JOURNAL") {
+  if (follow.objectType !== "JOURNAL" && follow.objectType !== "AUTHOR") {
     return content;
   }
 
-  const href = `/journals/${encodeURIComponent(follow.objectId)}` as Href;
+  const href =
+    follow.objectType === "AUTHOR"
+      ? (`/authors/${encodeURIComponent(follow.objectId)}` as Href)
+      : (`/journals/${encodeURIComponent(follow.objectId)}` as Href);
 
   return (
     <Link asChild href={href}>
@@ -132,6 +135,10 @@ function getFollowTitle(follow: FollowListItem) {
 }
 
 function getFollowIcon(follow: FollowListItem) {
+  if (follow.objectType === "AUTHOR") {
+    return "person-outline" as const;
+  }
+
   if (follow.objectType === "JOURNAL") {
     return "book-outline" as const;
   }
