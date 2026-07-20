@@ -1,92 +1,167 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import {
-  Upload,
-  Camera,
+  useForm,
+  type FieldErrors,
+  type UseFormSetError,
+} from "react-hook-form";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Activity,
+  AlertCircle,
   Check,
-  X,
-  Eye,
-  EyeOff,
-  Monitor,
-  MapPin,
-  Calendar,
-  Shield,
+  Loader2,
   Mail,
-  Globe,
-  Bell,
+  ShieldCheck,
+  UserRound,
 } from "lucide-react";
+import { toast } from "sonner";
+import { z } from "zod";
+import { getMyProfile, updateMyProfile } from "@/features/users/api/users.api";
+import { USER_QUERY_KEYS } from "@/features/users/api/user-query-keys";
+import type {
+  UpdateUserProfileInput,
+  UserProfile,
+} from "@/features/users/types/user.types";
+import { AuthApiError } from "@/features/auth/types/auth.types";
+import { useAuth } from "@/providers/auth-provider";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/shared/components/ui/alert";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/shared/components/ui/avatar";
+import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
-import { Card } from "@/shared/components/ui/card";
-import PageContainer from "@/shared/components/layout/PageContainer";
-import StudentTopHeader from "@/shared/components/layout/StudentTopHeader";
 import { Label } from "@/shared/components/ui/label";
-import { getUserProfile } from "@/features/auth/api/auth.api";
+import { Skeleton } from "@/shared/components/ui/skeleton";
+import { cn } from "@/shared/components/ui/utils";
 import { ROLE_LABELS } from "@/shared/constants/permissions";
 
+const profilePatchSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email is required.")
+    .email("Enter a valid email address.")
+    .optional(),
+  firstName: z.string().trim().min(1, "First name is required.").optional(),
+  lastName: z.string().trim().min(1, "Last name is required.").optional(),
+  gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
+  dateOfBirth: z
+    .string()
+    .trim()
+    .min(1, "Date of birth is required.")
+    .refine(isValidDateOnly, "Enter a valid date of birth.")
+    .optional(),
+});
+
+type ProfileFormValues = {
+  email: string;
+  firstName: string;
+  lastName: string;
+  gender: "" | "MALE" | "FEMALE" | "OTHER";
+  dateOfBirth: string;
+};
+
+const editableFields = [
+  "email",
+  "firstName",
+  "lastName",
+  "gender",
+  "dateOfBirth",
+] as const satisfies ReadonlyArray<keyof ProfileFormValues>;
+
 export default function ProfileManagement() {
+  const queryClient = useQueryClient();
+  const { logout, refreshCurrentUser } = useAuth();
   const profileQuery = useQuery({
-    queryKey: ["auth", "profile"],
-    queryFn: getUserProfile,
-    retry: 1,
+    queryKey: USER_QUERY_KEYS.me,
+    queryFn: getMyProfile,
   });
-  const [activeTab, setActiveTab] = useState("personal");
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [notificationPreference, setNotificationPreference] = useState("daily");
+  const updateMutation = useMutation({ mutationFn: updateMyProfile });
 
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const [gender, setGender] = useState("OTHER");
-  const [profileNotice, setProfileNotice] = useState("");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  const sessions: Array<{
-    device: string;
-    location: string;
-    ip: string;
-    lastActive: string;
-    current: boolean;
-  }> = [];
+  const {
+    clearErrors,
+    formState: { dirtyFields, errors, isDirty },
+    handleSubmit,
+    register,
+    reset,
+    setError,
+  } = useForm<ProfileFormValues>({
+    defaultValues: emptyProfileForm,
+    mode: "onBlur",
+  });
 
   useEffect(() => {
-    if (!profileQuery.data) return;
-    setFirstName(profileQuery.data.firstName ?? "");
-    setLastName(profileQuery.data.lastName ?? "");
-    setDateOfBirth(profileQuery.data.dateOfBirth?.slice(0, 10) ?? "");
-    setGender(profileQuery.data.gender ?? "OTHER");
-  }, [profileQuery.data]);
+    if (profileQuery.data) {
+      reset(toProfileForm(profileQuery.data));
+    }
+  }, [profileQuery.data, reset]);
 
-  const handleSavePersonalInfo = () => {
-    setProfileNotice("Profile editing is not available yet.");
-  };
+  const isMissingProfile =
+    profileQuery.error instanceof AuthApiError &&
+    profileQuery.error.status === 404;
 
-  const handleChangePassword = () => {
-    setProfileNotice("Password changes are not available yet.");
-  };
+  useEffect(() => {
+    if (isMissingProfile) {
+      void logout();
+    }
+  }, [isMissingProfile, logout]);
 
-  const handleDisconnectGoogle = () => {
-    setProfileNotice("Connected account changes are not available yet.");
-  };
+  const onSubmit = handleSubmit(async (values) => {
+    clearErrors();
+    updateMutation.reset();
 
-  const handleRevokeSession = (index: number) => {
-    setProfileNotice(`Session ${index + 1} cannot be revoked here yet.`);
-  };
+    const candidate = buildDirtyProfilePatch(values, dirtyFields);
+    const parsed = profilePatchSchema.safeParse(candidate);
+
+    if (!parsed.success) {
+      applyZodErrors(parsed.error, setError);
+      toast.error("Please fix the highlighted fields.");
+      return;
+    }
+
+    if (Object.keys(parsed.data).length === 0) return;
+
+    try {
+      const updatedProfile = await updateMutation.mutateAsync(parsed.data);
+      queryClient.setQueryData(USER_QUERY_KEYS.me, updatedProfile);
+      reset(toProfileForm(updatedProfile));
+      toast.success("Profile updated successfully.");
+
+      // The auth identity powers both shells, so refresh it after the full
+      // profile cache has been updated. A shell refresh failure must not turn
+      // an already successful profile PATCH into a failed save.
+      void Promise.resolve(refreshCurrentUser()).catch(() => undefined);
+    } catch (error) {
+      applyApiErrors(error, setError);
+      toast.error(getProfileErrorMessage(error));
+    }
+  });
 
   if (profileQuery.isPending) {
-    return <ProfileState message="Loading your profile..." />;
+    return <ProfileSkeleton />;
   }
 
   if (profileQuery.isError || !profileQuery.data) {
     return (
-      <ProfileState
-        message="We could not load your profile."
+      <ProfileErrorState
+        isMissingProfile={isMissingProfile}
+        isRetrying={profileQuery.isFetching}
         onRetry={() => void profileQuery.refetch()}
       />
     );
@@ -94,633 +169,513 @@ export default function ProfileManagement() {
 
   const profile = profileQuery.data;
 
+  const handleCancel = () => {
+    clearErrors();
+    updateMutation.reset();
+    reset(toProfileForm(profile));
+  };
+
   return (
-    <>
-      <StudentTopHeader searchPlaceholder="Search articles, journals, topics..." />
+    <section
+      aria-labelledby="profile-heading"
+      className="mx-auto w-full max-w-4xl space-y-6"
+    >
+      <Card className="relative overflow-hidden border border-border/70">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,color-mix(in_srgb,var(--primary)_16%,transparent),transparent_52%)]"
+        />
+        <CardContent className="relative flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:p-8">
+          <Avatar className="size-24 rounded-[var(--radius-card)] border-4 border-card shadow-ambient">
+            {profile.imageUrl ? (
+              <AvatarImage
+                src={profile.imageUrl}
+                alt={`${profile.displayName} profile picture`}
+                className="object-cover"
+              />
+            ) : null}
+            <AvatarFallback
+              delayMs={profile.imageUrl ? 250 : undefined}
+              className="rounded-[var(--radius-card)] bg-primary text-2xl font-semibold text-primary-foreground"
+            >
+              {profile.initials}
+            </AvatarFallback>
+          </Avatar>
 
-      <main className="flex-1 overflow-auto bg-card">
-        <PageContainer size="narrow" className="py-12">
-          {/* Profile Header */}
-          <div className="mb-8">
-            <div className="flex items-start gap-6">
-              {/* Avatar */}
-              <div className="relative group">
-                <div className="w-24 h-24 bg-primary rounded-[var(--radius-card)] flex items-center justify-center">
-                  <span className="font-heading text-3xl text-primary-foreground">
-                    {profile.initials}
-                  </span>
-                </div>
-                <button className="absolute inset-0 bg-black/50 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <Camera className="w-6 h-6 text-white" />
-                </button>
-              </div>
-
-              {/* User Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-4 mb-2">
-                  <div className="min-w-0">
-                    <h1 className="font-heading text-3xl text-foreground mb-1">
-                      {profile.displayName}
-                    </h1>
-                    <p className="text-base text-muted-foreground mb-3">
-                      {profile.email}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 bg-accent text-tag text-sm font-semibold rounded-lg border border-border">
-                        {ROLE_LABELS[profile.role]}
-                      </span>
-                      <span className="px-3 py-1 bg-teal/10 text-teal text-sm font-semibold rounded-lg border border-border">
-                        {profile.status}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <div className="min-w-0 flex-1">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Personal profile
+            </p>
+            <h1
+              id="profile-heading"
+              className="truncate font-heading text-3xl text-foreground"
+            >
+              {profile.displayName}
+            </h1>
+            <p className="mt-1 truncate text-sm text-muted-foreground">
+              {profile.email}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Badge variant="default">{ROLE_LABELS[profile.role]}</Badge>
+              <StatusBadge status={profile.status} />
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Tabs */}
-          <div className="border-b border-border mb-8">
-            <div className="flex gap-8">
-              <button
-                onClick={() => setActiveTab("personal")}
-                className={`pb-4 px-1 text-sm font-medium transition-colors relative ${
-                  activeTab === "personal"
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+      {updateMutation.isError ? (
+        <Alert variant="destructive">
+          <AlertCircle aria-hidden="true" />
+          <AlertTitle>Changes were not saved</AlertTitle>
+          <AlertDescription>
+            {getProfileErrorMessage(updateMutation.error)} Your entries are
+            still here so you can review them and try again.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
+        <Card className="border border-border/70">
+          <CardHeader>
+            <CardTitle>Basic information</CardTitle>
+            <CardDescription>
+              Keep the details associated with your ScholarTrend account up to
+              date.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-6" noValidate onSubmit={onSubmit}>
+              <FormField
+                label="Email"
+                error={errors.email}
+                htmlFor="profile-email"
               >
-                Personal Information
-                {activeTab === "personal" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
-                )}
-              </button>
-              <button
-                onClick={() => setActiveTab("account")}
-                className={`pb-4 px-1 text-sm font-medium transition-colors relative ${
-                  activeTab === "account"
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Account Settings
-                {activeTab === "account" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
-                )}
-              </button>
-              <button
-                onClick={() => setActiveTab("notifications")}
-                className={`pb-4 px-1 text-sm font-medium transition-colors relative ${
-                  activeTab === "notifications"
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Notification Preferences
-                {activeTab === "notifications" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
-                )}
-              </button>
-            </div>
-          </div>
+                <Input
+                  id="profile-email"
+                  type="email"
+                  autoComplete="email"
+                  aria-invalid={Boolean(errors.email)}
+                  aria-describedby={
+                    errors.email ? "profile-email-error" : undefined
+                  }
+                  {...register("email")}
+                />
+              </FormField>
 
-          {/* Tab Content */}
-          {activeTab === "personal" && (
-            <div className="space-y-6">
-              <Card className="p-6 border-border">
-                <h2 className="font-heading text-lg text-foreground mb-6">
-                  Basic Information
-                </h2>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <FormField
+                  label="First name"
+                  error={errors.firstName}
+                  htmlFor="profile-first-name"
+                >
+                  <Input
+                    id="profile-first-name"
+                    type="text"
+                    autoComplete="given-name"
+                    aria-invalid={Boolean(errors.firstName)}
+                    aria-describedby={
+                      errors.firstName ? "profile-first-name-error" : undefined
+                    }
+                    {...register("firstName")}
+                  />
+                </FormField>
 
-                <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-5">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="first-name"
-                        className="text-sm font-medium"
-                      >
-                        First Name
-                      </Label>
-                      <Input
-                        id="first-name"
-                        type="text"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        className="h-10"
-                      />
-                    </div>
+                <FormField
+                  label="Last name"
+                  error={errors.lastName}
+                  htmlFor="profile-last-name"
+                >
+                  <Input
+                    id="profile-last-name"
+                    type="text"
+                    autoComplete="family-name"
+                    aria-invalid={Boolean(errors.lastName)}
+                    aria-describedby={
+                      errors.lastName ? "profile-last-name-error" : undefined
+                    }
+                    {...register("lastName")}
+                  />
+                </FormField>
+              </div>
 
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="last-name"
-                        className="text-sm font-medium"
-                      >
-                        Last Name
-                      </Label>
-                      <Input
-                        id="last-name"
-                        type="text"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        className="h-10"
-                      />
-                    </div>
-                  </div>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <FormField
+                  label="Gender"
+                  error={errors.gender}
+                  htmlFor="profile-gender"
+                >
+                  <select
+                    id="profile-gender"
+                    aria-invalid={Boolean(errors.gender)}
+                    aria-describedby={
+                      errors.gender ? "profile-gender-error" : undefined
+                    }
+                    className="flex h-9 w-full rounded-[var(--radius-input)] border border-border bg-input-background px-3 text-sm text-foreground outline-none transition-[color,box-shadow] focus-visible:border-primary/40 focus-visible:ring-[3px] focus-visible:ring-ring aria-invalid:border-destructive aria-invalid:ring-destructive/20"
+                    {...register("gender")}
+                  >
+                    <option value="" disabled>
+                      Not provided
+                    </option>
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </FormField>
 
-                  <div className="grid grid-cols-2 gap-5">
-                    <div className="space-y-2">
-                      <Label htmlFor="dob" className="text-sm font-medium">
-                        Date of Birth
-                      </Label>
-                      <Input
-                        id="dob"
-                        type="date"
-                        value={dateOfBirth}
-                        onChange={(e) => setDateOfBirth(e.target.value)}
-                        className="h-10"
-                      />
-                    </div>
+                <FormField
+                  label="Date of birth"
+                  error={errors.dateOfBirth}
+                  htmlFor="profile-date-of-birth"
+                >
+                  <Input
+                    id="profile-date-of-birth"
+                    type="date"
+                    autoComplete="bday"
+                    aria-invalid={Boolean(errors.dateOfBirth)}
+                    aria-describedby={
+                      errors.dateOfBirth
+                        ? "profile-date-of-birth-error"
+                        : undefined
+                    }
+                    {...register("dateOfBirth")}
+                  />
+                </FormField>
+              </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="gender" className="text-sm font-medium">
-                        Gender
-                      </Label>
-                      <select
-                        id="gender"
-                        className="w-full h-10 px-3 bg-card border border-border rounded-lg text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
-                        value={gender}
-                        onChange={(e) => setGender(e.target.value)}
-                      >
-                        <option value="MALE">Male</option>
-                        <option value="FEMALE">Female</option>
-                        <option value="OTHER">Other</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="p-6 border-border">
-                <h2 className="font-heading text-lg text-foreground mb-6">
-                  Profile Picture
-                </h2>
-
-                <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 bg-primary rounded-[var(--radius-card)] flex items-center justify-center">
-                    <span className="font-heading text-2xl text-primary-foreground">
-                      {profile.initials}
-                    </span>
-                  </div>
-
-                  <div className="flex-1">
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Upload a new profile picture. Recommended size: 400x400px.
-                    </p>
-                    <div className="flex gap-3">
-                      <Button variant="outline" size="sm" className="h-9">
-                        <Upload className="w-4 h-4 mr-2" />
-                        Upload Image
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <Button variant="outline" size="sm" className="h-10 px-4">
+              <div className="flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+                  disabled={!isDirty || updateMutation.isPending}
+                  onClick={handleCancel}
+                >
                   Cancel
                 </Button>
                 <Button
-                  size="sm"
-                  className="h-10 px-4"
-                  onClick={handleSavePersonalInfo}
+                  type="submit"
+                  className="motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+                  disabled={!isDirty || updateMutation.isPending}
                 >
-                  <Check className="w-4 h-4 mr-2" />
-                  Save Changes
-                </Button>
-                <p className="sr-only" aria-live="polite">
-                  {profileNotice}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "account" && (
-            <div className="space-y-6">
-              <Card className="p-6 border-border">
-                <h2 className="font-heading text-lg text-foreground mb-6">
-                  Change Password
-                </h2>
-
-                <div className="space-y-5 max-w-xl">
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="current-password"
-                      className="text-sm font-medium"
-                    >
-                      Current Password
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="current-password"
-                        type={showCurrentPassword ? "text" : "password"}
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        className="h-10 pr-10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowCurrentPassword(!showCurrentPassword)
-                        }
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
-                      >
-                        {showCurrentPassword ? (
-                          <EyeOff className="w-4 h-4" />
-                        ) : (
-                          <Eye className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="new-password"
-                      className="text-sm font-medium"
-                    >
-                      New Password
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="new-password"
-                        type={showNewPassword ? "text" : "password"}
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className="h-10 pr-10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
-                      >
-                        {showNewPassword ? (
-                          <EyeOff className="w-4 h-4" />
-                        ) : (
-                          <Eye className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="confirm-password"
-                      className="text-sm font-medium"
-                    >
-                      Confirm New Password
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="confirm-password"
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="h-10 pr-10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowConfirmPassword(!showConfirmPassword)
-                        }
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff className="w-4 h-4" />
-                        ) : (
-                          <Eye className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <Button
-                    size="sm"
-                    className="h-10"
-                    onClick={handleChangePassword}
-                  >
-                    Update Password
-                  </Button>
-                </div>
-              </Card>
-
-              <Card className="p-6 border-border">
-                <h2 className="font-heading text-lg text-foreground mb-6">
-                  Connected Accounts
-                </h2>
-
-                <div className="max-w-xl">
-                  <div className="flex items-center justify-between p-4 bg-background rounded-lg border border-border">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-card rounded-lg flex items-center justify-center border border-border">
-                        <Globe className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">
-                          Google Account
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          jane.smith@gmail.com
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
-                      onClick={handleDisconnectGoogle}
-                    >
-                      Disconnect
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="p-6 border-border">
-                <h2 className="font-heading text-lg text-foreground mb-6">
-                  Active Sessions
-                </h2>
-
-                <div className="space-y-3">
-                  {sessions.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      Active session details are not available yet.
-                    </p>
-                  ) : null}
-                  {sessions.map((session, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-4 bg-background rounded-lg border border-border"
-                    >
-                      <div className="flex items-center gap-4 flex-1 min-w-0">
-                        <div className="w-10 h-10 bg-card rounded-lg flex items-center justify-center border border-border flex-shrink-0">
-                          {session.device.includes("Chrome") ? (
-                            <Globe className="w-5 h-5 text-muted-foreground" />
-                          ) : (
-                            <Monitor className="w-5 h-5 text-muted-foreground" />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="text-sm font-semibold text-foreground truncate">
-                              {session.device}
-                            </p>
-                            {session.current && (
-                              <span className="px-2 py-0.5 bg-teal/10 text-teal text-xs font-semibold rounded flex-shrink-0">
-                                Current
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              {session.location}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Shield className="w-3 h-3" />
-                              {session.ip}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {session.lastActive}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      {!session.current && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0 ml-4"
-                          onClick={() => handleRevokeSession(index)}
-                        >
-                          Revoke
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            </div>
-          )}
-
-          {activeTab === "notifications" && (
-            <div className="space-y-6">
-              <Card className="p-6 border-border">
-                <h2 className="font-heading text-lg text-foreground mb-2">
-                  Email Notifications
-                </h2>
-                <p className="text-sm text-muted-foreground mb-6">
-                  Choose how you want to receive notifications about new
-                  publications, trends, and updates.
-                </p>
-
-                <div className="space-y-3 max-w-2xl">
-                  <label
-                    className={`flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                      notificationPreference === "in-app"
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-border"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="notifications"
-                      value="in-app"
-                      checked={notificationPreference === "in-app"}
-                      onChange={(e) =>
-                        setNotificationPreference(e.target.value)
-                      }
-                      className="mt-1"
+                  {updateMutation.isPending ? (
+                    <Loader2
+                      className="animate-spin motion-reduce:animate-none"
+                      aria-hidden="true"
                     />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Bell className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                        <p className="text-sm font-semibold text-foreground">
-                          In-App Only
-                        </p>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Receive notifications only within the Scilab
-                        application. No emails will be sent.
-                      </p>
-                    </div>
-                  </label>
-
-                  <label
-                    className={`flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                      notificationPreference === "daily"
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-border"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="notifications"
-                      value="daily"
-                      checked={notificationPreference === "daily"}
-                      onChange={(e) =>
-                        setNotificationPreference(e.target.value)
-                      }
-                      className="mt-1"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                        <p className="text-sm font-semibold text-foreground">
-                          Daily Email Digest
-                        </p>
-                        <span className="px-2 py-0.5 bg-accent text-tag text-xs font-semibold rounded flex-shrink-0">
-                          Recommended
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Get a daily summary of new publications, trending
-                        topics, and personalized recommendations.
-                      </p>
-                    </div>
-                  </label>
-
-                  <label
-                    className={`flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                      notificationPreference === "weekly"
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-border"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="notifications"
-                      value="weekly"
-                      checked={notificationPreference === "weekly"}
-                      onChange={(e) =>
-                        setNotificationPreference(e.target.value)
-                      }
-                      className="mt-1"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                        <p className="text-sm font-semibold text-foreground">
-                          Weekly Email Digest
-                        </p>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Receive a weekly roundup every Monday with highlights
-                        from the past week.
-                      </p>
-                    </div>
-                  </label>
-
-                  <label
-                    className={`flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                      notificationPreference === "disabled"
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-border"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="notifications"
-                      value="disabled"
-                      checked={notificationPreference === "disabled"}
-                      onChange={(e) =>
-                        setNotificationPreference(e.target.value)
-                      }
-                      className="mt-1"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <X className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                        <p className="text-sm font-semibold text-foreground">
-                          Disable Notifications
-                        </p>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Turn off all notifications. You can still check updates
-                        manually in the app.
-                      </p>
-                    </div>
-                  </label>
-                </div>
-              </Card>
-
-              <Card className="p-6 border-border bg-accent border-border">
-                <div className="flex gap-4">
-                  <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Bell className="w-5 h-5 text-tag" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-heading text-sm text-foreground mb-1">
-                      Notification Categories
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      You&apos;ll receive notifications for the following events
-                      based on your selected preference:
-                    </p>
-                    <ul className="text-sm text-tag space-y-1 list-disc list-inside">
-                      <li>New publications in your followed topics</li>
-                      <li>Trending research areas in your field</li>
-                      <li>Citations of bookmarked articles</li>
-                      <li>Updates from followed journals</li>
-                    </ul>
-                  </div>
-                </div>
-              </Card>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <Button variant="outline" size="sm" className="h-10 px-4">
-                  Cancel
-                </Button>
-                <Button size="sm" className="h-10 px-4">
-                  <Check className="w-4 h-4 mr-2" />
-                  Save Preferences
+                  ) : (
+                    <Check aria-hidden="true" />
+                  )}
+                  {updateMutation.isPending
+                    ? "Saving changes..."
+                    : "Save changes"}
                 </Button>
               </div>
-            </div>
-          )}
-        </PageContainer>
-      </main>
-    </>
+
+              <p className="sr-only" aria-live="polite">
+                {updateMutation.isPending
+                  ? "Saving profile changes."
+                  : updateMutation.isSuccess
+                    ? "Profile changes saved."
+                    : ""}
+              </p>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-border/70 lg:sticky lg:top-6">
+          <CardHeader>
+            <CardTitle>Account summary</CardTitle>
+            <CardDescription>
+              These values reflect your current account access.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <SummaryItem
+              icon={<Mail aria-hidden="true" />}
+              label="Email"
+              value={profile.email}
+            />
+            <SummaryItem
+              icon={<ShieldCheck aria-hidden="true" />}
+              label="Role"
+              value={ROLE_LABELS[profile.role]}
+            />
+            <SummaryItem
+              icon={<Activity aria-hidden="true" />}
+              label="Status"
+              value={formatLabel(profile.status)}
+            />
+          </CardContent>
+        </Card>
+      </div>
+    </section>
   );
 }
 
-function ProfileState({
-  message,
-  onRetry,
+function FormField({
+  children,
+  error,
+  htmlFor,
+  label,
 }: {
-  message: string;
-  onRetry?: () => void;
+  children: React.ReactNode;
+  error?: FieldErrors<ProfileFormValues>[keyof ProfileFormValues];
+  htmlFor: string;
+  label: string;
 }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-card px-6">
-      <div className="space-y-4 text-center">
-        <p role="status" className="text-sm text-muted-foreground">
-          {message}
+    <div className="space-y-2">
+      <Label htmlFor={htmlFor}>{label}</Label>
+      {children}
+      {error?.message ? (
+        <p
+          id={`${htmlFor}-error`}
+          role="alert"
+          className="text-sm text-destructive"
+        >
+          {String(error.message)}
         </p>
-        {onRetry ? (
-          <Button type="button" variant="outline" onClick={onRetry}>
-            Try again
-          </Button>
-        ) : null}
-      </div>
-    </main>
+      ) : null}
+    </div>
   );
 }
+
+function StatusBadge({ status }: { status: UserProfile["status"] }) {
+  const variant =
+    status === "active"
+      ? "teal"
+      : status === "banned"
+        ? "destructive"
+        : "secondary";
+
+  return (
+    <Badge variant={variant}>
+      <span
+        aria-hidden="true"
+        className={cn(
+          "size-1.5 rounded-full bg-current",
+          status === "inactive" && "opacity-70",
+        )}
+      />
+      {formatLabel(status)}
+    </Badge>
+  );
+}
+
+function SummaryItem({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-[var(--radius-card)] bg-surface-raised p-3">
+      <span className="mt-0.5 text-primary [&>svg]:size-4">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        <p className="mt-0.5 break-words text-sm font-medium text-foreground">
+          {value}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ProfileSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-label="Loading your profile"
+      className="mx-auto w-full max-w-4xl space-y-6"
+    >
+      <span className="sr-only">Loading your profile...</span>
+      <Card className="border border-border/70 p-6 sm:p-8">
+        <div className="flex items-center gap-5">
+          <Skeleton className="size-24 shrink-0 rounded-[var(--radius-card)] motion-reduce:animate-none" />
+          <div className="w-full max-w-sm space-y-3">
+            <Skeleton className="h-4 w-28 motion-reduce:animate-none" />
+            <Skeleton className="h-8 w-3/4 motion-reduce:animate-none" />
+            <Skeleton className="h-4 w-full motion-reduce:animate-none" />
+          </div>
+        </div>
+      </Card>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <Card className="border border-border/70 p-6">
+          <Skeleton className="mb-6 h-7 w-48 motion-reduce:animate-none" />
+          <div className="grid gap-5 sm:grid-cols-2">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div
+                key={index}
+                className={cn("space-y-2", index === 0 && "sm:col-span-2")}
+              >
+                <Skeleton className="h-4 w-24 motion-reduce:animate-none" />
+                <Skeleton className="h-9 w-full motion-reduce:animate-none" />
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card className="border border-border/70 p-6">
+          <Skeleton className="mb-5 h-7 w-40 motion-reduce:animate-none" />
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Skeleton
+                key={index}
+                className="h-14 w-full motion-reduce:animate-none"
+              />
+            ))}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function ProfileErrorState({
+  isMissingProfile,
+  isRetrying,
+  onRetry,
+}: {
+  isMissingProfile: boolean;
+  isRetrying: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <Card className="mx-auto w-full max-w-xl border border-border/70">
+      <CardContent className="flex flex-col items-center px-6 py-12 text-center">
+        <span className="mb-5 flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+          {isMissingProfile ? (
+            <UserRound aria-hidden="true" />
+          ) : (
+            <AlertCircle aria-hidden="true" />
+          )}
+        </span>
+        <h1 className="font-heading text-2xl text-foreground">
+          {isMissingProfile
+            ? "This profile is no longer available"
+            : "We could not load your profile"}
+        </h1>
+        <p className="mt-2 max-w-md text-sm text-muted-foreground">
+          {isMissingProfile
+            ? "Your session is ending so you can sign in with an active account."
+            : "Check your connection and try again. Your account has not been changed."}
+        </p>
+        {!isMissingProfile ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-6 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+            disabled={isRetrying}
+            onClick={onRetry}
+          >
+            {isRetrying ? (
+              <Loader2
+                className="animate-spin motion-reduce:animate-none"
+                aria-hidden="true"
+              />
+            ) : null}
+            {isRetrying ? "Trying again..." : "Try again"}
+          </Button>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function buildDirtyProfilePatch(
+  values: ProfileFormValues,
+  dirtyFields: Partial<Record<keyof ProfileFormValues, boolean>>,
+): UpdateUserProfileInput {
+  return editableFields.reduce<UpdateUserProfileInput>((patch, field) => {
+    if (dirtyFields[field]) {
+      Object.assign(patch, { [field]: values[field] });
+    }
+    return patch;
+  }, {});
+}
+
+function applyZodErrors(
+  error: z.ZodError,
+  setError: UseFormSetError<ProfileFormValues>,
+) {
+  error.issues.forEach((issue) => {
+    const field = issue.path[0];
+    if (typeof field === "string" && editableFields.includes(field as never)) {
+      setError(field as keyof ProfileFormValues, { message: issue.message });
+    }
+  });
+}
+
+function applyApiErrors(
+  error: unknown,
+  setError: UseFormSetError<ProfileFormValues>,
+) {
+  if (!(error instanceof AuthApiError)) return;
+
+  if (error.status === 409) {
+    setError("email", { message: "This email is already in use." });
+  }
+
+  const fieldAliases: Record<string, keyof ProfileFormValues> = {
+    email: "email",
+    firstname: "firstName",
+    firstName: "firstName",
+    lastname: "lastName",
+    lastName: "lastName",
+    gender: "gender",
+    dateofbirth: "dateOfBirth",
+    dataofbirth: "dateOfBirth",
+    dateOfBirth: "dateOfBirth",
+  };
+
+  Object.entries(error.fieldErrors ?? {}).forEach(([field, message]) => {
+    const formField = fieldAliases[field];
+    if (formField && message) setError(formField, { message });
+  });
+}
+
+function getProfileErrorMessage(error: unknown) {
+  if (error instanceof AuthApiError) return error.message;
+  return "We could not save your profile. Please try again.";
+}
+
+function toProfileForm(profile: UserProfile): ProfileFormValues {
+  return {
+    email: profile.email,
+    firstName: profile.firstName ?? "",
+    lastName: profile.lastName ?? "",
+    gender: profile.gender ?? "",
+    dateOfBirth: profile.dateOfBirth?.slice(0, 10) ?? "",
+  };
+}
+
+function formatLabel(value: string) {
+  return `${value.charAt(0).toUpperCase()}${value.slice(1).toLowerCase()}`;
+}
+
+function isValidDateOnly(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+
+  const [, yearValue, monthValue, dayValue] = match;
+  const year = Number(yearValue);
+  const month = Number(monthValue);
+  const day = Number(dayValue);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+const emptyProfileForm: ProfileFormValues = {
+  email: "",
+  firstName: "",
+  lastName: "",
+  gender: "",
+  dateOfBirth: "",
+};

@@ -73,7 +73,7 @@ export async function readJsonBody<T>(request: NextRequest): Promise<T> {
 export async function requestUpstream<T>(
   path: string,
   input: {
-    method?: "GET" | "POST";
+    method?: "GET" | "POST" | "PATCH" | "DELETE";
     body?: unknown;
     accessToken?: string;
   } = {},
@@ -147,6 +147,10 @@ export async function requestUpstream<T>(
 export async function requestAuthenticated<T>(
   request: NextRequest,
   path: string,
+  input: {
+    method?: "GET" | "POST" | "PATCH" | "DELETE";
+    body?: unknown;
+  } = {},
 ): Promise<AuthenticatedResult<T>> {
   const accessToken = request.cookies.get(ACCESS_COOKIE_NAME)?.value;
   let refreshedSession: RefreshedSession | undefined;
@@ -160,6 +164,7 @@ export async function requestAuthenticated<T>(
   }
 
   let result = await requestUpstream<T>(path, {
+    ...input,
     accessToken: refreshedSession?.tokens.accessToken ?? accessToken,
   });
 
@@ -170,6 +175,7 @@ export async function requestAuthenticated<T>(
     }
     refreshedSession = refreshResult;
     result = await requestUpstream<T>(path, {
+      ...input,
       accessToken: refreshedSession.tokens.accessToken,
     });
   }
@@ -305,7 +311,9 @@ async function refreshSession(
 }
 
 function getUpstreamOrigin() {
-  const configured = process.env.SCILAB_API_ORIGIN?.trim();
+  const configured =
+    process.env.SCILAB_API_ORIGIN?.trim() ||
+    process.env.SCILAB_API_BASE_URL?.trim();
   if (!configured) {
     throw new AuthBffError(
       500,
