@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ShieldX } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { useAuth } from "@/providers/auth-provider";
-import { getPostLoginPath } from "@/shared/constants/demo-credentials";
+import { getPostLoginPath } from "@/shared/constants/routes";
 
 export default function ForbiddenPage() {
   const { user } = useAuth();

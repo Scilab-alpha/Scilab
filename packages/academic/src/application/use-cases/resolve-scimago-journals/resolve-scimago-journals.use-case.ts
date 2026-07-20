@@ -50,12 +50,21 @@ export class ResolveScimagoJournalsUseCase {
     const config = getJournalSyncConfig(this.configReader);
     const issns = [...new Set(journals.flatMap((record) => record.issns))];
     const candidates: OpenAlexJournalSourceRecord[] = [];
-    for (const batch of chunk(issns, config.sourceBatchSize)) {
-      const page = await this.sources.fetchSourcesByIssns({
-        config,
-        issns: batch,
-      });
-      candidates.push(...page.results);
+    const sourceBatches = chunk(issns, config.sourceBatchSize);
+    for (const [index, batch] of sourceBatches.entries()) {
+      try {
+        const page = await this.sources.fetchSourcesByIssns({
+          config,
+          issns: batch,
+        });
+        candidates.push(...page.results);
+      } catch (error) {
+        const detail =
+          error instanceof Error ? error.message : 'Unknown OpenAlex error';
+        throw new Error(
+          `OpenAlex source batch ${index + 1}/${sourceBatches.length} (${batch.length} ISSNs) failed: ${detail}`,
+        );
+      }
     }
 
     await this.rankings.upsertScimagoTaxonomy({

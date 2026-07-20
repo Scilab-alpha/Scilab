@@ -1,8 +1,4 @@
-import type {
-  AuthSession,
-  AuthUser,
-  Gender,
-} from "@/features/auth/types/auth.types";
+import type { AuthUser, Gender } from "@/features/auth/types/auth.types";
 
 export interface ApiEnvelope<TData> {
   success: boolean;
@@ -13,11 +9,7 @@ export interface ApiEnvelope<TData> {
 export interface LoginRequest {
   email: string;
   password: string;
-}
-
-export interface TokenPairResponse {
-  accessToken: string;
-  refreshToken: string;
+  rememberMe: boolean;
 }
 
 export interface RegisterRequest {
@@ -39,13 +31,4 @@ export interface RegisterApiRequest {
   dataofbirth: string;
 }
 
-export interface RefreshRequest {
-  refreshToken: string;
-}
-
 export type CurrentUserResponse = AuthUser;
-
-export interface AuthResult {
-  user: AuthUser;
-  session: AuthSession;
-}

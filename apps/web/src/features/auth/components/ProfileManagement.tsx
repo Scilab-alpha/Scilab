@@ -558,7 +558,7 @@ export default function ProfileManagement() {
                         </p>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Receive notifications only within the ScholarTrend
+                        Receive notifications only within the Scilab
                         application. No emails will be sent.
                       </p>
                     </div>

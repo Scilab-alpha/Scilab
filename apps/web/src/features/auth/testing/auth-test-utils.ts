@@ -1,9 +1,5 @@
 import type { ApiEnvelope } from "@/features/auth/types/auth-api.types";
-import type {
-  AuthSession,
-  AuthUser,
-  UserRole,
-} from "@/features/auth/types/auth.types";
+import type { AuthUser, UserRole } from "@/features/auth/types/auth.types";
 
 export function createApiEnvelope<TData>(
   data: TData,
@@ -13,17 +9,6 @@ export function createApiEnvelope<TData>(
     success: true,
     message,
     data,
-  };
-}
-
-export function createTestAuthSession(
-  overrides: Partial<AuthSession> = {},
-): AuthSession {
-  return {
-    accessToken: "test-access-token",
-    refreshToken: "test-refresh-token",
-    expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-    ...overrides,
   };
 }
 

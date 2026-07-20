@@ -5,24 +5,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Shield } from "lucide-react";
 import { ADMIN_NAV_ITEMS } from "@/shared/constants/admin-nav";
 import { ROLE_LABELS } from "@/shared/constants/permissions";
-import PageContainer from "@/shared/components/layout/PageContainer";
+import { APP_NAME } from "@/shared/constants/app";
 import { useAuth } from "@/providers/auth-provider";
 
-interface AdminShellProps {
-  children: React.ReactNode;
-  title: string;
-  subtitle?: string;
-  icon: React.ReactNode;
-  headerAction?: React.ReactNode;
-}
-
+/** Persistent admin chrome (sidebar). Page content mounts as children. */
 export default function AdminShell({
   children,
-  title,
-  subtitle,
-  icon,
-  headerAction,
-}: AdminShellProps) {
+}: {
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
@@ -44,7 +35,7 @@ export default function AdminShell({
           </div>
           <div>
             <span className="font-heading text-lg text-foreground">
-              ScholarTrend
+              {APP_NAME}
             </span>
             <p className="text-xs text-muted-foreground">
               {user ? ROLE_LABELS[user.role] : "Admin Panel"}
@@ -102,32 +93,7 @@ export default function AdminShell({
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 bg-card border-b border-border px-8 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 bg-primary/15 rounded-[var(--radius-card)] flex items-center justify-center flex-shrink-0 text-primary">
-              {icon}
-            </div>
-            <div className="min-w-0">
-              <h1 className="font-heading text-lg text-foreground truncate">
-                {title}
-              </h1>
-              {subtitle ? (
-                <p className="text-xs text-muted-foreground truncate">
-                  {subtitle}
-                </p>
-              ) : null}
-            </div>
-          </div>
-          {headerAction ? (
-            <div className="flex-shrink-0">{headerAction}</div>
-          ) : null}
-        </header>
-
-        <main className="flex-1 overflow-auto py-8">
-          <PageContainer>{children}</PageContainer>
-        </main>
-      </div>
+      <div className="flex-1 flex flex-col min-w-0">{children}</div>
     </div>
   );
 }

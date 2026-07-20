@@ -7,8 +7,8 @@ export default function StudentLayout({
   children: React.ReactNode;
 }) {
   return (
-    <RouteGuard>
-      <StudentShell>{children}</StudentShell>
-    </RouteGuard>
+    <StudentShell>
+      <RouteGuard>{children}</RouteGuard>
+    </StudentShell>
   );
 }

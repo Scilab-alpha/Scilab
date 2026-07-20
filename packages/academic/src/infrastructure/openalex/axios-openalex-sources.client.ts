@@ -4,7 +4,10 @@ import {
   OpenAlexSourcesCatalog,
   OpenAlexSourcesPage,
 } from '@repo/academic/application/ports/openalex-source.port';
-import { requestOpenAlex } from '@repo/academic/infrastructure/openalex/axios-openalex-works.client';
+import {
+  formatOpenAlexError,
+  requestOpenAlex,
+} from '@repo/academic/infrastructure/openalex/axios-openalex-works.client';
 
 @Injectable()
 export class AxiosOpenAlexSourcesClient implements OpenAlexSourcesCatalog {
@@ -38,13 +41,9 @@ export class AxiosOpenAlexSourcesClient implements OpenAlexSourcesCatalog {
 
       return { results: response.data.results ?? [] };
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
-        throw new Error(
-          `OpenAlex sources request failed${status ? `: HTTP ${status}` : ''}`,
-        );
-      }
-      throw error;
+      throw new Error(
+        formatOpenAlexError(error, 'OpenAlex sources request failed'),
+      );
     }
   }
 }

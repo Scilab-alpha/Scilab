@@ -16,7 +16,8 @@ import {
   Unplug,
   Zap,
 } from "lucide-react";
-import AdminShell from "@/shared/components/layout/AdminShell";
+import AdminPageFrame from "@/shared/components/layout/AdminPageFrame";
+import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
 import {
@@ -37,10 +38,8 @@ import {
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
-import {
-  mockApiSources,
-  PROVIDER_PRESETS,
-} from "@/features/api-sources/api/mockApiSources";
+import { PROVIDER_PRESETS } from "@/features/api-sources/api/mockApiSources";
+import { useApiSources } from "@/features/api-sources/hooks/use-api-sources";
 import type {
   ApiProviderId,
   ApiSource,
@@ -367,8 +366,8 @@ function SourceFormDialog({
             {mode === "add" ? "Add Source" : "Edit Source"}
           </DialogTitle>
           <DialogDescription>
-            Configure an external academic data provider for ScholarTrend
-            ingestion pipelines.
+            Configure an external academic data provider for Scilab ingestion
+            pipelines.
           </DialogDescription>
         </DialogHeader>
 
@@ -432,7 +431,7 @@ function SourceFormDialog({
               onChange={(event) =>
                 setValues({ ...values, description: event.target.value })
               }
-              placeholder="What this provider supplies to ScholarTrend..."
+              placeholder="What this provider supplies to Scilab..."
               rows={3}
             />
           </div>
@@ -469,12 +468,26 @@ function SourceFormDialog({
 }
 
 export default function ApiSourceConfiguration() {
-  const [sources, setSources] = useState<ApiSource[]>(mockApiSources);
+  const {
+    sources: liveSources,
+    isLoading,
+    error,
+    reload,
+    setStatus,
+    refresh,
+    isMutating,
+  } = useApiSources();
+  const [customSources, setCustomSources] = useState<ApiSource[]>([]);
   const [testingId, setTestingId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"add" | "edit">("add");
   const [editingSource, setEditingSource] = useState<ApiSource | null>(null);
   const [formValues, setFormValues] = useState<ApiSourceFormValues>(emptyForm);
+
+  const sources = useMemo(
+    () => [...liveSources, ...customSources],
+    [liveSources, customSources],
+  );
 
   const stats = useMemo(
     () => ({
@@ -520,81 +533,95 @@ export default function ApiSourceConfiguration() {
         lastSync: null,
         apiKeyConfigured: Boolean(values.apiKey),
       };
-      setSources((current) => [...current, newSource]);
+      setCustomSources((current) => [...current, newSource]);
     } else if (editingSource) {
-      setSources((current) =>
-        current.map((source) =>
-          source.id === editingSource.id
-            ? {
-                ...source,
-                providerId: values.providerId,
-                name: values.name,
-                description: values.description,
-                endpoint: values.endpoint,
-                apiKeyConfigured: values.apiKey
-                  ? true
-                  : source.apiKeyConfigured,
-              }
-            : source,
-        ),
+      const isCustom = customSources.some(
+        (source) => source.id === editingSource.id,
       );
+      if (isCustom) {
+        setCustomSources((current) =>
+          current.map((source) =>
+            source.id === editingSource.id
+              ? {
+                  ...source,
+                  providerId: values.providerId,
+                  name: values.name,
+                  description: values.description,
+                  endpoint: values.endpoint,
+                  apiKeyConfigured: values.apiKey
+                    ? true
+                    : source.apiKeyConfigured,
+                }
+              : source,
+          ),
+        );
+      }
     }
 
     setDialogOpen(false);
   };
 
   const handleDisable = (sourceId: string) => {
-    setSources((current) =>
-      current.map((source) =>
-        source.id === sourceId
-          ? { ...source, status: "disabled", connectionHealth: "unknown" }
-          : source,
-      ),
-    );
+    if (customSources.some((source) => source.id === sourceId)) {
+      setCustomSources((current) =>
+        current.map((source) =>
+          source.id === sourceId
+            ? { ...source, status: "disabled", connectionHealth: "unknown" }
+            : source,
+        ),
+      );
+      return;
+    }
+    void setStatus(sourceId, "disabled");
   };
 
   const handleEnable = (sourceId: string) => {
-    setSources((current) =>
-      current.map((source) =>
-        source.id === sourceId
-          ? { ...source, status: "active", connectionHealth: "unknown" }
-          : source,
-      ),
-    );
+    if (customSources.some((source) => source.id === sourceId)) {
+      setCustomSources((current) =>
+        current.map((source) =>
+          source.id === sourceId
+            ? { ...source, status: "active", connectionHealth: "unknown" }
+            : source,
+        ),
+      );
+      return;
+    }
+    void setStatus(sourceId, "active");
   };
 
   const handleTestConnection = async (sourceId: string) => {
     setTestingId(sourceId);
-
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    setSources((current) =>
-      current.map((source) => {
-        if (source.id !== sourceId) return source;
-
-        const health: ConnectionHealth =
-          source.status === "disabled"
-            ? "unknown"
-            : source.providerId === "crossref"
-              ? "degraded"
-              : "healthy";
-
-        return {
-          ...source,
-          connectionHealth: health,
-          lastSync: new Date().toISOString(),
-          status: source.status === "error" ? "active" : source.status,
-        };
-      }),
-    );
-
-    setTestingId(null);
+    try {
+      if (customSources.some((source) => source.id === sourceId)) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        setCustomSources((current) =>
+          current.map((source) =>
+            source.id === sourceId
+              ? {
+                  ...source,
+                  connectionHealth: "healthy",
+                  lastSync: new Date().toISOString(),
+                  status: source.status === "error" ? "active" : source.status,
+                }
+              : source,
+          ),
+        );
+      } else {
+        await refresh(sourceId);
+      }
+    } finally {
+      setTestingId(null);
+    }
   };
 
   return (
-    <AdminShell
+    <AdminPageFrame
       title="API Source Configuration"
-      subtitle={`${stats.active} active · ${stats.healthy} healthy connections`}
+      subtitle={
+        isLoading
+          ? "Checking connections…"
+          : `${stats.active} active · ${stats.healthy} healthy connections`
+      }
       icon={
         <Database
           className="w-5 h-5 text-primary-foreground"
@@ -602,77 +629,100 @@ export default function ApiSourceConfiguration() {
         />
       }
       headerAction={
-        <Button onClick={openAddDialog}>
-          <Plus className="w-4 h-4" />
-          Add Source
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            disabled={isLoading || isMutating}
+            onClick={() => void reload()}
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </Button>
+          <Button onClick={openAddDialog}>
+            <Plus className="w-4 h-4" />
+            Add Source
+          </Button>
+        </div>
       }
     >
-      <div className="space-y-6">
-        <Card className="p-6 border-border bg-card">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="font-heading text-lg text-foreground">
-                External Data Providers
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-                Manage academic API integrations used for publication metadata,
-                journal rankings, and citation enrichment. Inspired by
-                integration marketplaces like Vercel and Supabase.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <span className="inline-flex items-center rounded-full border border-border bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
-                {stats.active} Active
-              </span>
-              <span className="inline-flex items-center rounded-full border border-border bg-accent px-3 py-1 text-xs font-medium text-tag">
-                {stats.healthy} Healthy
-              </span>
-              <span className="inline-flex items-center rounded-full border border-border bg-surface-raised px-3 py-1 text-xs font-medium text-muted-foreground">
-                {stats.disabled} Disabled
-              </span>
-            </div>
-          </div>
+      {error && (
+        <Card className="p-4 border-border mb-6">
+          <p className="text-sm text-destructive mb-3">{error}</p>
+          <Button variant="outline" size="sm" onClick={() => void reload()}>
+            Try again
+          </Button>
         </Card>
+      )}
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {sources.map((source) => (
-            <ProviderCard
-              key={source.id}
-              source={source}
-              testingId={testingId}
-              onEdit={openEditDialog}
-              onDisable={handleDisable}
-              onEnable={handleEnable}
-              onTest={handleTestConnection}
-            />
-          ))}
+      {isLoading && <RouteDataLoading label="Checking API sources…" />}
+
+      {!isLoading && (
+        <div className="space-y-6">
+          <Card className="p-6 border-border bg-card">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 className="font-heading text-lg text-foreground">
+                  External Data Providers
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+                  Manage academic API integrations used for publication
+                  metadata, journal rankings, and citation enrichment. Inspired
+                  by integration marketplaces like Vercel and Supabase.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center rounded-full border border-border bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+                  {stats.active} Active
+                </span>
+                <span className="inline-flex items-center rounded-full border border-border bg-accent px-3 py-1 text-xs font-medium text-tag">
+                  {stats.healthy} Healthy
+                </span>
+                <span className="inline-flex items-center rounded-full border border-border bg-surface-raised px-3 py-1 text-xs font-medium text-muted-foreground">
+                  {stats.disabled} Disabled
+                </span>
+              </div>
+            </div>
+          </Card>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {sources.map((source) => (
+              <ProviderCard
+                key={source.id}
+                source={source}
+                testingId={testingId}
+                onEdit={openEditDialog}
+                onDisable={handleDisable}
+                onEnable={handleEnable}
+                onTest={handleTestConnection}
+              />
+            ))}
+          </div>
+
+          <Card className="p-5 border-dashed border-border bg-card/70">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
+                <Database className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Need another provider?
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Add custom REST endpoints for institutional repositories,
+                  PubMed, or internal research databases.
+                </p>
+                <Button
+                  variant="link"
+                  className="px-0 h-auto mt-2"
+                  onClick={openAddDialog}
+                >
+                  Connect a new source
+                </Button>
+              </div>
+            </div>
+          </Card>
         </div>
-
-        <Card className="p-5 border-dashed border-border bg-card/70">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-              <Database className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                Need another provider?
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Add custom REST endpoints for institutional repositories,
-                PubMed, or internal research databases.
-              </p>
-              <Button
-                variant="link"
-                className="px-0 h-auto mt-2"
-                onClick={openAddDialog}
-              >
-                Connect a new source
-              </Button>
-            </div>
-          </div>
-        </Card>
-      </div>
+      )}
 
       <SourceFormDialog
         key={`${dialogMode}-${formValues.providerId}-${formValues.name}`}
@@ -682,6 +732,6 @@ export default function ApiSourceConfiguration() {
         onOpenChange={setDialogOpen}
         onSubmit={handleSubmit}
       />
-    </AdminShell>
+    </AdminPageFrame>
   );
 }

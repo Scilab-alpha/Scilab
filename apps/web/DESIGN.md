@@ -1,6 +1,6 @@
 # Academic Serenity — Design System
 
-ScholarTrend visual language: calm, intelligent, minimal, premium, reading-focused.
+Scilab visual language: calm, intelligent, minimal, premium, reading-focused.
 
 > "Organized thoughts on premium paper."
 

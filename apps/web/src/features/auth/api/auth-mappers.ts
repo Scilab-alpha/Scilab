@@ -33,7 +33,7 @@ export function mapApiUser(user: ApiUserLike): AuthUser {
   const displayName =
     [firstName, lastName].filter(Boolean).join(" ").trim() ||
     user.email?.split("@")[0] ||
-    "ScholarTrend User";
+    "Scilab User";
 
   return {
     id: user.id ?? user.userId ?? user.email ?? "current-user",

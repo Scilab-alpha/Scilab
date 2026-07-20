@@ -1,6 +1,7 @@
-@import './fonts.css';
-@import './color.css';
-@import './spacing.css';
-@import './tailwind.css';
-@import './theme.css';
-@import 'react-day-picker/dist/style.css';
+@import "./fonts.css";
+@import "./color.css";
+@import "./spacing.css";
+@import "./auth.css";
+@import "./tailwind.css";
+@import "./theme.css";
+@import "react-day-picker/dist/style.css";

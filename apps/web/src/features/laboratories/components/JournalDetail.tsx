@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
@@ -12,15 +12,17 @@ import {
   BarChart3,
   Plus,
   Check,
-  Loader2,
   Lock,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import PageContainer from "@/shared/components/layout/PageContainer";
 import StudentTopHeader from "@/shared/components/layout/StudentTopHeader";
+import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import Can from "@/shared/components/auth/Can";
 import { Card } from "@/shared/components/ui/card";
 import { useJournalDetail } from "@/features/laboratories/hooks/use-journal-detail";
+import { toggleFollow } from "@/features/follows/api/follows.api";
+import { isLocallyFollowing } from "@/features/follows/api/local-follows";
 import {
   getJournalCountry,
   getJournalIssn,
@@ -37,6 +39,32 @@ export default function JournalDetail({ journalId }: JournalDetailProps) {
   const router = useRouter();
   const { journal, isLoading, error } = useJournalDetail(journalId);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowPending, setIsFollowPending] = useState(false);
+
+  useEffect(() => {
+    setIsFollowing(isLocallyFollowing("JOURNAL", journalId));
+  }, [journalId]);
+
+  const handleToggleFollow = async () => {
+    if (isFollowPending || !journal) {
+      return;
+    }
+
+    setIsFollowPending(true);
+    try {
+      const result = await toggleFollow({
+        objectType: "JOURNAL",
+        objectId: journalId,
+        displayName: getJournalName(journal),
+        notifyMode: "IN_APP",
+      });
+      setIsFollowing(result.followed);
+    } catch {
+      // Keep previous follow state if the request fails.
+    } finally {
+      setIsFollowPending(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -44,10 +72,7 @@ export default function JournalDetail({ journalId }: JournalDetailProps) {
         <StudentTopHeader />
         <main className="flex-1 overflow-auto">
           <PageContainer size="wide" className="py-16">
-            <div className="flex items-center justify-center text-muted-foreground">
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Loading journal...
-            </div>
+            <RouteDataLoading label="Loading journal…" />
           </PageContainer>
         </main>
       </>
@@ -136,7 +161,8 @@ export default function JournalDetail({ journalId }: JournalDetailProps) {
 
                   <Can permission="follow">
                     <Button
-                      onClick={() => setIsFollowing(!isFollowing)}
+                      disabled={isFollowPending}
+                      onClick={() => void handleToggleFollow()}
                       className={`h-10 px-6 ${
                         isFollowing
                           ? "bg-surface-raised text-foreground hover:bg-accent"

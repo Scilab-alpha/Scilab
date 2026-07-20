@@ -8,6 +8,17 @@ import {
   OpenAlexWorkSource,
 } from '@repo/academic/application/ports/openalex-work-source.port';
 
+const RETRYABLE_NETWORK_ERROR_CODES = new Set([
+  'EAI_AGAIN',
+  'ECONNABORTED',
+  'ECONNRESET',
+  'ENOTFOUND',
+  'EPIPE',
+  'ERR_BAD_RESPONSE',
+  'ERR_NETWORK',
+  'ETIMEDOUT',
+]);
+
 @Injectable()
 export class AxiosOpenAlexWorksClient implements OpenAlexWorkSource {
   private readonly http: AxiosInstance = axios.create({
@@ -140,18 +151,28 @@ export async function requestOpenAlex<T>(
     try {
       return await request();
     } catch (error) {
-      const status = axios.isAxiosError(error)
-        ? error.response?.status
-        : undefined;
-      const isRetryable =
-        status === 429 || (status !== undefined && status >= 500);
-      if (!isRetryable || attempt === maxAttempts) {
+      if (!isRetryableOpenAlexError(error) || attempt === maxAttempts) {
         throw error;
       }
       await delay(retryAfterMilliseconds(error, attempt));
     }
   }
   throw new Error('OpenAlex request retries were exhausted');
+}
+
+function isRetryableOpenAlexError(error: unknown): boolean {
+  if (!axios.isAxiosError(error)) {
+    return false;
+  }
+
+  const status = error.response?.status;
+  const code = error.code ?? readErrorCode(error.cause);
+
+  return (
+    status === 429 ||
+    (status !== undefined && status >= 500) ||
+    (code !== undefined && RETRYABLE_NETWORK_ERROR_CODES.has(code))
+  );
 }
 
 function retryAfterMilliseconds(error: unknown, attempt: number): number {
@@ -186,24 +207,41 @@ function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-function formatOpenAlexError(error: unknown): string {
+export function formatOpenAlexError(
+  error: unknown,
+  label = 'OpenAlex request failed',
+): string {
   if (!axios.isAxiosError(error)) {
-    return error instanceof Error ? error.message : 'Unknown OpenAlex error';
+    return [
+      label,
+      error instanceof Error ? error.message : 'Unknown OpenAlex error',
+    ].join(': ');
   }
 
   const status = error.response?.status;
   const statusText = error.response?.statusText;
+  const code = error.code ?? readErrorCode(error.cause);
   const data: unknown = error.response?.data;
   const responseMessage = formatOpenAlexResponseData(data);
 
   return [
-    'OpenAlex request failed',
+    label,
     status ? `HTTP ${status}` : undefined,
+    code ? `code ${code}` : undefined,
     statusText,
-    responseMessage,
+    responseMessage || error.message,
   ]
     .filter(Boolean)
     .join(': ');
+}
+
+function readErrorCode(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object') {
+    return undefined;
+  }
+
+  const code = (error as { code?: unknown }).code;
+  return typeof code === 'string' ? code : undefined;
 }
 
 function formatOpenAlexResponseData(data: unknown): string | undefined {

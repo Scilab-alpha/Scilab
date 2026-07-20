@@ -22,15 +22,14 @@ describe("RouteGuard", () => {
     pathname = "/student/dashboard";
   });
 
-  it("shows loading state while API-backed auth is loading", () => {
+  it("renders children while API-backed auth is loading so pages can show their own loading UI", () => {
     vi.mocked(useAuth).mockReturnValue({
       user: null,
-      session: null,
       status: "loading",
       isLoading: true,
       isAuthenticated: false,
       login: vi.fn(),
-      registerSession: vi.fn(),
+      register: vi.fn(),
       logout: vi.fn(),
       can: vi.fn(),
     });
@@ -41,18 +40,18 @@ describe("RouteGuard", () => {
       </RouteGuard>,
     );
 
-    expect(screen.queryByText("Protected")).not.toBeInTheDocument();
+    expect(screen.getByText("Protected")).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalled();
   });
 
   it("redirects unauthenticated users to login", async () => {
     vi.mocked(useAuth).mockReturnValue({
       user: null,
-      session: null,
       status: "anonymous",
       isLoading: false,
       isAuthenticated: false,
       login: vi.fn(),
-      registerSession: vi.fn(),
+      register: vi.fn(),
       logout: vi.fn(),
       can: vi.fn(),
     });

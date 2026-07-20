@@ -8,13 +8,13 @@ import {
   ExternalLink,
   Trash2,
   Calendar,
-  Loader2,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Card } from "@/shared/components/ui/card";
 import PageContainer from "@/shared/components/layout/PageContainer";
 import StudentTopHeader from "@/shared/components/layout/StudentTopHeader";
+import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import { useBookmarks } from "@/features/submissions/hooks/use-bookmarks";
 
 export default function BookmarkCenter() {
@@ -82,12 +82,7 @@ export default function BookmarkCenter() {
             </Card>
           )}
 
-          {isLoading && (
-            <div className="flex items-center justify-center py-16 text-muted-foreground">
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Loading bookmarks...
-            </div>
-          )}
+          {isLoading && <RouteDataLoading label="Loading bookmarks…" />}
 
           {!isLoading && !error && filtered.length === 0 && (
             <Card className="p-12 border-border text-center">
