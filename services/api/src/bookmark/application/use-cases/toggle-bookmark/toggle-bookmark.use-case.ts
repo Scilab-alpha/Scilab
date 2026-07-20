@@ -16,7 +16,7 @@ export class ToggleBookmarkUseCase {
   ) {}
 
   async execute(input: ToggleBookmarkInput): Promise<ToggleBookmarkOutput> {
-    const articleId = input.articleId as string;
+    const articleId = this.parseArticleId(input.articleId);
     const existing = await this.bookmarks.findByUserAndArticle(
       input.userId,
       articleId,
@@ -43,5 +43,31 @@ export class ToggleBookmarkUseCase {
       bookmarked: true,
       bookmarkedAt: created.createdAt,
     };
+  }
+
+  private parseArticleId(value: unknown): string {
+    if (typeof value !== 'string') {
+      throw new BookmarkUseCaseError(
+        BookmarkFailureReason.InvalidInput,
+        'articleId is required',
+      );
+    }
+
+    const articleId = value.trim();
+    if (!articleId) {
+      throw new BookmarkUseCaseError(
+        BookmarkFailureReason.InvalidInput,
+        'articleId is required',
+      );
+    }
+
+    if (articleId.length > 128) {
+      throw new BookmarkUseCaseError(
+        BookmarkFailureReason.InvalidInput,
+        'articleId must not exceed 128 characters',
+      );
+    }
+
+    return articleId;
   }
 }

@@ -860,6 +860,47 @@
             "$ref": "#/components/responses/Unauthorized"
           }
         }
+      },
+      "post": {
+        "summary": "Toggle a bookmark for one article",
+        "operationId": "createBookmark",
+        "tags": ["Bookmarks"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToggleBookmarkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bookmark toggled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToggleBookmarkResponseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BookmarkInputInvalid"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/ArticleNotFound"
+          }
+        }
       }
     },
     "/bookmarks/toggle": {
@@ -3422,7 +3463,7 @@
         "properties": {
           "articleId": {
             "type": "string",
-            "format": "uuid"
+            "example": "W1234567890"
           },
           "bookmarkedAt": {
             "type": "string",
@@ -3489,7 +3530,7 @@
         "properties": {
           "articleId": {
             "type": "string",
-            "format": "uuid"
+            "example": "W1234567890"
           }
         }
       },
@@ -3500,7 +3541,7 @@
         "properties": {
           "articleId": {
             "type": "string",
-            "format": "uuid"
+            "example": "W1234567890"
           },
           "bookmarked": {
             "type": "boolean"

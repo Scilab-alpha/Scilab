@@ -59,12 +59,29 @@ export class BookmarkController {
     }
   }
 
+  @Post()
+  @HttpCode(200)
+  @ApiToggleBookmark()
+  async create(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Body() body: ToggleBookmarkDto,
+  ) {
+    return this.toggleForUser(currentUser, body);
+  }
+
   @Post('toggle')
   @HttpCode(200)
   @ApiToggleBookmark()
   async toggle(
     @CurrentUser() currentUser: AuthenticatedUser,
     @Body() body: ToggleBookmarkDto,
+  ) {
+    return this.toggleForUser(currentUser, body);
+  }
+
+  private async toggleForUser(
+    currentUser: AuthenticatedUser,
+    body: ToggleBookmarkDto,
   ) {
     try {
       const result = await this.toggleBookmark.execute({
