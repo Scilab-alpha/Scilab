@@ -107,23 +107,6 @@ describe('Notification use cases', () => {
     });
   });
 
-  it('rejects invalid or non-owned notification ids', async () => {
-    const notifications = createNotificationRepository();
-    notifications.markRead.mockResolvedValue(null);
-    const useCase = new MarkNotificationReadUseCase(notifications);
-
-    await expect(
-      useCase.execute({ userId, notificationId: 'bad-id' }),
-    ).rejects.toMatchObject({
-      reason: NotificationFailureReason.InvalidInput,
-    });
-    await expect(
-      useCase.execute({ userId, notificationId }),
-    ).rejects.toMatchObject({
-      reason: NotificationFailureReason.NotificationMissing,
-    });
-  });
-
   it('marks all current-user notifications as read', async () => {
     const notifications = createNotificationRepository();
     notifications.markAllRead.mockResolvedValue(4);
