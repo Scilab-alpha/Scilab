@@ -14,8 +14,10 @@ import {
   ChevronRight,
   ArrowUpDown,
   Loader2,
+  Search,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
 import { Card } from "@/shared/components/ui/card";
 import PageContainer from "@/shared/components/layout/PageContainer";
 import StudentTopHeader from "@/shared/components/layout/StudentTopHeader";
@@ -78,16 +80,8 @@ function matchesJournalFilters(
   const query = searchQuery.trim().toLowerCase();
 
   if (query) {
-    const haystack = [
-      getJournalName(journal),
-      getJournalIssn(journal),
-      getJournalPublisher(journal),
-      ...getJournalSubjects(journal),
-    ]
-      .join(" ")
-      .toLowerCase();
-
-    if (!haystack.includes(query)) {
+    const name = getJournalName(journal).toLowerCase();
+    if (!name.includes(query)) {
       return false;
     }
   }
@@ -133,7 +127,7 @@ export default function JournalSearch() {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy] = useState("relevance");
   const { items, isLoading, isLoadingMore, hasMore, error, reload, loadMore } =
-    useJournals();
+    useJournals(searchQuery);
 
   const [filters, setFilters] = useState({
     subjectAreas: [] as string[],
@@ -198,7 +192,7 @@ export default function JournalSearch() {
   return (
     <>
       <StudentTopHeader
-        searchPlaceholder="Search by journal name, ISSN, subject area, or publisher..."
+        searchPlaceholder="Search journals by name..."
         searchValue={searchQuery}
         onSearchChange={(value) => {
           setSearchQuery(value);
@@ -216,6 +210,29 @@ export default function JournalSearch() {
             <p className="text-muted-foreground mt-1">
               Discover academic journals across all disciplines
             </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="journal-name-search" className="text-sm font-medium">
+              Search by journal name
+            </Label>
+            <div className="relative max-w-2xl">
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
+                strokeWidth={1.75}
+              />
+              <Input
+                id="journal-name-search"
+                type="search"
+                placeholder="Type a journal name…"
+                className="pl-10 h-11 bg-card"
+                value={searchQuery}
+                onChange={(event) => {
+                  setSearchQuery(event.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
           </div>
 
           <div className="flex gap-8">

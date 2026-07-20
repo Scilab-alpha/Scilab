@@ -31,10 +31,11 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import AdminShell from "@/shared/components/layout/AdminShell";
+import AdminPageFrame from "@/shared/components/layout/AdminPageFrame";
+import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
-import { mockSystemHealth } from "@/features/system-health/api/mockSystemHealth";
+import { useSystemHealth } from "@/features/system-health/hooks/use-system-health";
 import type {
   ErrorSeverity,
   PlatformMetric,
@@ -148,12 +149,12 @@ function MetricWidget({ metric }: { metric: PlatformMetric }) {
 }
 
 export default function SystemHealthDashboard() {
-  const data = mockSystemHealth;
-  const overall = getOverallStatus(data.overallStatus);
+  const { data, isLoading, error, reload } = useSystemHealth();
+  const overall = data ? getOverallStatus(data.overallStatus) : null;
 
   const failedSyncs = useMemo(
-    () => data.syncJobs.filter((job) => job.status === "failed").length,
-    [data.syncJobs],
+    () => data?.syncJobs.filter((job) => job.status === "failed").length ?? 0,
+    [data?.syncJobs],
   );
 
   const chartTooltipStyle = {
@@ -165,9 +166,13 @@ export default function SystemHealthDashboard() {
   };
 
   return (
-    <AdminShell
+    <AdminPageFrame
       title="System Health"
-      subtitle={`${data.uptimePercent}% uptime · last 24 hours`}
+      subtitle={
+        data
+          ? `${data.uptimePercent}% probe success · live API checks`
+          : "Checking SciLab services…"
+      }
       icon={
         <Activity
           className="w-5 h-5 text-primary-foreground"
@@ -175,12 +180,29 @@ export default function SystemHealthDashboard() {
         />
       }
       headerAction={
-        <Button variant="outline" className="bg-card">
+        <Button
+          variant="outline"
+          className="bg-card"
+          disabled={isLoading}
+          onClick={() => void reload()}
+        >
           <RefreshCw className="w-4 h-4" />
           Refresh
         </Button>
       }
     >
+      {error && (
+        <Card className="p-4 border-border mb-6">
+          <p className="text-sm text-destructive mb-3">{error}</p>
+          <Button variant="outline" size="sm" onClick={() => void reload()}>
+            Try again
+          </Button>
+        </Card>
+      )}
+
+      {isLoading && <RouteDataLoading label="Probing system health…" />}
+
+      {!isLoading && data && overall && (
       <div className="space-y-6">
         {/* Status banner */}
         <Card className="p-4 border-border bg-card">
@@ -195,32 +217,17 @@ export default function SystemHealthDashboard() {
                 {overall.label}
               </span>
               <span className="text-sm text-muted-foreground">
-                Monitoring ingestion pipelines, API adapters, and platform
-                services
+                Live probes against academic catalog and user admin APIs
               </span>
             </div>
             <div className="flex flex-wrap gap-3 text-sm">
               <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                 <Wifi className="w-4 h-4 text-teal" />
-                {
-                  data.syncJobs.filter((j) => j.status === "success").length
-                }{" "}
-                syncs OK
+                {data.uptimePercent}% healthy
               </span>
               <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                <Timer className="w-4 h-4 text-amber-600" />
-                {
-                  data.syncJobs.filter((j) => j.status === "delayed").length
-                }{" "}
-                delayed
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                <WifiOff className="w-4 h-4 text-red-600" />
-                {failedSyncs} failed
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                <ServerCrash className="w-4 h-4 text-red-600" />
-                {data.apiFailures.length} API failures
+                <WifiOff className="w-4 h-4 text-destructive" />
+                {failedSyncs} failed probes
               </span>
             </div>
           </div>
@@ -613,7 +620,8 @@ export default function SystemHealthDashboard() {
           </Card>
         </div>
       </div>
-    </AdminShell>
+      )}
+    </AdminPageFrame>
   );
 }
 

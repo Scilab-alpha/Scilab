@@ -70,12 +70,14 @@ export default function StudentTopHeader({
             type="search"
             placeholder={searchPlaceholder}
             className="pl-10 h-10 bg-background"
-            value={searchValue}
+            value={searchValue ?? ""}
+            readOnly={!onSearchChange}
             onChange={
               onSearchChange
                 ? (event) => onSearchChange(event.target.value)
                 : undefined
             }
+            aria-label={searchPlaceholder}
           />
         </div>
       </div>

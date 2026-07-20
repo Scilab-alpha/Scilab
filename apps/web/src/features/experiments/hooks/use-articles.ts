@@ -12,19 +12,19 @@ import { syncLocalFollowNotifications } from "@/features/notifications/api/local
 
 const searchDebounceMs = 350;
 
-export function useArticles(keyword: string) {
-  const [debouncedKeyword, setDebouncedKeyword] = useState(keyword);
+export function useArticles(searchText: string) {
+  const [debouncedSearch, setDebouncedSearch] = useState(searchText);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setDebouncedKeyword(keyword);
+      setDebouncedSearch(searchText);
     }, searchDebounceMs);
 
     return () => window.clearTimeout(timer);
-  }, [keyword]);
+  }, [searchText]);
 
-  const trimmedKeyword = debouncedKeyword.trim();
-  const queryKey = ["articles", trimmedKeyword] as const;
+  const trimmedQuery = debouncedSearch.trim();
+  const queryKey = ["articles", trimmedQuery] as const;
 
   const query = useInfiniteQuery({
     queryKey,
@@ -32,7 +32,7 @@ export function useArticles(keyword: string) {
     staleTime: listQueryStaleTimeMs,
     queryFn: async ({ pageParam }) => {
       const page = await listArticles({
-        keyword: trimmedKeyword || undefined,
+        q: trimmedQuery || undefined,
         limit: academicListPageSize,
         cursor: pageParam,
       });

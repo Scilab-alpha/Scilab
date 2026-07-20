@@ -5,13 +5,14 @@ import {
   getCatalogSampleError,
   useCatalogSample,
 } from "@/features/dashboard/hooks/use-catalog-sample";
-import { buildDashboardInsights } from "@/features/dashboard/lib/build-dashboard-insights";
+import { buildAdvancedDashboardInsights } from "@/features/dashboard/lib/build-advanced-dashboard-insights";
 
-export function useDashboard() {
+export function useAdvancedDashboard() {
   const query = useCatalogSample();
 
   const data = useMemo(
-    () => (query.data ? buildDashboardInsights(query.data) : null),
+    () =>
+      query.data ? buildAdvancedDashboardInsights(query.data) : null,
     [query.data],
   );
 

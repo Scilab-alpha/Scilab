@@ -16,7 +16,8 @@ import {
   Unplug,
   Zap,
 } from "lucide-react";
-import AdminShell from "@/shared/components/layout/AdminShell";
+import AdminPageFrame from "@/shared/components/layout/AdminPageFrame";
+import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
 import {
@@ -37,10 +38,8 @@ import {
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
-import {
-  mockApiSources,
-  PROVIDER_PRESETS,
-} from "@/features/api-sources/api/mockApiSources";
+import { PROVIDER_PRESETS } from "@/features/api-sources/api/mockApiSources";
+import { useApiSources } from "@/features/api-sources/hooks/use-api-sources";
 import type {
   ApiProviderId,
   ApiSource,
@@ -469,12 +468,26 @@ function SourceFormDialog({
 }
 
 export default function ApiSourceConfiguration() {
-  const [sources, setSources] = useState<ApiSource[]>(mockApiSources);
+  const {
+    sources: liveSources,
+    isLoading,
+    error,
+    reload,
+    setStatus,
+    refresh,
+    isMutating,
+  } = useApiSources();
+  const [customSources, setCustomSources] = useState<ApiSource[]>([]);
   const [testingId, setTestingId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"add" | "edit">("add");
   const [editingSource, setEditingSource] = useState<ApiSource | null>(null);
   const [formValues, setFormValues] = useState<ApiSourceFormValues>(emptyForm);
+
+  const sources = useMemo(
+    () => [...liveSources, ...customSources],
+    [liveSources, customSources],
+  );
 
   const stats = useMemo(
     () => ({
@@ -520,81 +533,95 @@ export default function ApiSourceConfiguration() {
         lastSync: null,
         apiKeyConfigured: Boolean(values.apiKey),
       };
-      setSources((current) => [...current, newSource]);
+      setCustomSources((current) => [...current, newSource]);
     } else if (editingSource) {
-      setSources((current) =>
-        current.map((source) =>
-          source.id === editingSource.id
-            ? {
-                ...source,
-                providerId: values.providerId,
-                name: values.name,
-                description: values.description,
-                endpoint: values.endpoint,
-                apiKeyConfigured: values.apiKey
-                  ? true
-                  : source.apiKeyConfigured,
-              }
-            : source,
-        ),
+      const isCustom = customSources.some(
+        (source) => source.id === editingSource.id,
       );
+      if (isCustom) {
+        setCustomSources((current) =>
+          current.map((source) =>
+            source.id === editingSource.id
+              ? {
+                  ...source,
+                  providerId: values.providerId,
+                  name: values.name,
+                  description: values.description,
+                  endpoint: values.endpoint,
+                  apiKeyConfigured: values.apiKey
+                    ? true
+                    : source.apiKeyConfigured,
+                }
+              : source,
+          ),
+        );
+      }
     }
 
     setDialogOpen(false);
   };
 
   const handleDisable = (sourceId: string) => {
-    setSources((current) =>
-      current.map((source) =>
-        source.id === sourceId
-          ? { ...source, status: "disabled", connectionHealth: "unknown" }
-          : source,
-      ),
-    );
+    if (customSources.some((source) => source.id === sourceId)) {
+      setCustomSources((current) =>
+        current.map((source) =>
+          source.id === sourceId
+            ? { ...source, status: "disabled", connectionHealth: "unknown" }
+            : source,
+        ),
+      );
+      return;
+    }
+    void setStatus(sourceId, "disabled");
   };
 
   const handleEnable = (sourceId: string) => {
-    setSources((current) =>
-      current.map((source) =>
-        source.id === sourceId
-          ? { ...source, status: "active", connectionHealth: "unknown" }
-          : source,
-      ),
-    );
+    if (customSources.some((source) => source.id === sourceId)) {
+      setCustomSources((current) =>
+        current.map((source) =>
+          source.id === sourceId
+            ? { ...source, status: "active", connectionHealth: "unknown" }
+            : source,
+        ),
+      );
+      return;
+    }
+    void setStatus(sourceId, "active");
   };
 
   const handleTestConnection = async (sourceId: string) => {
     setTestingId(sourceId);
-
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    setSources((current) =>
-      current.map((source) => {
-        if (source.id !== sourceId) return source;
-
-        const health: ConnectionHealth =
-          source.status === "disabled"
-            ? "unknown"
-            : source.providerId === "crossref"
-              ? "degraded"
-              : "healthy";
-
-        return {
-          ...source,
-          connectionHealth: health,
-          lastSync: new Date().toISOString(),
-          status: source.status === "error" ? "active" : source.status,
-        };
-      }),
-    );
-
-    setTestingId(null);
+    try {
+      if (customSources.some((source) => source.id === sourceId)) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        setCustomSources((current) =>
+          current.map((source) =>
+            source.id === sourceId
+              ? {
+                  ...source,
+                  connectionHealth: "healthy",
+                  lastSync: new Date().toISOString(),
+                  status: source.status === "error" ? "active" : source.status,
+                }
+              : source,
+          ),
+        );
+      } else {
+        await refresh(sourceId);
+      }
+    } finally {
+      setTestingId(null);
+    }
   };
 
   return (
-    <AdminShell
+    <AdminPageFrame
       title="API Source Configuration"
-      subtitle={`${stats.active} active · ${stats.healthy} healthy connections`}
+      subtitle={
+        isLoading
+          ? "Checking connections…"
+          : `${stats.active} active · ${stats.healthy} healthy connections`
+      }
       icon={
         <Database
           className="w-5 h-5 text-primary-foreground"
@@ -602,12 +629,34 @@ export default function ApiSourceConfiguration() {
         />
       }
       headerAction={
-        <Button onClick={openAddDialog}>
-          <Plus className="w-4 h-4" />
-          Add Source
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            disabled={isLoading || isMutating}
+            onClick={() => void reload()}
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </Button>
+          <Button onClick={openAddDialog}>
+            <Plus className="w-4 h-4" />
+            Add Source
+          </Button>
+        </div>
       }
     >
+      {error && (
+        <Card className="p-4 border-border mb-6">
+          <p className="text-sm text-destructive mb-3">{error}</p>
+          <Button variant="outline" size="sm" onClick={() => void reload()}>
+            Try again
+          </Button>
+        </Card>
+      )}
+
+      {isLoading && <RouteDataLoading label="Checking API sources…" />}
+
+      {!isLoading && (
       <div className="space-y-6">
         <Card className="p-6 border-border bg-card">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -673,6 +722,7 @@ export default function ApiSourceConfiguration() {
           </div>
         </Card>
       </div>
+      )}
 
       <SourceFormDialog
         key={`${dialogMode}-${formValues.providerId}-${formValues.name}`}
@@ -682,6 +732,6 @@ export default function ApiSourceConfiguration() {
         onOpenChange={setDialogOpen}
         onSubmit={handleSubmit}
       />
-    </AdminShell>
+    </AdminPageFrame>
   );
 }

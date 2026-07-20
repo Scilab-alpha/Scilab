@@ -10,18 +10,18 @@ const defaultLimit = 20;
 
 function buildArticleQuery({
   cursor,
-  keyword,
+  q,
   limit = defaultLimit,
 }: ArticleListParams = {}) {
   const params = new URLSearchParams({ limit: String(limit) });
-  const trimmedKeyword = keyword?.trim();
+  const trimmedQuery = q?.trim();
 
   if (cursor) {
     params.set("cursor", cursor);
   }
 
-  if (trimmedKeyword) {
-    params.set("keyword", trimmedKeyword);
+  if (trimmedQuery) {
+    params.set("q", trimmedQuery);
   }
 
   return params.toString();

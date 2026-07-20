@@ -14,6 +14,7 @@ import {
   ChevronRight,
   BookOpen,
   Loader2,
+  Search,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -99,18 +100,30 @@ export default function ArticleSearch() {
   const { items, isLoading, isLoadingMore, hasMore, error, reload, loadMore } =
     useArticles(searchQuery);
 
-  const filteredArticles = useMemo(
-    () =>
-      items.filter((article) =>
-        matchesAdvancedFilters(article, {
-          doiSearch,
-          authorSearch,
-          journalSearch,
-          selectedYear,
-        }),
-      ),
-    [items, doiSearch, authorSearch, journalSearch, selectedYear],
-  );
+  const filteredArticles = useMemo(() => {
+    const titleQuery = searchQuery.trim().toLowerCase();
+    return items.filter((article) => {
+      if (
+        titleQuery &&
+        !getArticleTitle(article).toLowerCase().includes(titleQuery)
+      ) {
+        return false;
+      }
+      return matchesAdvancedFilters(article, {
+        doiSearch,
+        authorSearch,
+        journalSearch,
+        selectedYear,
+      });
+    });
+  }, [
+    items,
+    searchQuery,
+    doiSearch,
+    authorSearch,
+    journalSearch,
+    selectedYear,
+  ]);
 
   const totalPages = Math.max(
     1,
@@ -188,7 +201,7 @@ export default function ArticleSearch() {
   return (
     <>
       <StudentTopHeader
-        searchPlaceholder="Search articles by keyword, title, or topic..."
+        searchPlaceholder="Search articles by title..."
         searchValue={searchQuery}
         onSearchChange={(value) => {
           setSearchQuery(value);
@@ -198,7 +211,7 @@ export default function ArticleSearch() {
 
       <main className="flex-1 overflow-auto py-8">
         <PageContainer size="wide" className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
               <h1 className="font-heading text-3xl text-foreground">
                 Article Search
@@ -221,6 +234,29 @@ export default function ArticleSearch() {
                 </span>
               )}
             </Button>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="article-name-search" className="text-sm font-medium">
+              Search by article title
+            </Label>
+            <div className="relative max-w-2xl">
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
+                strokeWidth={1.75}
+              />
+              <Input
+                id="article-name-search"
+                type="search"
+                placeholder="Type an article name…"
+                className="pl-10 h-11 bg-card"
+                value={searchQuery}
+                onChange={(event) => {
+                  setSearchQuery(event.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
           </div>
 
           {showFilters && (
