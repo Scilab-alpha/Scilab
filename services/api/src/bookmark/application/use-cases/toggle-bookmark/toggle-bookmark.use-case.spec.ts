@@ -11,16 +11,19 @@ describe('ToggleBookmarkUseCase', () => {
     graph?: Partial<AcademicGraphRepository>;
   }) {
     const findByUserAndArticle = jest.fn<
-      BookmarkRepository['findByUserAndArticle']
+      Promise<Awaited<ReturnType<BookmarkRepository['findByUserAndArticle']>>>,
+      Parameters<BookmarkRepository['findByUserAndArticle']>
     >(() => Promise.resolve(null));
-    const create = jest.fn<BookmarkRepository['create']>(
-      (inputUserId: string, articleId: string) =>
-        Promise.resolve({
-          id: 'bookmark-1',
-          userId: inputUserId,
-          articleId,
-          createdAt: new Date('2026-07-20T00:00:00.000Z'),
-        }),
+    const create = jest.fn<
+      Promise<Awaited<ReturnType<BookmarkRepository['create']>>>,
+      Parameters<BookmarkRepository['create']>
+    >((inputUserId: string, articleId: string) =>
+      Promise.resolve({
+        id: 'bookmark-1',
+        userId: inputUserId,
+        articleId,
+        createdAt: new Date('2026-07-20T00:00:00.000Z'),
+      }),
     );
 
     const bookmarks: BookmarkRepository = {
