@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { resolveUpstreamApiOrigin } from "@/core/api/config";
 import type { ApiEnvelope } from "@/features/auth/types/auth-api.types";
 
 export const ACCESS_COOKIE_NAME = "scilab_access_token";
@@ -305,20 +306,14 @@ async function refreshSession(
 }
 
 function getUpstreamOrigin() {
-  const configured = process.env.SCILAB_API_ORIGIN?.trim();
-  if (!configured) {
-    throw new AuthBffError(
-      500,
-      "Authentication service is not configured.",
-      "UPSTREAM_NOT_CONFIGURED",
-      randomUUID(),
-    );
-  }
-
   try {
+    const configured = resolveUpstreamApiOrigin({
+      serverOrigin: process.env.SCILAB_API_ORIGIN,
+    });
     const url = new URL(configured);
-    if (url.protocol !== "http:" && url.protocol !== "https:")
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
       throw new Error();
+    }
     return url.origin;
   } catch {
     throw new AuthBffError(
