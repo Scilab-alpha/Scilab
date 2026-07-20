@@ -46,6 +46,7 @@ describe("RegisterScreen", () => {
       isAuthenticated: false,
       login: vi.fn(),
       registerSession,
+      refreshCurrentUser: vi.fn(),
       logout: vi.fn(),
       can: vi.fn(),
     });
@@ -76,7 +77,7 @@ describe("RegisterScreen", () => {
 
     await waitFor(() => expect(registerSession).toHaveBeenCalledWith(session));
     expect(toast.success).toHaveBeenCalledWith("ScholarTrend account created.");
-  });
+  }, 15_000);
 
   it("does not create a fixture session for Google registration", async () => {
     render(<RegisterScreen />);

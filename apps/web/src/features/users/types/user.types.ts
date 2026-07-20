@@ -1,12 +1,52 @@
-export type UserRole = "admin" | "researcher" | "reader";
-export type UserStatus = "active" | "inactive" | "suspended";
+export type ApiUserRole = "STUDENT" | "RESEARCHER" | "ADMIN";
+export type ApiUserStatus = "ACTIVE" | "INACTIVE" | "BANNED";
+export type Gender = "MALE" | "FEMALE" | "OTHER";
 
-export interface User {
+export type UserRole = "student" | "researcher" | "admin";
+export type UserStatus = "active" | "inactive" | "banned";
+
+export interface ApiUserProfile {
   id: string;
   email: string;
+  status: ApiUserStatus;
+  role: ApiUserRole;
+  firstName: string | null;
+  lastName: string | null;
+  imageUrl: string | null;
+  gender: Gender | null;
+  dateOfBirth: string | null;
+}
+
+export interface ApiUserList {
+  users: ApiUserProfile[];
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
   displayName: string;
+  initials: string;
+  imageUrl: string | null;
+  gender: Gender | null;
+  dateOfBirth: string | null;
   role: UserRole;
   status: UserStatus;
-  registrationDate: string;
-  lastLogin?: string;
+}
+
+export interface UpdateUserProfileInput {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  gender?: Gender;
+  dateOfBirth?: string;
+}
+
+export interface ApiUpdateUserProfileInput {
+  email?: string;
+  firstname?: string;
+  lastname?: string;
+  gender?: Gender;
+  dateofbirth?: string;
 }

@@ -2,14 +2,21 @@ import { randomUUID } from "node:crypto";
 
 export const runtime = "nodejs";
 
-const ALLOWED_PATHS = new Set([
-  "auth/login",
-  "auth/register",
-  "auth/refresh",
-  "auth/me",
-  "auth/logout",
-  "users/me",
-]);
+const ALLOWED_STATIC_PATHS_BY_METHOD: Readonly<
+  Record<string, ReadonlySet<string>>
+> = {
+  GET: new Set(["auth/me", "users", "users/me"]),
+  POST: new Set(["auth/login", "auth/register", "auth/refresh", "auth/logout"]),
+  PATCH: new Set(["users/me"]),
+  DELETE: new Set(),
+};
+
+const UUID_SEGMENT =
+  "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
+const USER_BY_ID_PATH = new RegExp(`^users/${UUID_SEGMENT}$`);
+const USER_MUTATION_PATH = new RegExp(
+  `^users/${UUID_SEGMENT}(?:/(?:role|status))?$`,
+);
 
 const PROXY_TIMEOUT_MS = 15_000;
 
@@ -25,12 +32,20 @@ export async function POST(request: Request, context: RouteContext) {
   return proxyAuthRequest(request, context);
 }
 
+export async function PATCH(request: Request, context: RouteContext) {
+  return proxyAuthRequest(request, context);
+}
+
+export async function DELETE(request: Request, context: RouteContext) {
+  return proxyAuthRequest(request, context);
+}
+
 async function proxyAuthRequest(request: Request, context: RouteContext) {
   const requestId = randomUUID();
   const { path } = await context.params;
   const proxyPath = path.join("/");
 
-  if (!ALLOWED_PATHS.has(proxyPath)) {
+  if (!isAllowedRequest(request.method, proxyPath)) {
     return proxyError(404, "Auth proxy route not found.", requestId);
   }
 
@@ -87,6 +102,18 @@ async function proxyAuthRequest(request: Request, context: RouteContext) {
       requestId,
     );
   }
+}
+
+function isAllowedRequest(method: string, path: string) {
+  if (ALLOWED_STATIC_PATHS_BY_METHOD[method]?.has(path)) {
+    return true;
+  }
+
+  if (method === "GET" || method === "DELETE") {
+    return USER_BY_ID_PATH.test(path);
+  }
+
+  return method === "PATCH" && USER_MUTATION_PATH.test(path);
 }
 
 function getUpstreamBaseUrl() {

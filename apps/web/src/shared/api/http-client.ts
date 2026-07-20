@@ -1,10 +1,30 @@
-import axios, { AxiosError, type AxiosRequestConfig } from "axios";
+import axios, {
+  AxiosError,
+  type AxiosRequestConfig,
+  type InternalAxiosRequestConfig,
+} from "axios";
 import { AuthApiError } from "@/features/auth/types/auth.types";
 import type { ApiEnvelope } from "@/features/auth/types/auth-api.types";
 import {
+  clearAuthSession,
   getAccessToken,
+  getRefreshToken,
   saveAuthSession,
 } from "@/features/auth/api/auth-token-storage";
+
+export const AUTH_SESSION_EXPIRED_EVENT = "scilab:auth-session-expired";
+
+interface RetriableRequestConfig extends InternalAxiosRequestConfig {
+  _authRetry?: boolean;
+}
+
+interface RefreshedTokenPair {
+  accessToken: string;
+  refreshToken?: string;
+}
+
+let refreshPromise: Promise<string> | null = null;
+
 export const httpClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api/backend",
   timeout: 15_000,
@@ -20,6 +40,42 @@ httpClient.interceptors.request.use((config) => {
   }
   return config;
 });
+
+httpClient.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const request = error.config as RetriableRequestConfig | undefined;
+
+    if (
+      error.response?.status !== 401 ||
+      !request ||
+      isRefreshExcludedRequest(request)
+    ) {
+      return Promise.reject(error);
+    }
+
+    if (request._authRetry) {
+      expireAuthSession();
+      return Promise.reject(error);
+    }
+
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) {
+      expireAuthSession();
+      return Promise.reject(error);
+    }
+
+    request._authRetry = true;
+
+    try {
+      const accessToken = await getRefreshedAccessToken(refreshToken);
+      request.headers.set("Authorization", `Bearer ${accessToken}`);
+      return await httpClient.request(request);
+    } catch (refreshError) {
+      return Promise.reject(refreshError);
+    }
+  },
+);
 
 export async function apiRequest<TData>(
   config: AxiosRequestConfig,
@@ -137,5 +193,60 @@ export function rememberSessionFromResponse<
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
     });
+  }
+}
+
+async function getRefreshedAccessToken(refreshToken: string) {
+  if (!refreshPromise) {
+    refreshPromise = requestNewAccessToken(refreshToken);
+  }
+
+  const pendingRefresh = refreshPromise;
+  try {
+    return await pendingRefresh;
+  } finally {
+    if (refreshPromise === pendingRefresh) {
+      refreshPromise = null;
+    }
+  }
+}
+
+async function requestNewAccessToken(refreshToken: string) {
+  try {
+    const response = await httpClient.post<ApiEnvelope<RefreshedTokenPair>>(
+      "/auth/refresh",
+      { refreshToken },
+    );
+    const tokens = unwrapEnvelope(response.data);
+
+    if (!tokens.accessToken) {
+      throw new AuthApiError({
+        code: "UNEXPECTED_RESPONSE",
+        message:
+          "Authentication service returned an unexpected response. Please try again.",
+        retryable: true,
+      });
+    }
+
+    saveAuthSession({
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken ?? refreshToken,
+    });
+    return tokens.accessToken;
+  } catch (error) {
+    expireAuthSession();
+    throw error;
+  }
+}
+
+function isRefreshExcludedRequest(config: AxiosRequestConfig) {
+  const path = new URL(config.url ?? "", "http://scilab.local").pathname;
+  return /(?:^|\/)auth\/(?:login|register|refresh)\/?$/.test(path);
+}
+
+function expireAuthSession() {
+  clearAuthSession();
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(AUTH_SESSION_EXPIRED_EVENT));
   }
 }

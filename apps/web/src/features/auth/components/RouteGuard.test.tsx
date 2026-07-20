@@ -31,6 +31,7 @@ describe("RouteGuard", () => {
       isAuthenticated: false,
       login: vi.fn(),
       registerSession: vi.fn(),
+      refreshCurrentUser: vi.fn(),
       logout: vi.fn(),
       can: vi.fn(),
     });
@@ -53,6 +54,7 @@ describe("RouteGuard", () => {
       isAuthenticated: false,
       login: vi.fn(),
       registerSession: vi.fn(),
+      refreshCurrentUser: vi.fn(),
       logout: vi.fn(),
       can: vi.fn(),
     });

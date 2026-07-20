@@ -38,6 +38,7 @@ describe("LoginScreen", () => {
       isAuthenticated: false,
       login,
       registerSession: vi.fn(),
+      refreshCurrentUser: vi.fn(),
       logout: vi.fn(),
       can: vi.fn(),
     });

@@ -17,8 +17,10 @@ export const routes = {
     profile: "/student/profile",
   },
   admin: {
+    overview: "/admin",
     users: "/admin/users",
     apiSources: "/admin/api-sources",
     systemHealth: "/admin/system-health",
+    profile: "/admin/profile",
   },
 } as const;

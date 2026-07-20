@@ -28,6 +28,7 @@ import {
 } from "@/features/auth/api/auth.api";
 import { hasPermission } from "@/shared/constants/permissions";
 import { routes } from "@/shared/constants/routes";
+import { AUTH_SESSION_EXPIRED_EVENT } from "@/shared/api/http-client";
 
 interface LoginResult {
   ok: true;
@@ -48,6 +49,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<LoginResult | LoginError>;
   registerSession: (session?: AuthSession) => Promise<AuthUser | null>;
+  refreshCurrentUser: () => Promise<AuthUser | null>;
   logout: () => Promise<void>;
   can: (permission: Permission) => boolean;
 }
@@ -104,6 +106,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
   }, []);
+
+  const markSessionExpired = useCallback(() => {
+    clearAuthSession();
+    setUser(null);
+    setSession(null);
+    setStatus("expired");
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, markSessionExpired);
+    return () => {
+      window.removeEventListener(
+        AUTH_SESSION_EXPIRED_EVENT,
+        markSessionExpired,
+      );
+    };
+  }, [markSessionExpired]);
 
   useEffect(() => {
     globalThis.queueMicrotask(() => {
@@ -182,10 +201,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: Boolean(user),
       login,
       registerSession,
+      refreshCurrentUser: loadCurrentUser,
       logout,
       can,
     }),
-    [user, session, status, login, registerSession, logout, can],
+    [
+      user,
+      session,
+      status,
+      login,
+      registerSession,
+      loadCurrentUser,
+      logout,
+      can,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -200,6 +229,6 @@ export function useAuth() {
 }
 
 function getPostLoginPath(role: AuthUser["role"]) {
-  if (role === "admin") return routes.admin.users;
+  if (role === "admin") return routes.admin.overview;
   return routes.student.dashboard;
 }

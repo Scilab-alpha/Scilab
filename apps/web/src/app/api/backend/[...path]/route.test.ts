@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { GET, POST } from "./route";
+import { DELETE, GET, PATCH, POST } from "./route";
 
 const upstreamFetch = vi.fn();
+const USER_ID = "123e4567-e89b-12d3-a456-426614174000";
 
 function context(path: string) {
   return { params: Promise.resolve({ path: path.split("/") }) };
@@ -66,6 +67,95 @@ describe("auth backend proxy", () => {
     expect(new Headers(init.headers).get("authorization")).toBe(
       "Bearer access-token",
     );
+  });
+
+  it("forwards allowed Users reads with query parameters", async () => {
+    upstreamFetch.mockResolvedValueOnce(
+      Response.json({ success: true, message: "OK", data: { users: [] } }),
+    );
+    const request = new Request(
+      "http://localhost:3001/api/backend/users?view=admin",
+      { headers: { authorization: "Bearer access-token" } },
+    );
+
+    await GET(request, context("users"));
+
+    expect(upstreamFetch).toHaveBeenCalledWith(
+      new URL("https://api.example.test/users?view=admin"),
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("forwards allowed Users PATCH operations with their body", async () => {
+    upstreamFetch.mockResolvedValueOnce(
+      Response.json({ success: true, message: "Updated", data: {} }),
+    );
+    const request = new Request(
+      `http://localhost:3001/api/backend/users/${USER_ID}/role`,
+      {
+        method: "PATCH",
+        headers: {
+          authorization: "Bearer access-token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ role: "RESEARCHER" }),
+      },
+    );
+
+    await PATCH(request, context(`users/${USER_ID}/role`));
+
+    const init = upstreamFetch.mock.calls[0]?.[1] as RequestInit;
+    expect(init.method).toBe("PATCH");
+    expect(
+      JSON.parse(new TextDecoder().decode(init.body as ArrayBuffer)),
+    ).toEqual({ role: "RESEARCHER" });
+  });
+
+  it("forwards allowed Users DELETE operations", async () => {
+    upstreamFetch.mockResolvedValueOnce(
+      Response.json({ success: true, message: "Deleted", data: {} }),
+    );
+    const request = new Request(
+      `http://localhost:3001/api/backend/users/${USER_ID}`,
+      {
+        method: "DELETE",
+        headers: { authorization: "Bearer access-token" },
+      },
+    );
+
+    const response = await DELETE(request, context(`users/${USER_ID}`));
+
+    expect(response.status).toBe(200);
+    expect(upstreamFetch).toHaveBeenCalledWith(
+      new URL(`https://api.example.test/users/${USER_ID}`),
+      expect.objectContaining({
+        method: "DELETE",
+        body: expect.any(ArrayBuffer),
+      }),
+    );
+  });
+
+  it("blocks valid paths when used with a disallowed method", async () => {
+    const response = await POST(
+      new Request("http://localhost:3001/api/backend/users/me", {
+        method: "POST",
+        body: "{}",
+      }),
+      context("users/me"),
+    );
+
+    expect(response.status).toBe(404);
+    expect(upstreamFetch).not.toHaveBeenCalled();
+  });
+
+  it("blocks malformed user identifiers", async () => {
+    const response = await GET(
+      new Request("http://localhost:3001/api/backend/users/not-a-uuid"),
+      context("users/not-a-uuid"),
+    );
+
+    expect(response.status).toBe(404);
+    expect(upstreamFetch).not.toHaveBeenCalled();
   });
 
   it("blocks paths outside the auth allowlist", async () => {
