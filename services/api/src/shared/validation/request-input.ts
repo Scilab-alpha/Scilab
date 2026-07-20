@@ -13,8 +13,6 @@ export interface Pagination {
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function parsePagination(input: PaginationInput): Pagination {
   const page = parsePositiveInteger(input.page, DEFAULT_PAGE, 'page');
@@ -31,15 +29,6 @@ export function parsePagination(input: PaginationInput): Pagination {
     take: limit + 1,
   };
 }
-
-export function parseUuid(value: unknown, field: string): string {
-  if (typeof value !== 'string' || !UUID_PATTERN.test(value.trim())) {
-    throw new Error(`${field} is invalid`);
-  }
-
-  return value.trim();
-}
-
 export function parseOptionalBoolean(value: unknown): boolean | undefined {
   if (value === undefined || value === null || value === '') {
     return undefined;
