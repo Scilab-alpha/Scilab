@@ -8,7 +8,6 @@ import {
   BookmarkFailureReason,
   BookmarkUseCaseError,
 } from '@/bookmark/domain/bookmark.errors';
-import { parseUuid } from '@/shared/validation/request-input';
 
 export class ToggleBookmarkUseCase {
   constructor(
@@ -17,7 +16,7 @@ export class ToggleBookmarkUseCase {
   ) {}
 
   async execute(input: ToggleBookmarkInput): Promise<ToggleBookmarkOutput> {
-    const articleId = this.parseArticleId(input.articleId);
+    const articleId = input.articleId as string;
     const existing = await this.bookmarks.findByUserAndArticle(
       input.userId,
       articleId,
@@ -44,16 +43,5 @@ export class ToggleBookmarkUseCase {
       bookmarked: true,
       bookmarkedAt: created.createdAt,
     };
-  }
-
-  private parseArticleId(value: unknown): string {
-    try {
-      return parseUuid(value, 'articleId');
-    } catch {
-      throw new BookmarkUseCaseError(
-        BookmarkFailureReason.InvalidInput,
-        'articleId is invalid',
-      );
-    }
   }
 }

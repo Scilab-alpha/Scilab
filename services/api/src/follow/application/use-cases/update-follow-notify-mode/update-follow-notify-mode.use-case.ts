@@ -1,7 +1,6 @@
 import { FollowRepository } from '@/follow/application/ports/follow.ports';
 import {
   parseFollowNotifyMode,
-  parseFollowObjectId,
   parseFollowObjectType,
 } from '@/follow/application/use-cases/follow-input';
 import {
@@ -20,7 +19,7 @@ export class UpdateFollowNotifyModeUseCase {
     input: UpdateFollowNotifyModeInput,
   ): Promise<UpdateFollowNotifyModeOutput> {
     const objectType = parseFollowObjectType(input.objectType);
-    const objectId = parseFollowObjectId(input.objectId);
+    const objectId = input.objectId as string;
     const notifyMode = parseFollowNotifyMode(input.notifyMode);
     const follow = await this.follows.updateNotifyMode({
       userId: input.userId,

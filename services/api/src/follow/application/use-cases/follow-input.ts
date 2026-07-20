@@ -9,7 +9,6 @@ import {
 import {
   parseEnum,
   parseOptionalEnum,
-  parseUuid,
 } from '@/shared/validation/request-input';
 
 export const FOLLOW_OBJECT_TYPES = ['JOURNAL', 'KEYWORD', 'TOPIC'] as const;
@@ -54,14 +53,6 @@ export function parseOptionalFollowNotifyMode(
   }
 
   return parseFollowNotifyMode(value);
-}
-
-export function parseFollowObjectId(value: unknown): string {
-  try {
-    return parseUuid(value, 'objectId');
-  } catch {
-    throw invalidInput('objectId is invalid');
-  }
 }
 
 function invalidInput(message: string): FollowUseCaseError {
