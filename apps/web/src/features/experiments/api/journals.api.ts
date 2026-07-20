@@ -10,12 +10,18 @@ const defaultLimit = 20;
 
 function buildJournalQuery({
   cursor,
+  q,
   limit = defaultLimit,
 }: JournalListParams = {}) {
   const params = new URLSearchParams({ limit: String(limit) });
+  const trimmedQuery = q?.trim();
 
   if (cursor) {
     params.set("cursor", cursor);
+  }
+
+  if (trimmedQuery) {
+    params.set("q", trimmedQuery);
   }
 
   return params.toString();

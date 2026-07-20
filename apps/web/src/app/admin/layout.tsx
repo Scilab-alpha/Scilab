@@ -1,3 +1,4 @@
+import AdminShell from "@/shared/components/layout/AdminShell";
 import RouteGuard from "@/features/auth/components/RouteGuard";
 
 export default function AdminLayout({
@@ -5,5 +6,9 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <RouteGuard>{children}</RouteGuard>;
+  return (
+    <AdminShell>
+      <RouteGuard>{children}</RouteGuard>
+    </AdminShell>
+  );
 }
