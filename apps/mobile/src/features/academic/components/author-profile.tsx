@@ -8,7 +8,6 @@ import {
 } from "@/features/academic/components/detail-section";
 import type { AuthorListItem } from "@/features/academic/types/article.type";
 import { getAuthorDisplayName } from "@/features/academic/utils/article-format";
-import { FollowButton } from "@/features/follows/components/follow-button";
 import { useAppTheme } from "@/theme";
 
 export function AuthorProfile({ author }: { author: AuthorListItem }) {
@@ -35,11 +34,6 @@ export function AuthorProfile({ author }: { author: AuthorListItem }) {
             <StatusBadge label={formatArticleCount(author.articleCount)} />
             {author.orcid ? <StatusBadge label="ORCID linked" /> : null}
           </View>
-          <FollowButton
-            label="Follow author"
-            objectId={author.id}
-            objectType="AUTHOR"
-          />
         </View>
       </View>
 
