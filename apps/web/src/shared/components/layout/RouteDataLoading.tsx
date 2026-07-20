@@ -3,11 +3,7 @@
 import { Loader2 } from "lucide-react";
 
 /** Inline loading state while a route waits for its first API response. */
-export function RouteDataLoading({
-  label = "Loading…",
-}: {
-  label?: string;
-}) {
+export function RouteDataLoading({ label = "Loading…" }: { label?: string }) {
   return (
     <div
       className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground"

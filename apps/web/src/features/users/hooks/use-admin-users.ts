@@ -52,13 +52,8 @@ export function useAdminUsers() {
   });
 
   const roleMutation = useMutation({
-    mutationFn: ({
-      userId,
-      role,
-    }: {
-      userId: string;
-      role: AdminUserRole;
-    }) => updateAdminUserRole(userId, role),
+    mutationFn: ({ userId, role }: { userId: string; role: AdminUserRole }) =>
+      updateAdminUserRole(userId, role),
     onSuccess: (updated) => {
       setUsersCache((previous) =>
         previous.map((user) => (user.id === updated.id ? updated : user)),

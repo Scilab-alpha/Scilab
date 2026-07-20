@@ -54,9 +54,7 @@ export function useBookmarks() {
   return {
     items: query.data?.items ?? [],
     isLoading: query.isLoading,
-    error: query.error
-      ? getUserFriendlyApiErrorMessage(query.error)
-      : null,
+    error: query.error ? getUserFriendlyApiErrorMessage(query.error) : null,
     reload,
     remove,
   };

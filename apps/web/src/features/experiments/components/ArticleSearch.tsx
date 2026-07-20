@@ -237,7 +237,10 @@ export default function ArticleSearch() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="article-name-search" className="text-sm font-medium">
+            <Label
+              htmlFor="article-name-search"
+              className="text-sm font-medium"
+            >
               Search by article title
             </Label>
             <div className="relative max-w-2xl">
@@ -395,9 +398,7 @@ export default function ArticleSearch() {
             </Card>
           )}
 
-          {isLoading && (
-            <RouteDataLoading label="Loading articles…" />
-          )}
+          {isLoading && <RouteDataLoading label="Loading articles…" />}
 
           {!isLoading && !error && currentArticles.length === 0 && (
             <Card className="p-8 border-border text-center text-muted-foreground">

@@ -362,10 +362,7 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div className="flex items-center gap-1 text-teal">
-                          <ArrowUp
-                            className="w-3.5 h-3.5"
-                            strokeWidth={1.75}
-                          />
+                          <ArrowUp className="w-3.5 h-3.5" strokeWidth={1.75} />
                           <span className="text-sm">{journal.trend}</span>
                         </div>
                       </Link>
@@ -394,13 +391,13 @@ export default function Dashboard() {
                           {publication.title}
                         </p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span className="truncate">{publication.journal}</span>
+                          <span className="truncate">
+                            {publication.journal}
+                          </span>
                           <span className="text-border">•</span>
                           <span>{publication.year ?? "—"}</span>
                           <span className="text-border">•</span>
-                          <span>
-                            {publication.citations} outgoing refs
-                          </span>
+                          <span>{publication.citations} outgoing refs</span>
                         </div>
                       </Link>
                     ))}

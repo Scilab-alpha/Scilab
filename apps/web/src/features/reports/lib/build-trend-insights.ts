@@ -273,7 +273,8 @@ export function buildTrendInsights(
   const journalRows = [...journalCounts.values()].sort(
     (a, b) => b.count - a.count,
   );
-  const journalTotal = journalRows.reduce((sum, row) => sum + row.count, 0) || 1;
+  const journalTotal =
+    journalRows.reduce((sum, row) => sum + row.count, 0) || 1;
 
   const topJournals: TopJournalShare[] = journalRows.slice(0, 5).map((row) => ({
     id: row.id,

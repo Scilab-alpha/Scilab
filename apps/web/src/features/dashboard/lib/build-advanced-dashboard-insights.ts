@@ -76,8 +76,7 @@ export function buildAdvancedDashboardInsights(
     ),
   ].sort((a, b) => a - b);
 
-  const activeYears =
-    years.length > 6 ? years.slice(years.length - 6) : years;
+  const activeYears = years.length > 6 ? years.slice(years.length - 6) : years;
   const yearLabels = activeYears.map(String);
 
   const rankedTags = collectTagNames(sample).slice(0, 5);
@@ -172,7 +171,13 @@ export function buildAdvancedDashboardInsights(
       // Approximate previous rank: journals with fewer articles look "worse" historically.
       const previousRank = Math.min(
         rankedJournals.length + 2,
-        currentRank + Math.max(1, Math.round((rankedJournals[0]?.count ?? 1) / Math.max(journal.count, 1))),
+        currentRank +
+          Math.max(
+            1,
+            Math.round(
+              (rankedJournals[0]?.count ?? 1) / Math.max(journal.count, 1),
+            ),
+          ),
       );
       const span = Math.max(activeYears.length, 1);
       const timeline = activeYears.slice(-4).map((year, yearIndex) => {
@@ -193,9 +198,7 @@ export function buildAdvancedDashboardInsights(
         timeline:
           timeline.length > 0
             ? timeline
-            : [
-                { period: "Now", rank: currentRank },
-              ],
+            : [{ period: "Now", rank: currentRank }],
       };
     },
   );

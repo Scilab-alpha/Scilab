@@ -47,9 +47,7 @@ export function useTrendAnalysis(filters: TrendFilters) {
   return {
     data,
     isLoading: query.isLoading,
-    error: query.error
-      ? getUserFriendlyApiErrorMessage(query.error)
-      : null,
+    error: query.error ? getUserFriendlyApiErrorMessage(query.error) : null,
     reload: () => query.refetch(),
   };
 }

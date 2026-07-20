@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getUserFriendlyApiErrorMessage } from "@/core/api";
 import { listQueryStaleTimeMs } from "@/core/api/query-config";
@@ -12,7 +12,10 @@ import {
 import { NOTIFICATION_UNREAD_EVENT } from "@/features/notifications/lib/notification-popup";
 import type { NotificationItem } from "@/features/notifications/types/notification.types";
 
-const notificationsQueryKey = ["notifications", { page: 1, limit: 50 }] as const;
+const notificationsQueryKey = [
+  "notifications",
+  { page: 1, limit: 50 },
+] as const;
 
 function emitUnreadDelta(delta: number) {
   if (typeof window === "undefined" || delta === 0) {
@@ -34,7 +37,7 @@ export function useNotifications() {
     queryFn: () => listNotifications({ page: 1, limit: 50 }),
   });
 
-  const items = query.data?.items ?? [];
+  const items = useMemo(() => query.data?.items ?? [], [query.data?.items]);
 
   const reload = useCallback(async () => {
     await query.refetch();
@@ -99,9 +102,7 @@ export function useNotifications() {
   return {
     items,
     isLoading: query.isLoading,
-    error: query.error
-      ? getUserFriendlyApiErrorMessage(query.error)
-      : null,
+    error: query.error ? getUserFriendlyApiErrorMessage(query.error) : null,
     reload,
     markRead,
     markAllRead,

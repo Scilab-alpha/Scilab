@@ -11,8 +11,7 @@ export function useAdvancedDashboard() {
   const query = useCatalogSample();
 
   const data = useMemo(
-    () =>
-      query.data ? buildAdvancedDashboardInsights(query.data) : null,
+    () => (query.data ? buildAdvancedDashboardInsights(query.data) : null),
     [query.data],
   );
 

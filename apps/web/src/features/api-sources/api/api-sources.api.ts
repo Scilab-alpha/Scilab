@@ -78,7 +78,8 @@ export async function listApiSources(): Promise<ApiSource[]> {
       id: "openalex-public",
       providerId: "openalex",
       name: "OpenAlex",
-      description: "Upstream scholarly graph used by the academic crawl pipeline.",
+      description:
+        "Upstream scholarly graph used by the academic crawl pipeline.",
       endpoint: "https://api.openalex.org",
       status: stored["openalex-public"]?.status ?? "active",
       connectionHealth:

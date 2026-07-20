@@ -30,7 +30,9 @@ export default function AdminPageFrame({
               {title}
             </h1>
             {subtitle ? (
-              <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {subtitle}
+              </p>
             ) : null}
           </div>
         </div>

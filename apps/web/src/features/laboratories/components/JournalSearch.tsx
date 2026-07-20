@@ -213,7 +213,10 @@ export default function JournalSearch() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="journal-name-search" className="text-sm font-medium">
+            <Label
+              htmlFor="journal-name-search"
+              className="text-sm font-medium"
+            >
               Search by journal name
             </Label>
             <div className="relative max-w-2xl">
@@ -486,9 +489,7 @@ export default function JournalSearch() {
                 </Card>
               )}
 
-              {isLoading && (
-                <RouteDataLoading label="Loading journals…" />
-              )}
+              {isLoading && <RouteDataLoading label="Loading journals…" />}
 
               {!isLoading && !error && currentJournals.length === 0 && (
                 <Card className="p-8 border-border text-center text-muted-foreground">

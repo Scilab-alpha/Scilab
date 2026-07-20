@@ -165,9 +165,7 @@ export default function UserManagement() {
   return (
     <AdminPageFrame
       title="User Management"
-      subtitle={
-        isLoading ? "Loading…" : `${filteredUsers.length} users`
-      }
+      subtitle={isLoading ? "Loading…" : `${filteredUsers.length} users`}
       icon={
         <Users className="w-5 h-5 text-primary-foreground" strokeWidth={1.75} />
       }

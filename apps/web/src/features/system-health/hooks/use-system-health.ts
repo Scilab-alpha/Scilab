@@ -15,9 +15,7 @@ export function useSystemHealth() {
   return {
     data: query.data ?? null,
     isLoading: query.isLoading,
-    error: query.error
-      ? getUserFriendlyApiErrorMessage(query.error)
-      : null,
+    error: query.error ? getUserFriendlyApiErrorMessage(query.error) : null,
     reload: () => query.refetch(),
   };
 }

@@ -158,8 +158,7 @@ export async function fetchSystemHealthSnapshot(): Promise<SystemHealthSnapshot>
     uptimePercent:
       probes.length === 0
         ? 0
-        : Math.round(
-            ((probes.length - failed.length) / probes.length) * 1000,
-          ) / 10,
+        : Math.round(((probes.length - failed.length) / probes.length) * 1000) /
+          10,
   };
 }

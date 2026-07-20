@@ -68,8 +68,7 @@ export async function listNotifications(
     ...server.items,
     ...filteredLocal.filter((item) => !seen.has(item.notificationId)),
   ].sort(
-    (a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
   const start = (page - 1) * limit;

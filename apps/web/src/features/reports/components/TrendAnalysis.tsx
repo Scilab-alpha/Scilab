@@ -70,9 +70,7 @@ function MomentumBadge({
 
 export default function TrendAnalysis() {
   const { user } = useAuth();
-  const [dateRange, setDateRange] = useState<"1y" | "2y" | "5y" | "all">(
-    "all",
-  );
+  const [dateRange, setDateRange] = useState<"1y" | "2y" | "5y" | "all">("all");
   const [selectedJournal, setSelectedJournal] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
@@ -93,7 +91,9 @@ export default function TrendAnalysis() {
       if (previous.length === 0) {
         return data.keywords.slice(0, 3).map((keyword) => keyword.dataKey);
       }
-      const available = new Set(data.keywords.map((keyword) => keyword.dataKey));
+      const available = new Set(
+        data.keywords.map((keyword) => keyword.dataKey),
+      );
       const kept = previous.filter((key) => available.has(key));
       return kept.length > 0
         ? kept
@@ -292,7 +292,9 @@ export default function TrendAnalysis() {
                             : "bg-surface-raised text-muted-foreground hover:bg-accent"
                         }`}
                         style={
-                          active ? { backgroundColor: keyword.color } : undefined
+                          active
+                            ? { backgroundColor: keyword.color }
+                            : undefined
                         }
                       >
                         <span
@@ -346,7 +348,10 @@ export default function TrendAnalysis() {
                 <Card className="p-6 border-border bg-card">
                   <div className="flex items-start justify-between mb-4">
                     <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
-                      <Zap className="w-5 h-5 text-primary" strokeWidth={1.75} />
+                      <Zap
+                        className="w-5 h-5 text-primary"
+                        strokeWidth={1.75}
+                      />
                     </div>
                   </div>
                   <p className="font-heading text-3xl text-foreground mb-1">
@@ -407,7 +412,8 @@ export default function TrendAnalysis() {
                   </p>
                 </div>
 
-                {data.multiTrend.length === 0 || selectedKeywords.length === 0 ? (
+                {data.multiTrend.length === 0 ||
+                selectedKeywords.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-16 text-center">
                     Select at least one series to plot.
                   </p>

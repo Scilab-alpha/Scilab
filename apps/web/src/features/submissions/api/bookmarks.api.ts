@@ -76,10 +76,7 @@ export type ToggleBookmarkInput = ToggleBookmarkRequest & {
   article?: BookmarkArticleSummary;
 };
 
-function bookmarkTitle(
-  articleId: string,
-  article?: BookmarkArticleSummary,
-) {
+function bookmarkTitle(articleId: string, article?: BookmarkArticleSummary) {
   return article?.title?.trim() || articleId;
 }
 

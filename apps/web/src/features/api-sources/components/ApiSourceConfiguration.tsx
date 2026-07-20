@@ -657,71 +657,71 @@ export default function ApiSourceConfiguration() {
       {isLoading && <RouteDataLoading label="Checking API sources…" />}
 
       {!isLoading && (
-      <div className="space-y-6">
-        <Card className="p-6 border-border bg-card">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="font-heading text-lg text-foreground">
-                External Data Providers
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-                Manage academic API integrations used for publication metadata,
-                journal rankings, and citation enrichment. Inspired by
-                integration marketplaces like Vercel and Supabase.
-              </p>
+        <div className="space-y-6">
+          <Card className="p-6 border-border bg-card">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 className="font-heading text-lg text-foreground">
+                  External Data Providers
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+                  Manage academic API integrations used for publication
+                  metadata, journal rankings, and citation enrichment. Inspired
+                  by integration marketplaces like Vercel and Supabase.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center rounded-full border border-border bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+                  {stats.active} Active
+                </span>
+                <span className="inline-flex items-center rounded-full border border-border bg-accent px-3 py-1 text-xs font-medium text-tag">
+                  {stats.healthy} Healthy
+                </span>
+                <span className="inline-flex items-center rounded-full border border-border bg-surface-raised px-3 py-1 text-xs font-medium text-muted-foreground">
+                  {stats.disabled} Disabled
+                </span>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <span className="inline-flex items-center rounded-full border border-border bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
-                {stats.active} Active
-              </span>
-              <span className="inline-flex items-center rounded-full border border-border bg-accent px-3 py-1 text-xs font-medium text-tag">
-                {stats.healthy} Healthy
-              </span>
-              <span className="inline-flex items-center rounded-full border border-border bg-surface-raised px-3 py-1 text-xs font-medium text-muted-foreground">
-                {stats.disabled} Disabled
-              </span>
-            </div>
-          </div>
-        </Card>
+          </Card>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {sources.map((source) => (
-            <ProviderCard
-              key={source.id}
-              source={source}
-              testingId={testingId}
-              onEdit={openEditDialog}
-              onDisable={handleDisable}
-              onEnable={handleEnable}
-              onTest={handleTestConnection}
-            />
-          ))}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {sources.map((source) => (
+              <ProviderCard
+                key={source.id}
+                source={source}
+                testingId={testingId}
+                onEdit={openEditDialog}
+                onDisable={handleDisable}
+                onEnable={handleEnable}
+                onTest={handleTestConnection}
+              />
+            ))}
+          </div>
+
+          <Card className="p-5 border-dashed border-border bg-card/70">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
+                <Database className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Need another provider?
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Add custom REST endpoints for institutional repositories,
+                  PubMed, or internal research databases.
+                </p>
+                <Button
+                  variant="link"
+                  className="px-0 h-auto mt-2"
+                  onClick={openAddDialog}
+                >
+                  Connect a new source
+                </Button>
+              </div>
+            </div>
+          </Card>
         </div>
-
-        <Card className="p-5 border-dashed border-border bg-card/70">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-              <Database className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                Need another provider?
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Add custom REST endpoints for institutional repositories,
-                PubMed, or internal research databases.
-              </p>
-              <Button
-                variant="link"
-                className="px-0 h-auto mt-2"
-                onClick={openAddDialog}
-              >
-                Connect a new source
-              </Button>
-            </div>
-          </div>
-        </Card>
-      </div>
       )}
 
       <SourceFormDialog

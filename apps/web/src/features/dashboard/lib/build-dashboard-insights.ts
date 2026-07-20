@@ -143,9 +143,7 @@ export function buildDashboardInsights(
     0,
   );
   const avgArticles =
-    journals.length > 0
-      ? Math.round(journalArticleTotal / journals.length)
-      : 0;
+    journals.length > 0 ? Math.round(journalArticleTotal / journals.length) : 0;
 
   const publicationGrowth = byYear.map(([year, publications]) => ({
     year: String(year),
@@ -165,8 +163,11 @@ export function buildDashboardInsights(
   for (const item of articles) {
     const year = item.article.publicationYear;
     if (typeof year !== "number") continue;
-    const era =
-      newerYears.has(year) ? "neu" : olderYears.has(year) ? "old" : null;
+    const era = newerYears.has(year)
+      ? "neu"
+      : olderYears.has(year)
+        ? "old"
+        : null;
     if (!era) continue;
     const labels = [
       ...item.topics.map((topic) => topic.displayName?.trim()),
@@ -211,7 +212,9 @@ export function buildDashboardInsights(
       const yearA = a.article.publicationYear ?? 0;
       const yearB = b.article.publicationYear ?? 0;
       if (yearB !== yearA) return yearB - yearA;
-      return (b.citedArticleIds?.length ?? 0) - (a.citedArticleIds?.length ?? 0);
+      return (
+        (b.citedArticleIds?.length ?? 0) - (a.citedArticleIds?.length ?? 0)
+      );
     })
     .slice(0, 5)
     .map((item) => ({

@@ -8,11 +8,9 @@ type RouteContext = { params: Promise<{ userId: string }> };
 /** DELETE /api/users/:userId → DELETE /users/:userId */
 export async function DELETE(request: NextRequest, context: RouteContext) {
   const { userId } = await context.params;
-  return proxyAuthenticated(
-    request,
-    `users/${encodeURIComponent(userId)}`,
-    { method: "DELETE" },
-  );
+  return proxyAuthenticated(request, `users/${encodeURIComponent(userId)}`, {
+    method: "DELETE",
+  });
 }
 
 /** PATCH /api/users/:userId → PATCH /users/:userId */

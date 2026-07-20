@@ -9,7 +9,11 @@ import { APP_NAME } from "@/shared/constants/app";
 import { useAuth } from "@/providers/auth-provider";
 
 /** Persistent admin chrome (sidebar). Page content mounts as children. */
-export default function AdminShell({ children }: { children: React.ReactNode }) {
+export default function AdminShell({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();

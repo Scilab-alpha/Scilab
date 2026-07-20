@@ -70,9 +70,7 @@ export function useArticles(searchText: string) {
     isLoading: query.isLoading,
     isLoadingMore: query.isFetchingNextPage,
     hasMore: Boolean(query.hasNextPage),
-    error: query.error
-      ? getUserFriendlyApiErrorMessage(query.error)
-      : null,
+    error: query.error ? getUserFriendlyApiErrorMessage(query.error) : null,
     reload,
     loadMore,
   };

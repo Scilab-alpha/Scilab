@@ -66,9 +66,7 @@ export async function listFollows(
   );
   const merged = [
     ...server.items,
-    ...local.filter(
-      (item) => !seen.has(`${item.objectType}:${item.objectId}`),
-    ),
+    ...local.filter((item) => !seen.has(`${item.objectType}:${item.objectId}`)),
   ];
   const start = (page - 1) * limit;
 

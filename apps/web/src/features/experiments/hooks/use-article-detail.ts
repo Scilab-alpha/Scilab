@@ -16,8 +16,6 @@ export function useArticleDetail(articleId: string) {
   return {
     article: query.data ?? null,
     isLoading: query.isLoading,
-    error: query.error
-      ? getUserFriendlyApiErrorMessage(query.error)
-      : null,
+    error: query.error ? getUserFriendlyApiErrorMessage(query.error) : null,
   };
 }

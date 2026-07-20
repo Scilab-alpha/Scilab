@@ -47,9 +47,7 @@ export function useApiSources() {
   return {
     sources: query.data ?? [],
     isLoading: query.isLoading,
-    error: query.error
-      ? getUserFriendlyApiErrorMessage(query.error)
-      : null,
+    error: query.error ? getUserFriendlyApiErrorMessage(query.error) : null,
     reload: () => query.refetch(),
     setStatus: (sourceId: string, status: ApiSourceStatus) =>
       statusMutation.mutateAsync({ sourceId, status }),
