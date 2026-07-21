@@ -1576,7 +1576,8 @@
         "required": true,
         "schema": {
           "type": "string",
-          "format": "uuid"
+          "maxLength": 128,
+          "example": "S123456789"
         }
       },
       "NotificationReadQuery": {
@@ -3759,7 +3760,8 @@
           },
           "id": {
             "type": "string",
-            "format": "uuid"
+            "maxLength": 128,
+            "example": "S123456789"
           },
           "displayName": {
             "type": "string",
@@ -3808,7 +3810,8 @@
           },
           "objectId": {
             "type": "string",
-            "format": "uuid"
+            "maxLength": 128,
+            "example": "S123456789"
           },
           "notifyMode": {
             "$ref": "#/components/schemas/FollowNotifyMode"
@@ -3881,7 +3884,8 @@
           },
           "objectId": {
             "type": "string",
-            "format": "uuid"
+            "maxLength": 128,
+            "example": "S123456789"
           },
           "notifyMode": {
             "$ref": "#/components/schemas/FollowNotifyMode"
@@ -3898,7 +3902,8 @@
           },
           "objectId": {
             "type": "string",
-            "format": "uuid"
+            "maxLength": 128,
+            "example": "S123456789"
           },
           "followed": {
             "type": "boolean"

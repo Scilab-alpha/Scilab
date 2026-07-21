@@ -1,6 +1,5 @@
 import { apiRequest } from "@/core/api";
 import {
-  isServerFollowableObjectId,
   listLocalFollows,
   toggleLocalFollow,
 } from "@/features/follows/api/local-follows";
@@ -82,33 +81,11 @@ export type ToggleFollowInput = ToggleFollowRequest & {
   displayName?: string | null;
 };
 
-/**
- * POST /follows/toggle for UUID ids.
- * OpenAlex ids are stored locally because public API requires uuid objectId.
- */
+/** POST /follows/toggle for academic graph target ids. */
 export async function toggleFollow(
   body: ToggleFollowInput,
 ): Promise<ToggleFollowResponse> {
   const objectId = body.objectId.trim();
-
-  if (!isServerFollowableObjectId(objectId)) {
-    const result = toggleLocalFollow({
-      objectType: body.objectType,
-      objectId,
-      displayName: body.displayName,
-      notifyMode: body.notifyMode,
-    });
-
-    if (result.followed) {
-      notifyFollowStarted({
-        objectType: body.objectType,
-        objectId,
-        displayName: body.displayName?.trim() || objectId,
-      });
-    }
-
-    return result;
-  }
 
   try {
     return await apiRequest<ToggleFollowResponse>({

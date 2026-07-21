@@ -27,6 +27,23 @@ export function parseFollowObjectType(value: unknown): FollowObjectType {
   }
 }
 
+export function parseFollowObjectId(value: unknown): string {
+  if (typeof value !== 'string') {
+    throw invalidInput('objectId is required');
+  }
+
+  const objectId = value.trim();
+  if (!objectId) {
+    throw invalidInput('objectId is required');
+  }
+
+  if (objectId.length > 128) {
+    throw invalidInput('objectId must not exceed 128 characters');
+  }
+
+  return objectId;
+}
+
 export function parseOptionalFollowObjectType(
   value: unknown,
 ): FollowObjectType | undefined {
