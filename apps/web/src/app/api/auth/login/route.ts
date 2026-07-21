@@ -43,7 +43,10 @@ export async function POST(request: NextRequest) {
     const currentUser = await requestUpstream("auth/me", {
       accessToken: login.envelope.data.accessToken,
     });
-    if (currentUser.ok && !isAllowedPortalRole(currentUser.envelope.data, body.portal)) {
+    if (
+      currentUser.ok &&
+      !isAllowedPortalRole(currentUser.envelope.data, body.portal)
+    ) {
       try {
         await requestUpstream("auth/logout", {
           method: "POST",
@@ -75,7 +78,9 @@ export async function POST(request: NextRequest) {
 function isAllowedPortalRole(user: unknown, portal: LoginPortal) {
   const role =
     user && typeof user === "object" && "role" in user
-      ? String((user as { role?: unknown }).role).trim().toLowerCase()
+      ? String((user as { role?: unknown }).role)
+          .trim()
+          .toLowerCase()
       : "";
   const isAdmin = role === "admin" || role === "system_admin";
 

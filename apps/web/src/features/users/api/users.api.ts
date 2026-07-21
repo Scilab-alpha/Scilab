@@ -93,3 +93,25 @@ export async function deleteUser(userId: string): Promise<void> {
     url: `/users/${encodeURIComponent(userId)}`,
   });
 }
+
+export async function listAdminUsers(): Promise<UserProfile[]> {
+  return listUsers();
+}
+
+export async function updateAdminUserRole(
+  userId: string,
+  role: Exclude<UserRole, "admin">,
+): Promise<UserProfile> {
+  return updateUserRole(userId, role);
+}
+
+export async function updateAdminUserStatus(
+  userId: string,
+  status: UserStatus,
+): Promise<UserProfile> {
+  return updateUserStatus(userId, status);
+}
+
+export async function deleteAdminUser(userId: string): Promise<void> {
+  return deleteUser(userId);
+}

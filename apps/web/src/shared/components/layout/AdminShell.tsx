@@ -21,9 +21,9 @@ import { routes } from "@/shared/constants/routes";
 
 interface AdminShellProps {
   children: React.ReactNode;
-  title: string;
+  title?: string;
   subtitle?: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   headerAction?: React.ReactNode;
 }
 
@@ -136,9 +136,11 @@ function AdminAccountFooter({ onNavigate }: { onNavigate?: () => void }) {
 
 export default function AdminShell({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+  title,
+  subtitle,
+  icon,
+  headerAction,
+}: AdminShellProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 

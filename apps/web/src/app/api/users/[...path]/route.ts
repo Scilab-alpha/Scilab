@@ -23,7 +23,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   const blocked = rejectCrossOriginMutation(request);
   if (blocked) return blocked;
 
-  return forwardAuthenticated(request, context, "PATCH", await readJsonBody(request));
+  return forwardAuthenticated(
+    request,
+    context,
+    "PATCH",
+    await readJsonBody(request),
+  );
 }
 
 export async function DELETE(request: NextRequest, context: RouteContext) {

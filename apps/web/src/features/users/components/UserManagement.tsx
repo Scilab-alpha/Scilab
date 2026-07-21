@@ -22,7 +22,7 @@ import {
   UserX,
 } from "lucide-react";
 import { toast } from "sonner";
-import AdminShell from "@/shared/components/layout/AdminShell";
+import AdminPageFrame from "@/shared/components/layout/AdminPageFrame";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -266,16 +266,6 @@ export default function UserManagement() {
           <span className="hidden sm:inline">Refresh</span>
         </Button>
       }
-      headerAction={
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isLoading || isMutating}
-          onClick={() => void reload()}
-        >
-          Refresh
-        </Button>
-      }
     >
       <div className="space-y-6 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300">
         <Card className="border-border bg-card p-4 shadow-ambient sm:p-6">
@@ -420,7 +410,7 @@ export default function UserManagement() {
           if (confirmation) actionMutation.mutate(confirmation);
         }}
       />
-    </AdminShell>
+    </AdminPageFrame>
   );
 }
 

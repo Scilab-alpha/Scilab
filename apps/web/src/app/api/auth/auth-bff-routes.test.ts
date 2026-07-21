@@ -92,9 +92,7 @@ describe("auth BFF routes", () => {
           refreshToken: "refresh-token",
         }),
       )
-      .mockResolvedValueOnce(
-        apiResponse(200, { ...apiUser, role: "ADMIN" }),
-      );
+      .mockResolvedValueOnce(apiResponse(200, { ...apiUser, role: "ADMIN" }));
 
     const response = await login(
       mutationRequest("/api/auth/login", {
