@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/providers/auth-provider";
 import { canAccessRoute } from "@/shared/constants/route-access";
+import { routes } from "@/shared/constants/routes";
 
 interface RouteGuardProps {
   children: React.ReactNode;
@@ -25,7 +26,11 @@ export default function RouteGuard({ children }: RouteGuardProps) {
     const { allowed, reason } = canAccessRoute(pathname, user?.role ?? null);
 
     if (!allowed && reason === "login") {
-      router.replace("/auth/login");
+      router.replace(
+        pathname.startsWith("/admin")
+          ? routes.auth.adminLogin
+          : routes.auth.login,
+      );
       return;
     }
 

@@ -1,8 +1,7 @@
-import type { UserRole } from "@/features/auth/types/auth.types";
-
 export const routes = {
   auth: {
     login: "/auth/login",
+    adminLogin: "/admin/login",
     register: "/auth/register",
   },
   forbidden: "/forbidden",
@@ -19,12 +18,14 @@ export const routes = {
     profile: "/student/profile",
   },
   admin: {
+    overview: "/admin",
     users: "/admin/users",
     apiSources: "/admin/api-sources",
     systemHealth: "/admin/system-health",
+    profile: "/admin/profile",
   },
 } as const;
 
-export function getPostLoginPath(role: UserRole) {
-  return role === "admin" ? routes.admin.users : routes.student.dashboard;
+export function getPostLoginPath(role: "admin" | "researcher" | "student") {
+  return role === "admin" ? routes.admin.overview : routes.student.dashboard;
 }

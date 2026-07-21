@@ -36,6 +36,7 @@ describe("auth BFF routes", () => {
         email: "student@example.edu",
         password: "secret",
         rememberMe: true,
+        portal: "user",
       }),
     );
     const body = await response.json();
@@ -52,6 +53,63 @@ describe("auth BFF routes", () => {
     expect(cookies).toContain("Secure");
     expect(cookies).toContain("SameSite=lax");
     expect(cookies).toContain("Max-Age=2592000");
+  });
+
+  it("uses the legacy API base URL when the upstream origin is not set", async () => {
+    vi.stubEnv("SCILAB_API_ORIGIN", "");
+    vi.stubEnv("SCILAB_API_BASE_URL", "https://legacy-api.example");
+    mockFetch
+      .mockResolvedValueOnce(
+        apiResponse(200, {
+          accessToken: "access-token",
+          refreshToken: "refresh-token",
+        }),
+      )
+      .mockResolvedValueOnce(apiResponse(200, apiUser));
+
+    const response = await login(
+      mutationRequest("/api/auth/login", {
+        email: "student@example.edu",
+        password: "secret",
+        rememberMe: false,
+        portal: "user",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      1,
+      new URL("auth/login", "https://legacy-api.example/"),
+      expect.any(Object),
+    );
+  });
+
+  it("accepts an admin account through the admin portal", async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        apiResponse(200, {
+          accessToken: "access-token",
+          refreshToken: "refresh-token",
+        }),
+      )
+      .mockResolvedValueOnce(apiResponse(200, { ...apiUser, role: "ADMIN" }));
+
+    const response = await login(
+      mutationRequest("/api/auth/login", {
+        email: "admin@example.edu",
+        password: "secret",
+        rememberMe: false,
+        portal: "admin",
+      }),
+    );
+
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: { role: "ADMIN" },
+    });
+    expect(response.headers.get("set-cookie")).toContain(
+      "scilab_access_token=access-token",
+    );
   });
 
   it("uses session cookies for registration and reports partial success", async () => {
@@ -146,12 +204,47 @@ describe("auth BFF routes", () => {
         email: "student@example.edu",
         password: "secret",
         rememberMe: false,
+        portal: "user",
       }),
     });
 
     const response = await login(request);
     expect(response.status).toBe(403);
     expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("does not set browser cookies when the selected portal rejects the account", async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        apiResponse(200, {
+          accessToken: "access-token",
+          refreshToken: "refresh-token",
+        }),
+      )
+      .mockResolvedValueOnce(apiResponse(200, apiUser))
+      .mockResolvedValueOnce(apiResponse(200, {}));
+
+    const response = await login(
+      mutationRequest("/api/auth/login", {
+        email: "student@example.edu",
+        password: "secret",
+        rememberMe: true,
+        portal: "admin",
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+    expect(mockFetch.mock.calls[0]?.[1]).toMatchObject({
+      body: JSON.stringify({
+        email: "student@example.edu",
+        password: "secret",
+      }),
+    });
+    expect(mockFetch.mock.calls[2]?.[0]).toEqual(
+      new URL("auth/logout", "https://scilab-api.epsilon.io.vn/"),
+    );
   });
 
   it("clears cookies even when upstream logout is unavailable", async () => {

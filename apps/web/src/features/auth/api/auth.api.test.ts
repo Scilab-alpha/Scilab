@@ -28,6 +28,7 @@ describe("auth.api", () => {
       email: " USER@Example.edu ",
       password: "secret",
       rememberMe: true,
+      portal: "user",
     });
 
     expect(apiRequest).toHaveBeenCalledWith({
@@ -37,6 +38,7 @@ describe("auth.api", () => {
         email: "user@example.edu",
         password: "secret",
         rememberMe: true,
+        portal: "user",
       },
     });
     expect(user).toMatchObject({
