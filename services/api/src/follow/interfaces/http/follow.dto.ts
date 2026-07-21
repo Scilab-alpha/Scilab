@@ -15,7 +15,12 @@ export class ToggleFollowDto {
   @ApiProperty({ enum: ['JOURNAL', 'KEYWORD', 'TOPIC'] })
   objectType!: string;
 
-  @ApiProperty({ format: 'uuid' })
+  @ApiProperty({
+    description:
+      'Academic graph reference id for the journal, keyword, or topic.',
+    maxLength: 128,
+    example: 'S123456789',
+  })
   objectId!: string;
 
   @ApiPropertyOptional({

@@ -870,7 +870,8 @@ components:
       required: true
       schema:
         type: string
-        format: uuid
+        maxLength: 128
+        example: S123456789
     NotificationReadQuery:
       name: isRead
       in: query
@@ -2074,7 +2075,8 @@ components:
           $ref: "#/components/schemas/FollowObjectType"
         id:
           type: string
-          format: uuid
+          maxLength: 128
+          example: S123456789
         displayName:
           type: string
           nullable: true
@@ -2111,7 +2113,8 @@ components:
           $ref: "#/components/schemas/FollowObjectType"
         objectId:
           type: string
-          format: uuid
+          maxLength: 128
+          example: S123456789
         notifyMode:
           $ref: "#/components/schemas/FollowNotifyMode"
         followedAt:
@@ -2170,7 +2173,8 @@ components:
           $ref: "#/components/schemas/FollowObjectType"
         objectId:
           type: string
-          format: uuid
+          maxLength: 128
+          example: S123456789
         notifyMode:
           $ref: "#/components/schemas/FollowNotifyMode"
     ToggleFollowData:
@@ -2185,7 +2189,8 @@ components:
           $ref: "#/components/schemas/FollowObjectType"
         objectId:
           type: string
-          format: uuid
+          maxLength: 128
+          example: S123456789
         followed:
           type: boolean
         notifyMode:
