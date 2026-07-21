@@ -9,6 +9,10 @@ export function createAcademicGraphRepositoryDouble(
     upsertArticleGraphs: jest
       .fn()
       .mockResolvedValue({ inserted: 0, updated: 0 }),
+    upsertSemanticScholarArticleGraphs: jest
+      .fn()
+      .mockResolvedValue({ inserted: 0, updated: 0 }),
+    findSemanticScholarDiscoveredPaperIds: jest.fn().mockResolvedValue(new Set()),
     upsertJournal: jest.fn().mockResolvedValue(undefined),
     listArticles: jest.fn().mockResolvedValue({ items: [], nextCursor: null }),
     getArticleById: jest.fn().mockResolvedValue(null),

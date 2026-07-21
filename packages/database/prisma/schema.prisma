@@ -110,7 +110,10 @@ enum SyncJobType {
   CITATION_COUNT_REFRESH
   JOURNAL_SOURCE_SYNC
   JOURNAL_ARTICLE_SYNC
+  RELATED_WORK_SYNC
+  RELATED_WORK_HYDRATION
   OUTGOING_REFERENCE_CRAWL
+  SEMANTIC_SCHOLAR_JOURNAL_SUPPLEMENT
 
   @@map("sync_job_type")
 }
@@ -131,13 +134,61 @@ enum AcademicJournalSyncMode {
   @@map("academic_journal_sync_mode")
 }
 
+enum SemanticScholarSupplementStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  COMPLETED_WITH_SHORTFALL
+  FAILED
+
+  @@map("semantic_scholar_supplement_status")
+}
+
 enum SyncStatus {
   RUNNING
   SUCCESS
   FAILED
   PARTIAL
+  CANCELLED
 
   @@map("sync_status")
+}
+
+enum AcademicJobRunTrigger {
+  CRON
+  MANUAL
+  RETRY
+
+  @@map("academic_job_run_trigger")
+}
+
+enum AcademicJobRunStatus {
+  WAITING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+
+  @@map("academic_job_run_status")
+}
+
+enum AcademicJobAuditAction {
+  PAUSE
+  RESUME
+  TRIGGER
+  CANCEL
+  RETRY
+
+  @@map("academic_job_audit_action")
+}
+
+enum AcademicJobAuditOutcome {
+  PENDING
+  SUCCESS
+  REJECTED
+  FAILED
+
+  @@map("academic_job_audit_outcome")
 }
 
 enum RankingMetricType {
@@ -302,14 +353,79 @@ model SyncLog {
   orphanProcessed Int          @default(0) @map("orphan_processed")
   status          SyncStatus
   errorDetail     String?      @map("error_detail") @db.Text
+  jobRunId        String?      @map("job_run_id") @db.Uuid
+  successCount    Int          @default(0) @map("success_count")
+  failureCount    Int          @default(0) @map("failure_count")
+  metrics         Json?        @map("metrics")
   createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamp(6)
   config          SystemConfig @relation(fields: [configId], references: [id], onDelete: Restrict)
+  jobRun          AcademicJobRun? @relation(fields: [jobRunId], references: [id], onDelete: SetNull)
 
   @@index([source, startedAt])
   @@index([configId, startedAt])
   @@index([jobType, startedAt])
   @@index([status, startedAt])
+  @@index([jobRunId])
   @@map("sync_log")
+}
+
+model AcademicJobControl {
+  jobId           String    @id @map("job_id") @db.VarChar(100)
+  isPaused        Boolean   @default(false) @map("is_paused")
+  pausedAt        DateTime? @map("paused_at") @db.Timestamp(6)
+  pausedByUserId  String?   @map("paused_by_user_id") @db.Uuid
+  pausedByEmail   String?   @map("paused_by_email") @db.VarChar(255)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  @@map("academic_job_control")
+}
+
+model AcademicJobRun {
+  id                    String                @id @default(uuid()) @map("job_run_id") @db.Uuid
+  jobId                 String                @map("job_id") @db.VarChar(100)
+  bullJobId             String?               @unique @map("bull_job_id") @db.VarChar(255)
+  trigger               AcademicJobRunTrigger
+  status                AcademicJobRunStatus  @default(WAITING)
+  scheduledAt           DateTime              @map("scheduled_at") @db.Timestamp(6)
+  queuedAt              DateTime              @default(now()) @map("queued_at") @db.Timestamp(6)
+  startedAt             DateTime?             @map("started_at") @db.Timestamp(6)
+  finishedAt            DateTime?             @map("finished_at") @db.Timestamp(6)
+  progressCurrent       Int                   @default(0) @map("progress_current")
+  progressTotal         Int?                  @map("progress_total")
+  progressMessage       String?               @map("progress_message") @db.VarChar(500)
+  attemptCount          Int                   @default(0) @map("attempt_count")
+  errorDetail           String?               @map("error_detail") @db.Text
+  cancellationRequestedAt DateTime?           @map("cancellation_requested_at") @db.Timestamp(6)
+  retriedFromRunId      String?               @map("retried_from_run_id") @db.Uuid
+  createdByAdminId      String?               @map("created_by_admin_id") @db.Uuid
+  createdByAdminEmail   String?               @map("created_by_admin_email") @db.VarChar(255)
+  createdAt             DateTime              @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt             DateTime              @updatedAt @map("updated_at") @db.Timestamp(6)
+  syncLogs              SyncLog[]
+
+  @@index([jobId, status, queuedAt])
+  @@index([jobId, startedAt])
+  @@index([retriedFromRunId])
+  @@map("academic_job_run")
+}
+
+model AcademicJobAudit {
+  id              String                  @id @default(uuid()) @map("job_audit_id") @db.Uuid
+  jobId           String                  @map("job_id") @db.VarChar(100)
+  runId           String?                 @map("job_run_id") @db.Uuid
+  adminUserId     String                  @map("admin_user_id") @db.Uuid
+  adminEmail      String                  @map("admin_email") @db.VarChar(255)
+  action          AcademicJobAuditAction
+  outcome         AcademicJobAuditOutcome @default(PENDING)
+  reason          String?                 @db.VarChar(500)
+  errorDetail     String?                 @map("error_detail") @db.Text
+  createdAt       DateTime                @default(now()) @map("created_at") @db.Timestamp(6)
+  completedAt     DateTime?               @map("completed_at") @db.Timestamp(6)
+
+  @@index([jobId, createdAt])
+  @@index([adminUserId, createdAt])
+  @@map("academic_job_audit")
 }
 
 model AcademicJournalSyncState {
@@ -327,11 +443,20 @@ model AcademicJournalSyncState {
   lastResolvedAt          DateTime?                  @map("last_resolved_at") @db.Timestamp(6)
   lastSuccessfulAt        DateTime?                  @map("last_successful_at") @db.Timestamp(6)
   errorDetail             String?                    @map("error_detail") @db.Text
+  semanticScholarStatus   SemanticScholarSupplementStatus @default(PENDING) @map("semantic_scholar_status")
+  semanticScholarNewToken String?                    @map("semantic_scholar_new_token") @db.Text
+  semanticScholarNewAccepted Int                      @default(0) @map("semantic_scholar_new_accepted")
+  semanticScholarRelatedAccepted Int                  @default(0) @map("semantic_scholar_related_accepted")
+  semanticScholarProcessedSeedIds String[]            @default([]) @map("semantic_scholar_processed_seed_ids")
+  semanticScholarStartedAt DateTime?                  @map("semantic_scholar_started_at") @db.Timestamp(6)
+  semanticScholarCompletedAt DateTime?                @map("semantic_scholar_completed_at") @db.Timestamp(6)
+  semanticScholarErrorDetail String?                  @map("semantic_scholar_error_detail") @db.Text
   createdAt               DateTime                   @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt               DateTime                   @updatedAt @map("updated_at") @db.Timestamp(6)
 
   @@index([matchStatus, catalogYear])
   @@index([initialBackfillComplete, lastSuccessfulAt])
+  @@index([semanticScholarStatus, catalogYear])
   @@map("academic_journal_sync_state")
 }
 

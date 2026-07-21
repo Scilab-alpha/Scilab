@@ -230,6 +230,28 @@ describe('RunJournalArticleSyncPipelineUseCase', () => {
     );
     expect(fetchWorks).toHaveBeenCalledTimes(2);
   });
+
+  it('stops at a durable page boundary when cancellation is requested', async () => {
+    const { execute, fetchWorks } = createUseCase({
+      records: [record('source', 1)],
+      priorityStates: [state('source', 'S1')],
+      fetchWorks: jest.fn().mockResolvedValue({
+        meta: { next_cursor: 'next-page' },
+        results: [],
+      }),
+    });
+    const isCancellationRequested = jest
+      .fn()
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValue(true);
+
+    await expect(execute({ isCancellationRequested })).resolves.toMatchObject({
+      pagesFetched: 1,
+      pagesAttempted: 1,
+    });
+    expect(fetchWorks).toHaveBeenCalledTimes(1);
+  });
 });
 
 function createUseCase(input: {

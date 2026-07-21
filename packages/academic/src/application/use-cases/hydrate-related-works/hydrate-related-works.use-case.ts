@@ -8,6 +8,7 @@ import {
   OpenAlexWorkRecord,
   OpenAlexWorkSource,
 } from '@repo/academic/application/ports/openalex-work-source.port';
+import { PipelineExecutionControl } from '@repo/academic/application/ports/pipeline-execution-control.port';
 import { HydrateRelatedWorksOutput } from './hydrate-related-works.dto';
 
 export class HydrateRelatedWorksUseCase {
@@ -17,7 +18,9 @@ export class HydrateRelatedWorksUseCase {
     private readonly graph: AcademicGraphRepository,
   ) {}
 
-  async execute(): Promise<HydrateRelatedWorksOutput> {
+  async execute(
+    control?: PipelineExecutionControl,
+  ): Promise<HydrateRelatedWorksOutput> {
     const config = getRelatedWorkSyncConfig(this.configReader);
 
     if (!config.apiKey) {
@@ -42,6 +45,9 @@ export class HydrateRelatedWorksUseCase {
     };
 
     for (const batch of batches(ids, config.relatedTargetBatchSize)) {
+      if (await control?.isCancellationRequested()) {
+        break;
+      }
       const page = await this.works.fetchWorkDetailsByIds({
         config,
         ids: batch,
@@ -71,6 +77,10 @@ export class HydrateRelatedWorksUseCase {
 
       output.hydrated += hydratedIds.length;
       output.discarded += rejectedIds.length;
+      await control?.reportProgress?.({
+        current: output.hydrated + output.discarded,
+        total: output.requested,
+      });
     }
 
     return output;

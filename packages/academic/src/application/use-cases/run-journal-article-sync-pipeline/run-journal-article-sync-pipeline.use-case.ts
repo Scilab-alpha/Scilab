@@ -11,6 +11,7 @@ import {
 } from '@repo/academic/application/ports/openalex-config.port';
 import { OpenAlexPageBudget } from '@repo/academic/application/ports/openalex-page-budget.port';
 import { OpenAlexWorkSource } from '@repo/academic/application/ports/openalex-work-source.port';
+import { PipelineExecutionControl } from '@repo/academic/application/ports/pipeline-execution-control.port';
 import { ScimagoDatasetReader } from '@repo/academic/application/ports/scimago-dataset.port';
 import { transformOpenAlexWorkToArticleGraph } from '@repo/academic/application/mappers/openalex-work.mapper';
 import { compareScimagoRankings } from '@repo/academic/domain/scimago.model';
@@ -41,7 +42,9 @@ export class RunJournalArticleSyncPipelineUseCase {
     private readonly budget: OpenAlexPageBudget,
   ) {}
 
-  async execute(): Promise<RunJournalArticleSyncPipelineOutput> {
+  async execute(
+    control?: PipelineExecutionControl,
+  ): Promise<RunJournalArticleSyncPipelineOutput> {
     const config = getJournalSyncConfig(this.configReader);
     if (!config.apiKey) {
       throw new Error('OPENALEX_API_KEY is required for journal article sync');
@@ -52,6 +55,7 @@ export class RunJournalArticleSyncPipelineUseCase {
       this.states.listMatchedBackfillContinuations(config.dailyPageBudget),
     ]);
     const output = createOutput();
+    const progress = { current: 0, total: config.dailyPageBudget };
     const priorityQuota = Math.floor(
       (config.dailyPageBudget * config.priorityPercent) / 100,
     );
@@ -62,6 +66,8 @@ export class RunJournalArticleSyncPipelineUseCase {
       pageAttemptLimit: priorityQuota,
       maxPagesPerJournal: 1,
       config,
+      control,
+      progress,
     });
     mergeLane(output, priorityFirstPass, 'priority');
 
@@ -75,6 +81,8 @@ export class RunJournalArticleSyncPipelineUseCase {
       pageAttemptLimit: config.dailyPageBudget - output.pagesAttempted,
       maxPagesPerJournal: config.maxPagesPerPass,
       config,
+      control,
+      progress,
     });
     mergeLane(output, continuationPass, 'continuation');
 
@@ -88,6 +96,8 @@ export class RunJournalArticleSyncPipelineUseCase {
       pageAttemptLimit: config.dailyPageBudget - output.pagesAttempted,
       maxPagesPerJournal: 1,
       config,
+      control,
+      progress,
     });
     mergeLane(output, priorityBorrowPass, 'priority');
 
@@ -160,6 +170,8 @@ export class RunJournalArticleSyncPipelineUseCase {
     pageAttemptLimit: number;
     maxPagesPerJournal: number;
     config: OpenAlexJournalSyncConfig;
+    control?: PipelineExecutionControl;
+    progress: { current: number; total: number };
   }): Promise<JournalLaneResult> {
     const result: JournalLaneResult = {
       nextIndex: input.startIndex,
@@ -177,6 +189,9 @@ export class RunJournalArticleSyncPipelineUseCase {
       result.nextIndex < input.states.length &&
       result.pagesAttempted < input.pageAttemptLimit
     ) {
+      if (await input.control?.isCancellationRequested()) {
+        break;
+      }
       const pageLimit = Math.min(
         input.maxPagesPerJournal,
         input.pageAttemptLimit - result.pagesAttempted,
@@ -185,6 +200,8 @@ export class RunJournalArticleSyncPipelineUseCase {
         input.states[result.nextIndex],
         input.config,
         pageLimit,
+        input.control,
+        input.progress,
       );
       result.nextIndex += 1;
       result.pagesAttempted += journalResult.pagesAttempted;
@@ -209,6 +226,8 @@ export class RunJournalArticleSyncPipelineUseCase {
     original: AcademicJournalSyncState,
     config: OpenAlexJournalSyncConfig,
     maxPages: number,
+    control?: PipelineExecutionControl,
+    progress?: { current: number; total: number },
   ): Promise<JournalSyncResult> {
     if (!original.openAlexJournalId) {
       return emptyJournalResult();
@@ -233,6 +252,17 @@ export class RunJournalArticleSyncPipelineUseCase {
     let articlesUpdated = 0;
 
     for (let page = 0; page < maxPages; page += 1) {
+      if (await control?.isCancellationRequested()) {
+        return {
+          pagesAttempted,
+          pagesFetched,
+          articlesInserted,
+          articlesUpdated,
+          errors: 0,
+          cursorsRemaining: 1,
+          budgetExhausted: false,
+        };
+      }
       if (!(await this.budget.tryConsume(config.dailyPageBudget))) {
         return {
           pagesAttempted,
@@ -270,6 +300,10 @@ export class RunJournalArticleSyncPipelineUseCase {
         pagesFetched += 1;
         articlesInserted += counts.inserted;
         articlesUpdated += counts.updated;
+        if (progress) {
+          progress.current += 1;
+          await control?.reportProgress?.(progress);
+        }
 
         const nextCursor = worksPage.meta?.next_cursor ?? null;
         if (!nextCursor) {

@@ -4,6 +4,7 @@ import {
   OpenAlexConfigReader,
 } from '@repo/academic/application/ports/openalex-config.port';
 import { OpenAlexWorkSource } from '@repo/academic/application/ports/openalex-work-source.port';
+import { PipelineExecutionControl } from '@repo/academic/application/ports/pipeline-execution-control.port';
 import { transformOpenAlexWorkToArticleGraph } from '@repo/academic/application/mappers/openalex-work.mapper';
 import { CrawlOutgoingReferencesOutput } from './crawl-outgoing-references.dto';
 
@@ -14,13 +15,18 @@ export class CrawlOutgoingReferencesUseCase {
     private readonly graph: AcademicGraphRepository,
   ) {}
 
-  async execute(): Promise<CrawlOutgoingReferencesOutput> {
+  async execute(
+    control?: PipelineExecutionControl,
+  ): Promise<CrawlOutgoingReferencesOutput> {
     const config = getJournalSyncConfig(this.configReader);
     const ids =
       await this.graph.listHydratedArticleIdsMissingOutgoingReferences(
         config.outgoingReferenceBatchSize,
       );
     if (ids.length === 0) {
+      return { articlesSelected: 0, articlesHydrated: 0, edgesPrepared: 0 };
+    }
+    if (await control?.isCancellationRequested()) {
       return { articlesSelected: 0, articlesHydrated: 0, edgesPrepared: 0 };
     }
     if (!this.works.fetchWorkDetailsByIds) {
@@ -32,6 +38,7 @@ export class CrawlOutgoingReferencesUseCase {
       .filter((graph): graph is NonNullable<typeof graph> => graph !== null);
     await this.graph.upsertArticleGraphs(graphs);
     await this.graph.markOutgoingReferencesCrawled(ids);
+    await control?.reportProgress?.({ current: ids.length, total: ids.length });
 
     return {
       articlesSelected: ids.length,

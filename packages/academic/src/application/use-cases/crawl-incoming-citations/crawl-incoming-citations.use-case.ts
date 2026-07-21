@@ -2,6 +2,7 @@ import { transformOpenAlexWorkToArticleGraph } from '@repo/academic/application/
 import { AcademicGraphRepository } from '@repo/academic/application/ports/academic-graph.port';
 import { OpenAlexConfigReader } from '@repo/academic/application/ports/openalex-config.port';
 import { OpenAlexWorkSource } from '@repo/academic/application/ports/openalex-work-source.port';
+import { PipelineExecutionControl } from '@repo/academic/application/ports/pipeline-execution-control.port';
 import { CrawlIncomingCitationsOutput } from '@repo/academic/application/use-cases/crawl-incoming-citations/crawl-incoming-citations.dto';
 
 const MAX_TARGETS = 25;
@@ -14,7 +15,10 @@ export class CrawlIncomingCitationsUseCase {
     private readonly graphs: AcademicGraphRepository,
   ) {}
 
-  async execute(now = new Date()): Promise<CrawlIncomingCitationsOutput> {
+  async execute(
+    now = new Date(),
+    control?: PipelineExecutionControl,
+  ): Promise<CrawlIncomingCitationsOutput> {
     const config = this.configReader.getOpenAlexConfig();
 
     if (!config.apiKey) {
@@ -38,7 +42,10 @@ export class CrawlIncomingCitationsUseCase {
       });
     let citingWorks = 0;
 
-    for (const targetId of targetIds) {
+    for (const [index, targetId] of targetIds.entries()) {
+      if (await control?.isCancellationRequested()) {
+        break;
+      }
       const response = await this.works.fetchCitingWorks({
         config,
         workId: targetId,
@@ -60,6 +67,10 @@ export class CrawlIncomingCitationsUseCase {
       }
 
       await this.graphs.markIncomingCitationCrawled([targetId]);
+      await control?.reportProgress?.({
+        current: index + 1,
+        total: targetIds.length,
+      });
     }
 
     return { targets: targetIds.length, citingWorks };

@@ -1,5 +1,5 @@
-export type AcademicSyncStatus = 'SUCCESS' | 'FAILED' | 'PARTIAL';
-export type AcademicSyncSource = 'OPENALEX' | 'SCIMAGO';
+export type AcademicSyncStatus = 'SUCCESS' | 'FAILED' | 'PARTIAL' | 'CANCELLED';
+export type AcademicSyncSource = 'OPENALEX' | 'SCIMAGO' | 'SEMANTIC_SCHOLAR';
 export type AcademicSyncJobType =
   | 'SCIMAGO_RELOAD'
   | 'JOURNAL_SOURCE_SYNC'
@@ -9,7 +9,8 @@ export type AcademicSyncJobType =
   | 'OUTGOING_REFERENCE_CRAWL'
   | 'REFERENCE_HYDRATION'
   | 'INCOMING_CITATION_CRAWL'
-  | 'CITATION_COUNT_REFRESH';
+  | 'CITATION_COUNT_REFRESH'
+  | 'SEMANTIC_SCHOLAR_JOURNAL_SUPPLEMENT';
 
 export interface StartAcademicPipelineJobInput {
   apiName: string;
@@ -17,6 +18,7 @@ export interface StartAcademicPipelineJobInput {
   source: AcademicSyncSource;
   jobType: AcademicSyncJobType;
   startedAt: Date;
+  jobRunId?: string;
 }
 
 export interface CompleteAcademicPipelineJobInput {
@@ -26,6 +28,9 @@ export interface CompleteAcademicPipelineJobInput {
   totalInserted: number;
   totalUpdated: number;
   totalErrors: number;
+  successCount?: number;
+  failureCount?: number;
+  metrics?: Record<string, unknown>;
 }
 
 export interface FailAcademicPipelineJobInput {
@@ -35,6 +40,9 @@ export interface FailAcademicPipelineJobInput {
   totalUpdated: number;
   totalErrors: number;
   errorDetail: string;
+  successCount?: number;
+  failureCount?: number;
+  metrics?: Record<string, unknown>;
 }
 
 export interface AcademicSyncLogRepository {

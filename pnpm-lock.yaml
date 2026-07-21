@@ -569,6 +569,9 @@ importers:
 
   services/api:
     dependencies:
+      '@nestjs/bullmq':
+        specifier: ^11.0.4
+        version: 11.0.4(@nestjs/common@11.1.26(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.26)(bullmq@5.80.2)
       '@nestjs/common':
         specifier: ^11.0.1
         version: 11.1.26(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -596,6 +599,9 @@ importers:
       '@repo/academic':
         specifier: workspace:*
         version: link:../../packages/academic
+      '@repo/academic-queue':
+        specifier: workspace:*
+        version: link:../../packages/academic-queue
       '@repo/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -608,6 +614,12 @@ importers:
       axios:
         specifier: ^1.18.1
         version: 1.18.1
+      bullmq:
+        specifier: ^5.80.2
+        version: 5.80.2
+      cron-parser:
+        specifier: ^4.9.0
+        version: 4.9.0
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
@@ -720,6 +732,9 @@ importers:
       '@repo/academic-queue':
         specifier: workspace:*
         version: link:../../packages/academic-queue
+      '@repo/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       bullmq:
         specifier: ^5.80.2
         version: 5.80.2

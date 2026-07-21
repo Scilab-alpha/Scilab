@@ -28,6 +28,7 @@ export function transformOpenAlexWorkToArticleGraph(
   return {
     article: {
       id: articleId,
+      openAlexId: articleId,
       title,
       abstract: reconstructAbstract(work.abstract_inverted_index),
       doi: normalizeDoi(work.doi),
@@ -36,6 +37,7 @@ export function transformOpenAlexWorkToArticleGraph(
       volumeNumber: work.biblio?.volume ?? null,
       issueNumber: work.biblio?.issue ?? null,
       citationCount: work.cited_by_count ?? null,
+      openAlexCitationCount: work.cited_by_count ?? null,
       workType: work.type ?? null,
       relatedSyncEligible: options.relatedSyncEligible,
       hydrationState: 'HYDRATED',

@@ -1,6 +1,7 @@
 import { AcademicGraphRepository } from '@repo/academic/application/ports/academic-graph.port';
 import { OpenAlexConfigReader } from '@repo/academic/application/ports/openalex-config.port';
 import { OpenAlexWorkSource } from '@repo/academic/application/ports/openalex-work-source.port';
+import { PipelineExecutionControl } from '@repo/academic/application/ports/pipeline-execution-control.port';
 import { RefreshCitationCountsOutput } from '@repo/academic/application/use-cases/refresh-citation-counts/refresh-citation-counts.dto';
 
 const BATCH_SIZE = 100;
@@ -13,7 +14,10 @@ export class RefreshCitationCountsUseCase {
     private readonly graphs: AcademicGraphRepository,
   ) {}
 
-  async execute(now = new Date()): Promise<RefreshCitationCountsOutput> {
+  async execute(
+    now = new Date(),
+    control?: PipelineExecutionControl,
+  ): Promise<RefreshCitationCountsOutput> {
     const config = this.configReader.getOpenAlexConfig();
 
     if (!config.apiKey) {
@@ -27,6 +31,9 @@ export class RefreshCitationCountsUseCase {
     const unmatchedArticleIds: string[] = [];
 
     for (let batch = 0; batch < MAX_BATCHES; batch += 1) {
+      if (await control?.isCancellationRequested()) {
+        break;
+      }
       const ids = await this.graphs.listHydratedArticleIdsNeedingCitation({
         limit: BATCH_SIZE,
         staleBefore,
@@ -54,6 +61,7 @@ export class RefreshCitationCountsUseCase {
       await this.graphs.updateArticleCitationCounts(updates);
       requested += ids.length;
       updated += updates.length;
+      await control?.reportProgress?.({ current: requested });
 
       if (ids.length < BATCH_SIZE) {
         break;
