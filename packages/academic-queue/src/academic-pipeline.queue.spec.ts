@@ -17,6 +17,7 @@ describe('AcademicPipelineQueueProducer', () => {
       queue as never,
       queue as never,
       queue as never,
+      queue as never,
     );
 
     await producer.enqueue(

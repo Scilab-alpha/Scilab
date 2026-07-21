@@ -13,6 +13,7 @@ import {
 } from '@repo/academic/application/ports/openalex-source.port';
 import { JournalRankingRepository } from '@repo/academic/application/ports/journal-ranking.port';
 import { ScimagoDatasetReader } from '@repo/academic/application/ports/scimago-dataset.port';
+import { PipelineExecutionControl } from '@repo/academic/application/ports/pipeline-execution-control.port';
 import {
   matchScimagoJournalToOpenAlexSources,
   normalizeOpenAlexSourceId,
@@ -33,7 +34,9 @@ export class ResolveScimagoJournalsUseCase {
     private readonly rankings: JournalRankingRepository,
   ) {}
 
-  async execute(): Promise<ResolveScimagoJournalsOutput> {
+  async execute(
+    control?: PipelineExecutionControl,
+  ): Promise<ResolveScimagoJournalsOutput> {
     const dataset = await this.datasets.load();
     const catalogYear = Math.max(...dataset.years);
     if (!Number.isFinite(catalogYear)) {
@@ -52,12 +55,25 @@ export class ResolveScimagoJournalsUseCase {
     const candidates: OpenAlexJournalSourceRecord[] = [];
     const sourceBatches = chunk(issns, config.sourceBatchSize);
     for (const [index, batch] of sourceBatches.entries()) {
+      if (await control?.isCancellationRequested()) {
+        return {
+          catalogYear,
+          journals: 0,
+          matched: 0,
+          unmatched: 0,
+          conflicts: 0,
+        };
+      }
       try {
         const page = await this.sources.fetchSourcesByIssns({
           config,
           issns: batch,
         });
         candidates.push(...page.results);
+        await control?.reportProgress?.({
+          current: index + 1,
+          total: sourceBatches.length + journals.length,
+        });
       } catch (error) {
         const detail =
           error instanceof Error ? error.message : 'Unknown OpenAlex error';
@@ -94,6 +110,7 @@ export class ResolveScimagoJournalsUseCase {
     let matched = 0;
     let unmatched = 0;
     let conflicts = 0;
+    let resolved = 0;
     const sourceById = new Map(
       candidates
         .map(
@@ -105,6 +122,9 @@ export class ResolveScimagoJournalsUseCase {
     );
 
     for (const { record, match } of provisional) {
+      if (await control?.isCancellationRequested()) {
+        break;
+      }
       const isReverseCollision =
         match.matchedJournalId !== null &&
         (reverse.get(match.matchedJournalId)?.length ?? 0) > 1;
@@ -147,6 +167,11 @@ export class ResolveScimagoJournalsUseCase {
       } else {
         unmatched += 1;
       }
+      resolved += 1;
+      await control?.reportProgress?.({
+        current: sourceBatches.length + resolved,
+        total: sourceBatches.length + journals.length,
+      });
     }
 
     return {

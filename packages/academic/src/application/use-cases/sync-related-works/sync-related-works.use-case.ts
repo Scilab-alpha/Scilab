@@ -4,6 +4,7 @@ import {
   OpenAlexConfigReader,
 } from '@repo/academic/application/ports/openalex-config.port';
 import { OpenAlexWorkSource } from '@repo/academic/application/ports/openalex-work-source.port';
+import { PipelineExecutionControl } from '@repo/academic/application/ports/pipeline-execution-control.port';
 import { RelatedWorkSnapshot } from '@repo/academic/domain/academic-graph.model';
 import { SyncRelatedWorksOutput } from './sync-related-works.dto';
 
@@ -14,7 +15,9 @@ export class SyncRelatedWorksUseCase {
     private readonly graph: AcademicGraphRepository,
   ) {}
 
-  async execute(): Promise<SyncRelatedWorksOutput> {
+  async execute(
+    control?: PipelineExecutionControl,
+  ): Promise<SyncRelatedWorksOutput> {
     const config = getRelatedWorkSyncConfig(this.configReader);
 
     if (!config.apiKey) {
@@ -38,6 +41,9 @@ export class SyncRelatedWorksUseCase {
     };
 
     for (const batch of batches(ids, config.relatedRootBatchSize)) {
+      if (await control?.isCancellationRequested()) {
+        break;
+      }
       const page = await this.works.fetchRelatedWorksByIds({
         config,
         ids: batch,
@@ -47,6 +53,10 @@ export class SyncRelatedWorksUseCase {
       await this.graph.replaceRelatedWorkSnapshots(snapshots);
       output.batches += 1;
       output.rootsSynced += snapshots.length;
+      await control?.reportProgress?.({
+        current: output.rootsSynced,
+        total: output.rootsSelected,
+      });
     }
 
     return output;

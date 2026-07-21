@@ -8,3 +8,4 @@ export { ReloadScimagoDatasetUseCase } from './application/use-cases/reload-scim
 export { ResolveScimagoJournalsUseCase } from './application/use-cases/resolve-scimago-journals/resolve-scimago-journals.use-case';
 export { RunJournalArticleSyncPipelineUseCase } from './application/use-cases/run-journal-article-sync-pipeline/run-journal-article-sync-pipeline.use-case';
 export { SyncRelatedWorksUseCase } from './application/use-cases/sync-related-works/sync-related-works.use-case';
+export { SupplementJournalsWithSemanticScholarUseCase } from './application/use-cases/supplement-journals-with-semantic-scholar/supplement-journals-with-semantic-scholar.use-case';

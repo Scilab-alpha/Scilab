@@ -42,6 +42,7 @@ export class PrismaAcademicSyncLogRepository implements AcademicSyncLogRepositor
         jobType: toPrismaSyncJobType(input.jobType),
         startedAt: input.startedAt,
         status: SyncStatus.RUNNING,
+        jobRunId: input.jobRunId,
       },
     });
 
@@ -57,11 +58,19 @@ export class PrismaAcademicSyncLogRepository implements AcademicSyncLogRepositor
       data: {
         finishedAt: input.finishedAt,
         status:
-          input.status === 'PARTIAL' ? SyncStatus.PARTIAL : SyncStatus.SUCCESS,
+          input.status === 'PARTIAL'
+            ? SyncStatus.PARTIAL
+            : input.status === 'CANCELLED'
+              ? SyncStatus.CANCELLED
+              : SyncStatus.SUCCESS,
         totalFetched: input.totalFetched,
         totalInserted: input.totalInserted,
         totalUpdated: input.totalUpdated,
         totalErrors: input.totalErrors,
+        successCount:
+          input.successCount ?? input.totalInserted + input.totalUpdated,
+        failureCount: input.failureCount ?? input.totalErrors,
+        metrics: input.metrics as never,
       },
     });
   }
@@ -80,6 +89,10 @@ export class PrismaAcademicSyncLogRepository implements AcademicSyncLogRepositor
         totalUpdated: input.totalUpdated,
         totalErrors: input.totalErrors,
         errorDetail: input.errorDetail,
+        successCount:
+          input.successCount ?? input.totalInserted + input.totalUpdated,
+        failureCount: input.failureCount ?? input.totalErrors,
+        metrics: input.metrics as never,
       },
     });
   }
@@ -88,6 +101,5 @@ export class PrismaAcademicSyncLogRepository implements AcademicSyncLogRepositor
 function toPrismaSyncJobType(
   jobType: StartAcademicPipelineJobInput['jobType'],
 ): SyncJobType {
-  void jobType;
-  return SyncJobType.SCHEDULED_SYNC;
+  return SyncJobType[jobType];
 }

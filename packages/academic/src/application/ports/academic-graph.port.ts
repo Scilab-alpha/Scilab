@@ -8,6 +8,7 @@ import {
   JournalListItem,
   JournalNode,
   RelatedWorkSnapshot,
+  SemanticScholarArticleGraph,
 } from '@repo/academic/domain/academic-graph.model';
 
 export const ACADEMIC_GRAPH_REPOSITORY = Symbol('ACADEMIC_GRAPH_REPOSITORY');
@@ -47,6 +48,12 @@ export interface AcademicGraphRepository {
   upsertArticleGraphs(
     graphs: ArticleGraph[],
   ): Promise<{ inserted: number; updated: number }>;
+  upsertSemanticScholarArticleGraphs(
+    graphs: SemanticScholarArticleGraph[],
+  ): Promise<{ inserted: number; updated: number }>;
+  findSemanticScholarDiscoveredPaperIds(
+    scimagoSourceId: string,
+  ): Promise<Set<string>>;
   upsertJournal(journal: JournalNode): Promise<void>;
   listArticles(input: ArticleListInput): Promise<CursorPage<ArticleGraph>>;
   getArticleById(id: string): Promise<ArticleGraph | null>;

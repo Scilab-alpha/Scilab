@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AcademicHttpModule } from '@/academic/academic-http.module';
+import { AdminAcademicModule } from '@/admin/admin-academic.module';
 import { AuthModule } from '@/auth/auth.module';
 import { BookmarkModule } from '@/bookmark/bookmark.module';
 import { EventsModule } from '@/events/events.module';
@@ -22,6 +23,7 @@ import { VisualizeModule } from '@/visualize/visualize.module';
     PrismaModule,
     Neo4jModule,
     AcademicHttpModule,
+    AdminAcademicModule,
     VisualizeModule,
     AuthModule,
     UserModule,

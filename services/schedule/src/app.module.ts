@@ -7,11 +7,13 @@ import {
   AcademicPipelineQueueProducer,
   createBullMqConnection,
 } from '@repo/academic-queue';
+import { PrismaModule } from '@repo/database';
 import { AcademicPipelineScheduler } from './academic-pipeline.scheduler';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
     ScheduleModule.forRoot(),
     BullModule.forRootAsync({
       imports: [ConfigModule],

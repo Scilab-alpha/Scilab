@@ -190,7 +190,9 @@ describe('Neo4jAcademicGraphRepository', () => {
       "ON CREATE SET cited.hydration_state = 'PLACEHOLDER'",
     );
     expect(cypher).toContain('graph.related_work_references');
-    expect(cypher).toContain('MERGE (article)-[related:RELATED_TO]->(target)');
+    expect(cypher).toContain(
+      "MERGE (article)-[related:RELATED_TO {source: 'OPENALEX'}]->(target)",
+    );
     expect(executeWrite).toHaveBeenCalledTimes(1);
     const [graph] = parameters.graphs as Array<{
       article: { citation_count: number };
@@ -223,14 +225,62 @@ describe('Neo4jAcademicGraphRepository', () => {
       { snapshots: Array<{ target_ids: string[] }> },
     ];
     expect(cypher).toContain(
-      '(source)-[stale:RELATED_TO]->(stale_target:Article)',
+      "(source)-[stale:RELATED_TO {source: 'OPENALEX'}]->(stale_target:Article)",
     );
     expect(cypher).toContain(
       'FOREACH (stale IN stale_relationships | DELETE stale)',
     );
-    expect(cypher).toContain('MERGE (source)-[related:RELATED_TO]->(target)');
+    expect(cypher).toContain(
+      "MERGE (source)-[related:RELATED_TO {source: 'OPENALEX'}]->(target)",
+    );
     expect(cypher).not.toContain('CITES');
     expect(parameters.snapshots[0]?.target_ids).toEqual(['article-2']);
+  });
+
+  it('resolves Semantic Scholar articles by source ID then unique DOI and retains both citation sources', async () => {
+    const executeWrite = jest.fn().mockResolvedValue({
+      records: [],
+      summary: {},
+    });
+    const repository = new Neo4jAcademicGraphRepository({
+      executeWrite,
+    } as never);
+
+    await repository.upsertSemanticScholarArticleGraphs([
+      {
+        article: {
+          id: 'S2:paper-1',
+          semanticScholarId: 'paper-1',
+          title: 'Semantic paper',
+          doi: '10.1/example',
+          semanticScholarCitationCount: 15,
+        },
+        scimagoSourceId: '28773',
+        originJournalId: 'S1',
+        lane: 'RELATED',
+        attachOriginJournal: true,
+      },
+    ]);
+
+    const [cypher] = executeWrite.mock.calls[0] as [string];
+    expect(cypher).toContain(
+      'semantic_scholar_id: graph.article.semantic_scholar_id',
+    );
+    expect(cypher).toContain('doi_normalized: graph.article.doi_normalized');
+    expect(cypher).toContain('WHERE size(matches) <= 1');
+    expect(cypher).toContain(
+      'UNION\n        WITH graph, matches\n        WITH graph, matches WHERE size(matches) = 0',
+    );
+    expect(cypher).toContain(
+      'END\n      WITH graph, article, created\n      MATCH (origin:Journal',
+    );
+    expect(cypher).toContain(
+      'MERGE (article)-[:PUBLISHED_IN]->(origin)\n      )\n      WITH graph, article, created\n      OPTIONAL MATCH',
+    );
+    expect(cypher).toContain('article.semantic_scholar_citation_count');
+    expect(cypher).toContain(
+      'article.openalex_citation_count >= graph.article.semantic_scholar_citation_count',
+    );
   });
 
   it('uses legacy string-safe datetime conversion for alert article matching', async () => {

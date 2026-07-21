@@ -10,6 +10,8 @@ export type ArticleSort = 'relevant' | 'newest' | 'most_cited';
 
 export interface ArticleNode {
   id: string;
+  openAlexId?: string | null;
+  semanticScholarId?: string | null;
   title: string;
   abstract?: string | null;
   doi?: string | null;
@@ -18,11 +20,25 @@ export interface ArticleNode {
   volumeNumber?: number | string | null;
   issueNumber?: string | null;
   citationCount?: number | null;
+  openAlexCitationCount?: number | null;
+  semanticScholarCitationCount?: number | null;
+  semanticScholarVenueName?: string | null;
   workType?: string | null;
   relatedSyncEligible?: boolean;
   hydrationState?: ArticleHydrationState;
   createdAt?: string | Date | null;
   updatedAt?: string | Date | null;
+}
+
+export type SemanticScholarDiscoveryLane = 'NEW' | 'RELATED';
+
+export interface SemanticScholarArticleGraph {
+  article: ArticleNode;
+  scimagoSourceId: string;
+  originJournalId: string;
+  lane: SemanticScholarDiscoveryLane;
+  attachOriginJournal: boolean;
+  relatedFromSemanticScholarId?: string | null;
 }
 
 export interface RelatedWorkReference {
