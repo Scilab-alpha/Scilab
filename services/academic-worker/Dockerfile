@@ -22,16 +22,15 @@ COPY services/academic-worker/package.json services/academic-worker/package.json
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm --filter @repo/database prisma:generate && pnpm turbo run build --filter=academic-worker...
+RUN pnpm --filter academic-worker --prod deploy /runtime
+RUN mkdir -p /runtime/docs/scimagojr && \
+    cp -R docs/scimagojr/normalized /runtime/docs/scimagojr/normalized
 
 FROM node:22-alpine AS runtime
 
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
+ENV NODE_ENV="production"
 ENV SCIMAGO_DATASET_DIR="/app/docs/scimagojr/normalized"
 
-RUN corepack enable && corepack prepare pnpm@11.7.0 --activate
-
 WORKDIR /app
-COPY --from=build /app /app
-WORKDIR /app/services/academic-worker
+COPY --from=build /runtime /app
 CMD ["node", "dist/main.js"]
