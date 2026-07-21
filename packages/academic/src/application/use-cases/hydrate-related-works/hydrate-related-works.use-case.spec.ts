@@ -16,6 +16,7 @@ describe('HydrateRelatedWorksUseCase', () => {
           baseUrl: 'url',
           journalBackfillFromYear: 2020,
           dailyPageBudget: 1000,
+          priorityPercent: 80,
           maxPagesPerPass: 10,
           sourceBatchSize: 100,
           journalBatchSize: 100,

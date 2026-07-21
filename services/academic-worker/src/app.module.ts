@@ -134,6 +134,7 @@ import { ACADEMIC_PIPELINE_PROCESSORS } from './academic-pipeline.processor';
       provide: RunJournalArticleSyncPipelineUseCase,
       useFactory: (
         configReader: OpenAlexEnvConfigReader,
+        datasets: ScimagoDatasetReader,
         states: AcademicJournalSyncStateRepository,
         works: AxiosOpenAlexWorksClient,
         graph: AcademicGraphRepository,
@@ -141,6 +142,7 @@ import { ACADEMIC_PIPELINE_PROCESSORS } from './academic-pipeline.processor';
       ) =>
         new RunJournalArticleSyncPipelineUseCase(
           configReader,
+          datasets,
           states,
           works,
           graph,
@@ -148,6 +150,7 @@ import { ACADEMIC_PIPELINE_PROCESSORS } from './academic-pipeline.processor';
         ),
       inject: [
         OpenAlexEnvConfigReader,
+        SCIMAGO_DATASET_READER,
         ACADEMIC_JOURNAL_SYNC_STATE_REPOSITORY,
         AxiosOpenAlexWorksClient,
         ACADEMIC_GRAPH_REPOSITORY,

@@ -26,16 +26,17 @@ export class PrismaAcademicJournalSyncStateRepository implements AcademicJournal
     return states.map(toState);
   }
 
-  async listMatchedForArticleSync(
+  async listMatchedBackfillContinuations(
     limit: number,
   ): Promise<AcademicJournalSyncState[]> {
     const states = await this.prisma.academicJournalSyncState.findMany({
-      where: { matchStatus: AcademicJournalMatchStatus.MATCHED },
-      orderBy: [
-        { initialBackfillComplete: 'asc' },
-        { lastSuccessfulAt: 'asc' },
-        { scimagoSourceId: 'asc' },
-      ],
+      where: {
+        matchStatus: AcademicJournalMatchStatus.MATCHED,
+        initialBackfillComplete: false,
+        cursor: { not: null },
+        openAlexJournalId: { not: null },
+      },
+      orderBy: [{ updatedAt: 'asc' }, { scimagoSourceId: 'asc' }],
       take: limit,
     });
     return states.map(toState);

@@ -17,6 +17,7 @@ export interface OpenAlexWorksQueryConfig extends OpenAlexConfig {
 export interface OpenAlexJournalSyncConfig extends OpenAlexConfig {
   journalBackfillFromYear: number;
   dailyPageBudget: number;
+  priorityPercent: number;
   maxPagesPerPass: number;
   sourceBatchSize: number;
   journalBatchSize: number;
@@ -62,6 +63,7 @@ export function getJournalSyncConfig(
       ...reader.getOpenAlexConfig(),
       journalBackfillFromYear: 2020,
       dailyPageBudget: 1000,
+      priorityPercent: 80,
       maxPagesPerPass: 10,
       sourceBatchSize: 100,
       journalBatchSize: 100,

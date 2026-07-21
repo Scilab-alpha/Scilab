@@ -5,7 +5,10 @@ import {
   ListJournalRankingsInput,
   ListJournalRankingsOutput,
 } from '@repo/academic/application/use-cases/list-journal-rankings/list-journal-rankings.dto';
-import { ScimagoRecord } from '@repo/academic/domain/scimago.model';
+import {
+  compareScimagoRankings,
+  ScimagoRecord,
+} from '@repo/academic/domain/scimago.model';
 
 export class JournalRankingDatasetNotFoundError extends Error {
   constructor(year: number) {
@@ -96,16 +99,6 @@ export class ListJournalRankingsUseCase {
 
     return cursorIndex + 1;
   }
-}
-
-function compareScimagoRankings(
-  left: ScimagoRecord,
-  right: ScimagoRecord,
-): number {
-  const leftRank = left.rank ?? Number.MAX_SAFE_INTEGER;
-  const rightRank = right.rank ?? Number.MAX_SAFE_INTEGER;
-
-  return leftRank - rightRank || left.sourceId.localeCompare(right.sourceId);
 }
 
 function toJournalRankingListItem(

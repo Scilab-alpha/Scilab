@@ -28,6 +28,8 @@ export interface AcademicJournalSyncState {
 
 export interface AcademicJournalSyncStateRepository {
   findByScimagoSourceIds(ids: string[]): Promise<AcademicJournalSyncState[]>;
-  listMatchedForArticleSync(limit: number): Promise<AcademicJournalSyncState[]>;
+  listMatchedBackfillContinuations(
+    limit: number,
+  ): Promise<AcademicJournalSyncState[]>;
   upsert(state: AcademicJournalSyncState): Promise<void>;
 }
