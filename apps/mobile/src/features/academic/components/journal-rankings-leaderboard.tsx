@@ -275,6 +275,7 @@ function JournalRankingCard({
   const journalHref = journal.journalId
     ? (`/journals/${encodeURIComponent(journal.journalId)}` as Href)
     : null;
+  const details = buildJournalDetails(journal);
   const content = (
     <View
       style={[
@@ -293,13 +294,25 @@ function JournalRankingCard({
         #{rank}
       </Text>
 
-      <Text
-        numberOfLines={1}
-        selectable
-        style={[styles.rankingName, { color: theme.colors.text }]}
-      >
-        {journal.title}
-      </Text>
+      <View style={styles.rankingCopy}>
+        <Text
+          numberOfLines={1}
+          selectable
+          style={[styles.rankingName, { color: theme.colors.text }]}
+        >
+          {journal.title}
+        </Text>
+
+        {details.length > 0 ? (
+          <Text
+            numberOfLines={1}
+            selectable
+            style={[styles.rankingDetails, { color: theme.colors.textMuted }]}
+          >
+            {details.join(" · ")}
+          </Text>
+        ) : null}
+      </View>
 
       <View style={styles.rankingScoreBlock}>
         <Text
@@ -345,12 +358,53 @@ function JournalRankingCard({
   );
 }
 
+function buildJournalDetails(journal: JournalRankingListItem) {
+  const details: string[] = [];
+
+  if (journal.countryCode) {
+    details.push(journal.countryCode);
+  }
+
+  if (journal.hIndex !== null) {
+    details.push(`H-index ${journal.hIndex}`);
+  }
+
+  if (journal.totalDocs !== null) {
+    details.push(`${formatInteger(journal.totalDocs)} docs`);
+  }
+
+  if (!journal.journalId && journal.matchStatus !== "MATCHED") {
+    details.push(formatMatchStatus(journal.matchStatus));
+  }
+
+  return details;
+}
+
 function formatMetric(value: number | null) {
   if (value === null) {
     return "-";
   }
 
   return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
+function formatInteger(value: number) {
+  return new Intl.NumberFormat("en-US").format(value);
+}
+
+function formatMatchStatus(status: JournalRankingListItem["matchStatus"]) {
+  switch (status) {
+    case "PENDING":
+      return "Pending match";
+    case "UNMATCHED":
+      return "Unmatched";
+    case "CONFLICT":
+      return "Match conflict";
+    case "OUT_OF_SCOPE":
+      return "Out of scope";
+    case "MATCHED":
+      return "Matched";
+  }
 }
 
 function getRankingRowColor(rank: number, isDark: boolean) {
@@ -404,12 +458,13 @@ const styles = StyleSheet.create({
     width: 24,
   },
   rankingCard: {
-    alignItems: "center",
+    alignItems: "flex-start",
     borderCurve: "continuous",
     borderRadius: 4,
     borderWidth: 1,
     boxShadow: "0 2px 6px rgba(43, 24, 18, 0.14)",
     flexDirection: "row",
+    gap: 8,
     minHeight: 62,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -429,13 +484,20 @@ const styles = StyleSheet.create({
   rankingList: {
     gap: 12,
   },
-  rankingName: {
+  rankingCopy: {
     flex: 1,
+    gap: 3,
+    minWidth: 0,
+  },
+  rankingName: {
     fontSize: 12,
     fontWeight: "700",
     lineHeight: 15,
-    minWidth: 0,
-    paddingRight: 6,
+  },
+  rankingDetails: {
+    fontSize: 10,
+    fontWeight: "700",
+    lineHeight: 13,
   },
   rankingPressable: {
     width: "100%",
