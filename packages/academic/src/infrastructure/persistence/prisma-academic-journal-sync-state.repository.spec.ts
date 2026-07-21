@@ -1,22 +1,24 @@
 import { PrismaAcademicJournalSyncStateRepository } from './prisma-academic-journal-sync-state.repository';
 
 describe('PrismaAcademicJournalSyncStateRepository', () => {
-  it('orders incomplete matched journals first and upserts per-journal state', async () => {
+  it('rotates incomplete matched journals with a saved cursor and upserts per-journal state', async () => {
     const findMany = jest.fn().mockResolvedValue([]);
     const upsert = jest.fn().mockResolvedValue({});
     const repository = new PrismaAcademicJournalSyncStateRepository({
       academicJournalSyncState: { findMany, upsert },
     } as never);
 
-    await repository.listMatchedForArticleSync(25);
+    await repository.listMatchedBackfillContinuations(25);
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         take: 25,
-        orderBy: [
-          { initialBackfillComplete: 'asc' },
-          { lastSuccessfulAt: 'asc' },
-          { scimagoSourceId: 'asc' },
-        ],
+        where: {
+          matchStatus: 'MATCHED',
+          initialBackfillComplete: false,
+          cursor: { not: null },
+          openAlexJournalId: { not: null },
+        },
+        orderBy: [{ updatedAt: 'asc' }, { scimagoSourceId: 'asc' }],
       }),
     );
 

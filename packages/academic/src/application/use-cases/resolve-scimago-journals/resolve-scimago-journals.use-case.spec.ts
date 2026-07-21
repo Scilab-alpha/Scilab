@@ -45,6 +45,7 @@ describe('ResolveScimagoJournalsUseCase', () => {
           baseUrl: 'https://api.openalex.org',
           journalBackfillFromYear: 2020,
           dailyPageBudget: 1000,
+          priorityPercent: 80,
           maxPagesPerPass: 10,
           sourceBatchSize: 100,
           journalBatchSize: 100,
@@ -66,7 +67,7 @@ describe('ResolveScimagoJournalsUseCase', () => {
       },
       {
         findByScimagoSourceIds: jest.fn().mockResolvedValue([]),
-        listMatchedForArticleSync: jest.fn(),
+        listMatchedBackfillContinuations: jest.fn(),
         upsert,
       },
       graph as never,
@@ -107,6 +108,7 @@ describe('ResolveScimagoJournalsUseCase', () => {
           baseUrl: 'url',
           journalBackfillFromYear: 2020,
           dailyPageBudget: 1000,
+          priorityPercent: 80,
           maxPagesPerPass: 10,
           sourceBatchSize: 100,
           journalBatchSize: 100,
@@ -126,7 +128,7 @@ describe('ResolveScimagoJournalsUseCase', () => {
       },
       {
         findByScimagoSourceIds: jest.fn().mockResolvedValue([]),
-        listMatchedForArticleSync: jest.fn(),
+        listMatchedBackfillContinuations: jest.fn(),
         upsert,
       },
       { upsertJournal: jest.fn() } as never,
@@ -165,7 +167,7 @@ describe('ResolveScimagoJournalsUseCase', () => {
     };
     const states = {
       findByScimagoSourceIds: jest.fn(),
-      listMatchedForArticleSync: jest.fn(),
+      listMatchedBackfillContinuations: jest.fn(),
       upsert: jest.fn(),
     };
     const useCase = new ResolveScimagoJournalsUseCase(
@@ -175,6 +177,7 @@ describe('ResolveScimagoJournalsUseCase', () => {
           baseUrl: 'https://api.openalex.org',
           journalBackfillFromYear: 2020,
           dailyPageBudget: 1000,
+          priorityPercent: 80,
           maxPagesPerPass: 10,
           sourceBatchSize: 1,
           journalBatchSize: 100,

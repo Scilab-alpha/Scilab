@@ -11,12 +11,30 @@ import {
 } from '@repo/academic/application/ports/openalex-config.port';
 import { OpenAlexPageBudget } from '@repo/academic/application/ports/openalex-page-budget.port';
 import { OpenAlexWorkSource } from '@repo/academic/application/ports/openalex-work-source.port';
+import { ScimagoDatasetReader } from '@repo/academic/application/ports/scimago-dataset.port';
 import { transformOpenAlexWorkToArticleGraph } from '@repo/academic/application/mappers/openalex-work.mapper';
+import { compareScimagoRankings } from '@repo/academic/domain/scimago.model';
 import { RunJournalArticleSyncPipelineOutput } from './run-journal-article-sync-pipeline.dto';
+
+interface JournalSyncResult {
+  pagesAttempted: number;
+  pagesFetched: number;
+  articlesInserted: number;
+  articlesUpdated: number;
+  errors: number;
+  cursorsRemaining: number;
+  budgetExhausted: boolean;
+}
+
+interface JournalLaneResult extends JournalSyncResult {
+  nextIndex: number;
+  journalsVisited: number;
+}
 
 export class RunJournalArticleSyncPipelineUseCase {
   constructor(
     private readonly configReader: OpenAlexConfigReader,
+    private readonly datasets: ScimagoDatasetReader,
     private readonly states: AcademicJournalSyncStateRepository,
     private readonly works: OpenAlexWorkSource,
     private readonly graph: AcademicGraphRepository,
@@ -28,57 +46,176 @@ export class RunJournalArticleSyncPipelineUseCase {
     if (!config.apiKey) {
       throw new Error('OPENALEX_API_KEY is required for journal article sync');
     }
-    const states = await this.states.listMatchedForArticleSync(
-      config.journalBatchSize,
+
+    const [priorityStates, continuationStates] = await Promise.all([
+      this.listPriorityStates(config),
+      this.states.listMatchedBackfillContinuations(config.dailyPageBudget),
+    ]);
+    const output = createOutput();
+    const priorityQuota = Math.floor(
+      (config.dailyPageBudget * config.priorityPercent) / 100,
     );
-    const output: RunJournalArticleSyncPipelineOutput = {
-      journalsVisited: states.length,
+
+    const priorityFirstPass = await this.runLane({
+      states: priorityStates,
+      startIndex: 0,
+      pageAttemptLimit: priorityQuota,
+      maxPagesPerJournal: 1,
+      config,
+    });
+    mergeLane(output, priorityFirstPass, 'priority');
+
+    if (priorityFirstPass.budgetExhausted) {
+      return output;
+    }
+
+    const continuationPass = await this.runLane({
+      states: continuationStates,
+      startIndex: 0,
+      pageAttemptLimit: config.dailyPageBudget - output.pagesAttempted,
+      maxPagesPerJournal: config.maxPagesPerPass,
+      config,
+    });
+    mergeLane(output, continuationPass, 'continuation');
+
+    if (continuationPass.budgetExhausted) {
+      return output;
+    }
+
+    const priorityBorrowPass = await this.runLane({
+      states: priorityStates,
+      startIndex: priorityFirstPass.nextIndex,
+      pageAttemptLimit: config.dailyPageBudget - output.pagesAttempted,
+      maxPagesPerJournal: 1,
+      config,
+    });
+    mergeLane(output, priorityBorrowPass, 'priority');
+
+    return output;
+  }
+
+  private async listPriorityStates(
+    config: OpenAlexJournalSyncConfig,
+  ): Promise<AcademicJournalSyncState[]> {
+    const dataset = await this.datasets.load();
+    const latestCatalogYear = Math.max(...dataset.years);
+    if (!Number.isFinite(latestCatalogYear)) {
+      return [];
+    }
+
+    const sourceIds = [
+      ...new Set(
+        dataset.records
+          .filter(
+            (record) =>
+              record.year === latestCatalogYear &&
+              record.type?.trim().toLowerCase() === 'journal',
+          )
+          .sort(compareScimagoRankings)
+          .map((record) => record.sourceId),
+      ),
+    ];
+    const priorityStates: AcademicJournalSyncState[] = [];
+
+    for (
+      let offset = 0;
+      offset < sourceIds.length &&
+      priorityStates.length < config.dailyPageBudget;
+      offset += config.journalBatchSize
+    ) {
+      const batch = sourceIds.slice(offset, offset + config.journalBatchSize);
+      const states = new Map(
+        (await this.states.findByScimagoSourceIds(batch)).map((state) => [
+          state.scimagoSourceId,
+          state,
+        ]),
+      );
+
+      for (const sourceId of batch) {
+        const state = states.get(sourceId);
+        if (
+          !state ||
+          state.catalogYear !== latestCatalogYear ||
+          state.matchStatus !== 'MATCHED' ||
+          !state.openAlexJournalId ||
+          state.initialBackfillComplete ||
+          state.cursor !== null
+        ) {
+          continue;
+        }
+
+        priorityStates.push(state);
+        if (priorityStates.length === config.dailyPageBudget) {
+          break;
+        }
+      }
+    }
+
+    return priorityStates;
+  }
+
+  private async runLane(input: {
+    states: AcademicJournalSyncState[];
+    startIndex: number;
+    pageAttemptLimit: number;
+    maxPagesPerJournal: number;
+    config: OpenAlexJournalSyncConfig;
+  }): Promise<JournalLaneResult> {
+    const result: JournalLaneResult = {
+      nextIndex: input.startIndex,
+      journalsVisited: 0,
+      pagesAttempted: 0,
       pagesFetched: 0,
       articlesInserted: 0,
       articlesUpdated: 0,
-      cursorsRemaining: 0,
       errors: 0,
+      cursorsRemaining: 0,
+      budgetExhausted: false,
     };
 
-    for (const state of states) {
-      const result = await this.syncJournal(state, config);
-      output.pagesFetched += result.pagesFetched;
-      output.articlesInserted += result.articlesInserted;
-      output.articlesUpdated += result.articlesUpdated;
-      output.errors += result.errors;
-      if (result.hasRemainingCursor) {
-        output.cursorsRemaining += 1;
+    while (
+      result.nextIndex < input.states.length &&
+      result.pagesAttempted < input.pageAttemptLimit
+    ) {
+      const pageLimit = Math.min(
+        input.maxPagesPerJournal,
+        input.pageAttemptLimit - result.pagesAttempted,
+      );
+      const journalResult = await this.syncJournal(
+        input.states[result.nextIndex],
+        input.config,
+        pageLimit,
+      );
+      result.nextIndex += 1;
+      result.pagesAttempted += journalResult.pagesAttempted;
+      result.pagesFetched += journalResult.pagesFetched;
+      result.articlesInserted += journalResult.articlesInserted;
+      result.articlesUpdated += journalResult.articlesUpdated;
+      result.errors += journalResult.errors;
+      result.cursorsRemaining += journalResult.cursorsRemaining;
+      result.budgetExhausted ||= journalResult.budgetExhausted;
+      if (journalResult.pagesAttempted > 0) {
+        result.journalsVisited += 1;
       }
-      if (result.budgetExhausted) {
+      if (journalResult.budgetExhausted) {
         break;
       }
     }
-    return output;
+
+    return result;
   }
 
   private async syncJournal(
     original: AcademicJournalSyncState,
     config: OpenAlexJournalSyncConfig,
-  ): Promise<{
-    pagesFetched: number;
-    articlesInserted: number;
-    articlesUpdated: number;
-    errors: number;
-    hasRemainingCursor: boolean;
-    budgetExhausted: boolean;
-  }> {
+    maxPages: number,
+  ): Promise<JournalSyncResult> {
     if (!original.openAlexJournalId) {
-      return {
-        pagesFetched: 0,
-        articlesInserted: 0,
-        articlesUpdated: 0,
-        errors: 0,
-        hasRemainingCursor: false,
-        budgetExhausted: false,
-      };
+      return emptyJournalResult();
     }
     const journalId = original.openAlexJournalId;
     let state = { ...original };
+    let persistedState = { ...original };
     const windowFrom = getWindowFrom(state, config);
     const filter = createJournalWorksFilter(journalId, windowFrom);
     const signature = createHash('sha256').update(filter).digest('hex');
@@ -90,21 +227,24 @@ export class RunJournalArticleSyncPipelineUseCase {
         : null;
     }
     let cursor = state.cursor ?? '*';
+    let pagesAttempted = 0;
     let pagesFetched = 0;
     let articlesInserted = 0;
     let articlesUpdated = 0;
 
-    for (let page = 0; page < config.maxPagesPerPass; page += 1) {
+    for (let page = 0; page < maxPages; page += 1) {
       if (!(await this.budget.tryConsume(config.dailyPageBudget))) {
         return {
+          pagesAttempted,
           pagesFetched,
           articlesInserted,
           articlesUpdated,
           errors: 0,
-          hasRemainingCursor: true,
+          cursorsRemaining: 1,
           budgetExhausted: true,
         };
       }
+      pagesAttempted += 1;
       try {
         const worksPage = await this.works.fetchWorks({
           config: {
@@ -144,12 +284,14 @@ export class RunJournalArticleSyncPipelineUseCase {
             errorDetail: null,
           };
           await this.states.upsert(state);
+          persistedState = state;
           return {
+            pagesAttempted,
             pagesFetched,
             articlesInserted,
             articlesUpdated,
             errors: 0,
-            hasRemainingCursor: false,
+            cursorsRemaining: 0,
             budgetExhausted: false,
           };
         }
@@ -162,30 +304,33 @@ export class RunJournalArticleSyncPipelineUseCase {
           errorDetail: null,
         };
         await this.states.upsert(state);
+        persistedState = state;
       } catch (error) {
         await this.states.upsert({
-          ...state,
+          ...persistedState,
           errorDetail:
             error instanceof Error
               ? error.message
               : 'Unknown article sync error',
         });
         return {
+          pagesAttempted,
           pagesFetched,
           articlesInserted,
           articlesUpdated,
           errors: 1,
-          hasRemainingCursor: true,
+          cursorsRemaining: 1,
           budgetExhausted: false,
         };
       }
     }
     return {
+      pagesAttempted,
       pagesFetched,
       articlesInserted,
       articlesUpdated,
       errors: 0,
-      hasRemainingCursor: true,
+      cursorsRemaining: 1,
       budgetExhausted: false,
     };
   }
@@ -200,6 +345,61 @@ export function createJournalWorksFilter(
     'type:article',
     `from_publication_date:${toDateOnly(from)}`,
   ].join(',');
+}
+
+function createOutput(): RunJournalArticleSyncPipelineOutput {
+  return {
+    journalsVisited: 0,
+    priorityJournalsVisited: 0,
+    continuationJournalsVisited: 0,
+    pagesFetched: 0,
+    pagesAttempted: 0,
+    priorityPagesFetched: 0,
+    continuationPagesFetched: 0,
+    priorityPagesAttempted: 0,
+    continuationPagesAttempted: 0,
+    articlesInserted: 0,
+    articlesUpdated: 0,
+    cursorsRemaining: 0,
+    errors: 0,
+  };
+}
+
+function mergeLane(
+  output: RunJournalArticleSyncPipelineOutput,
+  result: JournalLaneResult,
+  lane: 'priority' | 'continuation',
+): void {
+  output.journalsVisited += result.journalsVisited;
+  output.pagesFetched += result.pagesFetched;
+  output.pagesAttempted += result.pagesAttempted;
+  output.articlesInserted += result.articlesInserted;
+  output.articlesUpdated += result.articlesUpdated;
+  output.errors += result.errors;
+  output.cursorsRemaining += result.cursorsRemaining;
+
+  if (lane === 'priority') {
+    output.priorityJournalsVisited += result.journalsVisited;
+    output.priorityPagesFetched += result.pagesFetched;
+    output.priorityPagesAttempted += result.pagesAttempted;
+    return;
+  }
+
+  output.continuationJournalsVisited += result.journalsVisited;
+  output.continuationPagesFetched += result.pagesFetched;
+  output.continuationPagesAttempted += result.pagesAttempted;
+}
+
+function emptyJournalResult(): JournalSyncResult {
+  return {
+    pagesAttempted: 0,
+    pagesFetched: 0,
+    articlesInserted: 0,
+    articlesUpdated: 0,
+    errors: 0,
+    cursorsRemaining: 0,
+    budgetExhausted: false,
+  };
 }
 
 function getWindowFrom(

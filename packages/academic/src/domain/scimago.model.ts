@@ -42,6 +42,16 @@ export interface ScimagoDataset {
   subjectCategories: ScimagoSubjectCategory[];
 }
 
+export function compareScimagoRankings(
+  left: ScimagoRecord,
+  right: ScimagoRecord,
+): number {
+  const leftRank = left.rank ?? Number.MAX_SAFE_INTEGER;
+  const rightRank = right.rank ?? Number.MAX_SAFE_INTEGER;
+
+  return leftRank - rightRank || left.sourceId.localeCompare(right.sourceId);
+}
+
 export interface ScimagoNormalizationReport {
   year: number;
   sourceFile: string;
