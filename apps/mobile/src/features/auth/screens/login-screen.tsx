@@ -1,18 +1,11 @@
 import { Link, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
-import {
-  AppButton,
-  AppCheckbox,
-  AppDivider,
-  AppTextField,
-  useToast,
-} from "@/components/ui";
+import { AppButton, AppCheckbox, AppTextField } from "@/components/ui";
 import { AuthFooter } from "@/features/auth/components/auth-footer";
 import { AuthScreen } from "@/features/auth/components/auth-screen";
-import { SocialLoginButtons } from "@/features/auth/components/social-login-buttons";
 import { useLogin } from "@/features/auth/hooks/use-login";
 import { createZodResolver, loginSchema } from "@/features/auth/schemas";
 import type { LoginFormValues } from "@/features/auth/types";
@@ -27,7 +20,6 @@ const defaultValues: LoginFormValues = {
 export function LoginScreen() {
   const theme = useAppTheme();
   const loginMutation = useLogin();
-  const { showToast } = useToast();
   const params = useLocalSearchParams<{
     email?: string;
     registered?: string;
@@ -65,20 +57,10 @@ export function LoginScreen() {
     <AuthScreen
       description="Access your curated research trends and bibliographic datasets."
       footer={<AuthFooter />}
+      scrollEnabled={false}
       title="Welcome Back, Scholar"
     >
       <View style={{ gap: theme.spacing.xxl }}>
-        <SocialLoginButtons
-          onUnavailable={(provider) => {
-            loginMutation.reset();
-            showToast(`${provider} sign-in is unavailable right now.`, {
-              title: "Sign-in option unavailable",
-            });
-          }}
-        />
-
-        <AppDivider label="or login with email" />
-
         <View style={{ gap: theme.spacing.xxl }}>
           <Controller
             control={control}
@@ -111,20 +93,6 @@ export function LoginScreen() {
             name="password"
             render={({ field }) => (
               <AppTextField
-                action={
-                  <Link href="/forgot-password" asChild>
-                    <Pressable hitSlop={8}>
-                      <Text
-                        style={[
-                          theme.typography.caption,
-                          { color: theme.colors.primary },
-                        ]}
-                      >
-                        Forgot?
-                      </Text>
-                    </Pressable>
-                  </Link>
-                }
                 autoComplete="current-password"
                 error={errors.password?.message}
                 label="Password"
