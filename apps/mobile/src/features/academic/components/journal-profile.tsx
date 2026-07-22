@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
   DetailSection,
@@ -16,6 +17,19 @@ export function JournalProfile({ journal }: { journal: JournalListItem }) {
     <View style={{ gap: theme.spacing.xl }}>
       <View style={[styles.hero, { gap: theme.spacing.lg }]}>
         <View style={styles.titleRow}>
+          {journal.publisherImageUrl ? (
+            <Image
+              contentFit="contain"
+              source={{ uri: journal.publisherImageUrl }}
+              style={[
+                styles.publisherLogo,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outlineSoft,
+                },
+              ]}
+            />
+          ) : null}
           <Text
             selectable
             style={[
@@ -27,16 +41,17 @@ export function JournalProfile({ journal }: { journal: JournalListItem }) {
             {name}
           </Text>
         </View>
-        <View style={styles.heroText}>
+        <View style={styles.publisherRow}>
           <Text
             selectable
-            style={[theme.typography.body, { color: theme.colors.textMuted }]}
+            style={[
+              theme.typography.body,
+              styles.publisherText,
+              { color: theme.colors.textMuted },
+            ]}
           >
             {formatJournalSubtitle(journal)}
           </Text>
-        </View>
-        <View style={styles.badgeRow}>
-          <StatusBadge label={formatArticleCount(journal.articleCount)} />
           {journal.isOpenAccess ? (
             <StatusBadge label="Open access" tone="success" />
           ) : null}
@@ -54,11 +69,15 @@ export function JournalProfile({ journal }: { journal: JournalListItem }) {
       <DetailSection icon="information-circle-outline" title="Journal info">
         <JournalInfoList
           rows={[
+            {
+              href: getSourceWebUrl(journal.sourceId),
+              label: "Source ID",
+              value: journal.sourceId,
+            },
             { label: "Publisher", value: journal.publisherName },
             { label: "ISSN", value: journal.issnList?.join(", ") },
             { label: "Type", value: journal.type },
             { label: "Country", value: journal.country },
-            { label: "Region", value: journal.region },
             { label: "Coverage", value: journal.coverage },
           ]}
         />
@@ -100,7 +119,7 @@ export function JournalProfile({ journal }: { journal: JournalListItem }) {
 function JournalInfoList({
   rows,
 }: {
-  rows: { label: string; value?: string | null }[];
+  rows: { href?: string | null; label: string; value?: string | null }[];
 }) {
   const theme = useAppTheme();
 
@@ -128,28 +147,58 @@ function JournalInfoList({
           >
             {row.label}
           </Text>
-          <Text
-            selectable
-            style={[
-              theme.typography.body,
-              styles.infoValue,
-              { color: theme.colors.text },
-            ]}
-          >
-            {row.value?.trim() || "Unavailable"}
-          </Text>
+          {row.href && row.value?.trim() ? (
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => void Linking.openURL(row.href!)}
+              style={({ pressed }) => (pressed ? { opacity: 0.72 } : null)}
+            >
+              <Text
+                selectable
+                style={[
+                  theme.typography.body,
+                  styles.infoValue,
+                  styles.infoLink,
+                  { color: theme.colors.primary },
+                ]}
+              >
+                {row.value.trim()}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text
+              selectable
+              style={[
+                theme.typography.body,
+                styles.infoValue,
+                { color: theme.colors.text },
+              ]}
+            >
+              {row.value?.trim() || "Unavailable"}
+            </Text>
+          )}
         </View>
       ))}
     </View>
   );
 }
 
-function getJournalName(journal: JournalListItem) {
-  return journal.displayName?.trim() || "Untitled journal";
+function getSourceWebUrl(sourceId?: string | null) {
+  const value = sourceId?.trim();
+
+  if (!value) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
+  return `https://openalex.org/${encodeURIComponent(value)}`;
 }
 
-function formatArticleCount(count: number) {
-  return `${count} article${count === 1 ? "" : "s"}`;
+function getJournalName(journal: JournalListItem) {
+  return journal.displayName?.trim() || "Untitled journal";
 }
 
 function formatJournalSubtitle(journal: JournalListItem) {
@@ -161,7 +210,8 @@ function formatJournalSubtitle(journal: JournalListItem) {
 }
 
 const styles = StyleSheet.create({
-  badgeRow: {
+  publisherRow: {
+    alignItems: "center",
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
@@ -169,9 +219,6 @@ const styles = StyleSheet.create({
   hero: {
     alignItems: "stretch",
     paddingTop: 4,
-  },
-  heroText: {
-    gap: 8,
   },
   infoItem: {
     alignItems: "flex-start",
@@ -184,10 +231,23 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: "uppercase",
   },
+  infoLink: {
+    fontWeight: "700",
+    textDecorationLine: "underline",
+  },
   infoList: {
     paddingVertical: 2,
   },
   infoValue: {
+    lineHeight: 20,
+  },
+  publisherLogo: {
+    borderWidth: 1,
+    height: 44,
+    width: 44,
+  },
+  publisherText: {
+    flexShrink: 1,
     lineHeight: 20,
   },
   tag: {
