@@ -22,7 +22,10 @@ COPY services/academic-worker/package.json services/academic-worker/package.json
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm --filter @repo/database prisma:generate && pnpm turbo run build --filter=academic-worker...
-RUN pnpm --config.inject-workspace-packages=true --filter academic-worker --prod deploy /runtime
+# The native workspace deploy takes more than Coolify's ten-minute build limit.
+# Legacy deploy finishes faster, but needs a larger heap for this monorepo's lockfile.
+RUN NODE_OPTIONS="--max-old-space-size=4096" \
+    pnpm --filter academic-worker --prod deploy --legacy /runtime
 RUN mkdir -p /runtime/docs/scimagojr && \
     cp -R docs/scimagojr/normalized /runtime/docs/scimagojr/normalized
 
