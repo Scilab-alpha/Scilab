@@ -27,6 +27,15 @@ RUN pnpm --filter @repo/database prisma:generate && pnpm turbo run build --filte
 RUN pnpm --offline --package-import-method=hardlink \
     --config.inject-workspace-packages=true \
     --filter academic-worker --prod deploy /runtime
+# pnpm deploy omits Prisma's generated client because it is created after
+# installation. Preserve that generated output for every runtime client copy.
+RUN prisma_client="$(find /app/node_modules/.pnpm -path '*/node_modules/.prisma/client' -type d -print -quit)" && \
+    test -n "$prisma_client" && \
+    for client_package in $(find /runtime/node_modules/.pnpm -path '*/node_modules/@prisma/client' -type d); do \
+      prisma_output="$(dirname "$(dirname "$client_package")")/.prisma"; \
+      mkdir -p "$prisma_output"; \
+      cp -R "$prisma_client" "$prisma_output/client"; \
+    done
 RUN mkdir -p /runtime/docs/scimagojr && \
     cp -R docs/scimagojr/normalized /runtime/docs/scimagojr/normalized
 
