@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { UserFollow } from '@prisma/client';
-import { FollowTargetReference } from '@repo/academic/domain';
+import { FollowTargetReference } from '@/academic/application/ports/academic-graph.port';
 import {
   FollowNotifyMode,
   FollowObjectType,
@@ -8,7 +8,7 @@ import {
   FollowRecord,
   FollowRepository,
 } from '@/follow/application/ports/follow.ports';
-import { PrismaService } from '@repo/database';
+import { PrismaService } from '@/prisma/prisma.service';
 
 @Injectable()
 export class PrismaFollowRepository implements FollowRepository {

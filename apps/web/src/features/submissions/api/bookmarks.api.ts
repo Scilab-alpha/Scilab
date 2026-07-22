@@ -1,6 +1,7 @@
 import { apiRequest } from "@/core/api";
 import { notifyBookmarkSaved } from "@/features/notifications/api/local-notifications";
 import {
+  isServerBookmarkableArticleId,
   listLocalBookmarks,
   removeLocalBookmark,
   toggleLocalBookmark,
@@ -42,7 +43,7 @@ async function listServerBookmarks(
   }
 }
 
-/** GET /bookmarks plus locally cached bookmarks from legacy sessions. */
+/** GET /bookmarks (+ local OpenAlex bookmarks when ids are not UUID). */
 export async function listBookmarks(
   params: BookmarkListParams = {},
 ): Promise<BookmarkListResponse> {
@@ -71,6 +72,7 @@ export async function listBookmarks(
 }
 
 export type ToggleBookmarkInput = ToggleBookmarkRequest & {
+  /** Needed when saving OpenAlex articles locally (public API rejects non-UUID ids). */
   article?: BookmarkArticleSummary;
 };
 
@@ -91,16 +93,30 @@ function notifyIfBookmarked(
   return result;
 }
 
+/**
+ * POST /bookmarks/toggle for UUID ids.
+ * OpenAlex ids (W…) are saved in localStorage because public API requires uuid.
+ */
 export async function toggleBookmark(
   body: ToggleBookmarkInput,
 ): Promise<ToggleBookmarkResponse> {
   const articleId = body.articleId.trim();
 
+  if (!isServerBookmarkableArticleId(articleId)) {
+    return notifyIfBookmarked(
+      toggleLocalBookmark({
+        articleId,
+        article: body.article,
+      }),
+      body.article,
+    );
+  }
+
   try {
     const result = await apiRequest<ToggleBookmarkResponse>({
       authenticated: true,
       method: "POST",
-      path: "/bookmarks",
+      path: "/bookmarks/toggle",
       body: { articleId },
     });
     return notifyIfBookmarked(result, body.article);
@@ -121,14 +137,10 @@ export async function toggleBookmark(
 }
 
 export async function removeBookmark(articleId: string) {
-  const result = await toggleBookmark({ articleId });
-  removeLocalBookmark(articleId);
-
-  if (!result.bookmarked) {
-    return result;
+  if (!isServerBookmarkableArticleId(articleId)) {
+    removeLocalBookmark(articleId);
+    return { articleId, bookmarked: false };
   }
 
-  const retry = await toggleBookmark({ articleId });
-  removeLocalBookmark(articleId);
-  return retry;
+  return toggleBookmark({ articleId });
 }

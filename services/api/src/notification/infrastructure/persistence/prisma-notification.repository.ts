@@ -10,7 +10,7 @@ import {
   NotificationRecord,
   NotificationRepository,
 } from '@/notification/application/ports/notification.ports';
-import { PrismaService } from '@repo/database';
+import { PrismaService } from '@/prisma/prisma.service';
 
 @Injectable()
 export class PrismaNotificationRepository implements NotificationRepository {

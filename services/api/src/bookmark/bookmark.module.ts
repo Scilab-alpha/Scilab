@@ -2,18 +2,18 @@ import { Module } from '@nestjs/common';
 import {
   ACADEMIC_GRAPH_REPOSITORY,
   AcademicGraphRepository,
-} from '@repo/academic/domain';
-import { AcademicHttpModule } from '@/academic/academic-http.module';
+} from '@/academic/application/ports/academic-graph.port';
+import { AcademicModule } from '@/academic/academic.module';
 import { AuthModule } from '@/auth/auth.module';
 import { ListBookmarksUseCase } from '@/bookmark/application/use-cases/list-bookmarks/list-bookmarks.use-case';
 import { ToggleBookmarkUseCase } from '@/bookmark/application/use-cases/toggle-bookmark/toggle-bookmark.use-case';
 import { PrismaBookmarkRepository } from '@/bookmark/infrastructure/persistence/prisma-bookmark.repository';
 import { BookmarkController } from '@/bookmark/interfaces/http/bookmark.controller';
 import { EventsModule } from '@/events/events.module';
-import { PrismaModule } from '@repo/database';
+import { PrismaModule } from '@/prisma/prisma.module';
 
 @Module({
-  imports: [PrismaModule, AcademicHttpModule, AuthModule, EventsModule],
+  imports: [PrismaModule, AcademicModule, AuthModule, EventsModule],
   controllers: [BookmarkController],
   providers: [
     PrismaBookmarkRepository,

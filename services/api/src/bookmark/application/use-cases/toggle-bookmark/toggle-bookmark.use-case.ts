@@ -1,4 +1,4 @@
-import { AcademicGraphRepository } from '@repo/academic/domain';
+import { AcademicGraphRepository } from '@/academic/application/ports/academic-graph.port';
 import { BookmarkRepository } from '@/bookmark/application/ports/bookmark.ports';
 import {
   ToggleBookmarkInput,
@@ -16,7 +16,7 @@ export class ToggleBookmarkUseCase {
   ) {}
 
   async execute(input: ToggleBookmarkInput): Promise<ToggleBookmarkOutput> {
-    const articleId = this.parseArticleId(input.articleId);
+    const articleId = input.articleId as string;
     const existing = await this.bookmarks.findByUserAndArticle(
       input.userId,
       articleId,
@@ -43,31 +43,5 @@ export class ToggleBookmarkUseCase {
       bookmarked: true,
       bookmarkedAt: created.createdAt,
     };
-  }
-
-  private parseArticleId(value: unknown): string {
-    if (typeof value !== 'string') {
-      throw new BookmarkUseCaseError(
-        BookmarkFailureReason.InvalidInput,
-        'articleId is required',
-      );
-    }
-
-    const articleId = value.trim();
-    if (!articleId) {
-      throw new BookmarkUseCaseError(
-        BookmarkFailureReason.InvalidInput,
-        'articleId is required',
-      );
-    }
-
-    if (articleId.length > 128) {
-      throw new BookmarkUseCaseError(
-        BookmarkFailureReason.InvalidInput,
-        'articleId must not exceed 128 characters',
-      );
-    }
-
-    return articleId;
   }
 }

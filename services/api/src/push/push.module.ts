@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '@/auth/auth.module';
-import { PrismaModule } from '@repo/database';
+import { PrismaModule } from '@/prisma/prisma.module';
 import { PushProviderResolver } from '@/push/application/push-provider.resolver';
 import { PushNotificationDispatcher } from '@/push/application/services/push-notification.dispatcher';
 import { RegisterPushDeviceUseCase } from '@/push/application/use-cases/register-push-device/register-push-device.use-case';

@@ -12,7 +12,7 @@ import {
   UserRepository,
   UserRegistrationRecord,
 } from '@/auth/application/ports/auth.ports';
-import { PrismaService } from '@repo/database';
+import { PrismaService } from '@/prisma/prisma.service';
 
 @Injectable()
 export class PrismaUserRepository implements UserRepository {

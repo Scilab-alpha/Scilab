@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
@@ -20,7 +21,8 @@ import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import Can from "@/shared/components/auth/Can";
 import { Card } from "@/shared/components/ui/card";
 import { useJournalDetail } from "@/features/laboratories/hooks/use-journal-detail";
-import { useFollows } from "@/features/follows/hooks/use-follows";
+import { toggleFollow } from "@/features/follows/api/follows.api";
+import { isLocallyFollowing } from "@/features/follows/api/local-follows";
 import {
   getJournalCountry,
   getJournalIssn,
@@ -36,30 +38,31 @@ interface JournalDetailProps {
 export default function JournalDetail({ journalId }: JournalDetailProps) {
   const router = useRouter();
   const { journal, isLoading, error } = useJournalDetail(journalId);
-  const follows = useFollows({ type: "JOURNAL", page: 1, limit: 100 });
-  const isFollowing = follows.items.some(
-    (item) => item.objectType === "JOURNAL" && item.objectId === journalId,
-  );
-  const isFollowPending =
-    follows.isLoading ||
-    Boolean(follows.error) ||
-    (follows.togglePending &&
-      follows.toggleVariables?.objectType === "JOURNAL" &&
-      follows.toggleVariables.objectId === journalId);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowPending, setIsFollowPending] = useState(false);
+
+  useEffect(() => {
+    setIsFollowing(isLocallyFollowing("JOURNAL", journalId));
+  }, [journalId]);
 
   const handleToggleFollow = async () => {
     if (isFollowPending || !journal) {
       return;
     }
 
+    setIsFollowPending(true);
     try {
-      await follows.toggle({
+      const result = await toggleFollow({
         objectType: "JOURNAL",
         objectId: journalId,
+        displayName: getJournalName(journal),
         notifyMode: "IN_APP",
       });
+      setIsFollowing(result.followed);
     } catch {
       // Keep previous follow state if the request fails.
+    } finally {
+      setIsFollowPending(false);
     }
   };
 

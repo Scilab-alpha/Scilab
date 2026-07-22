@@ -1,21 +1,21 @@
-import { Global, INestApplication, Module } from '@nestjs/common';
+import { INestApplication, Module } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { PrismaModule, PrismaService } from '@repo/database';
-import { Neo4jModule, Neo4jService } from '@repo/neo4j';
 import { BootstrapAdminUseCase } from '../src/auth/application/use-cases/bootstrap-admin/bootstrap-admin.use-case';
+import { Neo4jModule } from '../src/neo4j/neo4j.module';
+import { Neo4jService } from '../src/neo4j/neo4j.service';
+import { PrismaModule } from '../src/prisma/prisma.module';
+import { PrismaService } from '../src/prisma/prisma.service';
 import { AppModule } from './../src/app.module';
 
-@Global()
 @Module({
   providers: [{ provide: PrismaService, useValue: {} }],
   exports: [PrismaService],
 })
 class PrismaTestingModule {}
 
-@Global()
 @Module({
   providers: [
     {

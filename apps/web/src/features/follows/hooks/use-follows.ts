@@ -1,124 +1,70 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useState } from "react";
 import { getUserFriendlyApiErrorMessage } from "@/core/api";
-import { listQueryStaleTimeMs } from "@/core/api/query-config";
-import {
-  listFollows,
-  toggleFollow,
-  updateFollowNotifyMode,
-} from "@/features/follows/api/follows.api";
+import { listFollows, toggleFollow } from "@/features/follows/api/follows.api";
 import type {
-  FollowListParams,
-  FollowListResponse,
+  FollowItem,
   FollowObjectType,
   NotifyMode,
 } from "@/features/follows/types/follow.types";
 
-export const FOLLOW_QUERY_KEY = ["follows"] as const;
+export function useFollows(objectType?: FollowObjectType) {
+  const [items, setItems] = useState<FollowItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export function followListQueryKey(params: {
-  type?: FollowObjectType;
-  page: number;
-  limit: number;
-}) {
-  return [...FOLLOW_QUERY_KEY, params] as const;
-}
+  const reload = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
 
-export function useFollows(params: FollowListParams = {}) {
-  const queryClient = useQueryClient();
-  const normalized = {
-    type: params.type,
-    page: params.page ?? 1,
-    limit: params.limit ?? 20,
-  };
-  const queryKey = followListQueryKey(normalized);
-  const query = useQuery({
-    queryKey,
-    staleTime: listQueryStaleTimeMs,
-    queryFn: () => listFollows(normalized),
-  });
+    try {
+      const page = await listFollows({ page: 1, limit: 50, objectType });
+      setItems(page.items);
+    } catch (fetchError) {
+      setItems([]);
+      setError(getUserFriendlyApiErrorMessage(fetchError));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [objectType]);
 
-  const toggleMutation = useMutation({
-    mutationFn: (input: {
-      objectType: FollowObjectType;
-      objectId: string;
-      notifyMode?: NotifyMode;
-    }) => toggleFollow(input),
-    onSuccess: async (result) => {
-      if (!result.followed) {
-        queryClient.setQueriesData<FollowListResponse>(
-          { queryKey: FOLLOW_QUERY_KEY },
-          (previous) =>
-            previous
-              ? {
-                  ...previous,
-                  items: previous.items.filter(
-                    (item) =>
-                      item.objectType !== result.objectType ||
-                      item.objectId !== result.objectId,
-                  ),
-                }
-              : previous,
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  const toggle = useCallback(
+    async (
+      type: FollowObjectType,
+      objectId: string,
+      notifyMode: NotifyMode = "IN_APP",
+    ) => {
+      const result = await toggleFollow({
+        objectType: type,
+        objectId,
+        notifyMode,
+      });
+
+      if (result.followed) {
+        await reload();
+      } else {
+        setItems((prev) =>
+          prev.filter(
+            (item) => !(item.objectType === type && item.objectId === objectId),
+          ),
         );
       }
-      await queryClient.invalidateQueries({ queryKey: FOLLOW_QUERY_KEY });
-    },
-  });
 
-  const notifyMutation = useMutation({
-    mutationFn: (input: {
-      objectType: FollowObjectType;
-      objectId: string;
-      notifyMode: NotifyMode;
-    }) =>
-      updateFollowNotifyMode(input.objectType, input.objectId, {
-        notifyMode: input.notifyMode,
-      }),
-    onMutate: async (input) => {
-      await queryClient.cancelQueries({ queryKey: FOLLOW_QUERY_KEY });
-      const previous = queryClient.getQueriesData<FollowListResponse>({
-        queryKey: FOLLOW_QUERY_KEY,
-      });
-      queryClient.setQueriesData<FollowListResponse>(
-        { queryKey: FOLLOW_QUERY_KEY },
-        (page) =>
-          page
-            ? {
-                ...page,
-                items: page.items.map((item) =>
-                  item.objectType === input.objectType &&
-                  item.objectId === input.objectId
-                    ? { ...item, notifyMode: input.notifyMode }
-                    : item,
-                ),
-              }
-            : page,
-      );
-      return { previous };
+      return result;
     },
-    onError: (_error, _input, context) => {
-      context?.previous.forEach(([key, value]) =>
-        queryClient.setQueryData(key, value),
-      );
-    },
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: FOLLOW_QUERY_KEY });
-    },
-  });
+    [reload],
+  );
 
   return {
-    data: query.data,
-    items: query.data?.items ?? [],
-    isLoading: query.isLoading,
-    isFetching: query.isFetching,
-    error: query.error ? getUserFriendlyApiErrorMessage(query.error) : null,
-    reload: query.refetch,
-    toggle: toggleMutation.mutateAsync,
-    togglePending: toggleMutation.isPending,
-    toggleVariables: toggleMutation.variables,
-    updateNotifyMode: notifyMutation.mutateAsync,
-    notifyPending: notifyMutation.isPending,
-    notifyVariables: notifyMutation.variables,
+    items,
+    isLoading,
+    error,
+    reload,
+    toggle,
   };
 }

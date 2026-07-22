@@ -1,1 +1,0 @@
-ALTER TYPE "follow_object_type" ADD VALUE IF NOT EXISTS 'AUTHOR';

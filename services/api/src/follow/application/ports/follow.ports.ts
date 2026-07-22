@@ -1,7 +1,7 @@
 import {
   FollowableAcademicNodeType,
   FollowTargetReference,
-} from '@repo/academic/domain';
+} from '@/academic/application/ports/academic-graph.port';
 
 export type FollowObjectType = FollowableAcademicNodeType;
 export type FollowNotifyMode =

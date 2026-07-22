@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class FollowQueryDto {
-  @ApiPropertyOptional({ enum: ['AUTHOR', 'JOURNAL', 'KEYWORD', 'TOPIC'] })
+  @ApiPropertyOptional({ enum: ['JOURNAL', 'KEYWORD', 'TOPIC'] })
   type?: string;
 
   @ApiPropertyOptional({ minimum: 1, default: 1 })
@@ -12,15 +12,10 @@ export class FollowQueryDto {
 }
 
 export class ToggleFollowDto {
-  @ApiProperty({ enum: ['AUTHOR', 'JOURNAL', 'KEYWORD', 'TOPIC'] })
+  @ApiProperty({ enum: ['JOURNAL', 'KEYWORD', 'TOPIC'] })
   objectType!: string;
 
-  @ApiProperty({
-    description:
-      'Academic graph reference id for the author, journal, keyword, or topic.',
-    maxLength: 128,
-    example: 'S123456789',
-  })
+  @ApiProperty({ format: 'uuid' })
   objectId!: string;
 
   @ApiPropertyOptional({

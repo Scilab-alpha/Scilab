@@ -5,7 +5,7 @@ import {
   RotateSessionInput,
   SessionRepository,
 } from '@/auth/application/ports/auth.ports';
-import { PrismaService } from '@repo/database';
+import { PrismaService } from '@/prisma/prisma.service';
 
 @Injectable()
 export class PrismaSessionRepository implements SessionRepository {

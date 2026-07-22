@@ -13,7 +13,6 @@ import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { routes } from "@/shared/constants/routes";
-import type { LoginPortal } from "@/features/auth/types/auth-api.types";
 
 const PLATFORM_FEATURES = [
   {
@@ -42,11 +41,7 @@ const PLATFORM_STATS = [
   "500+ universities",
 ] as const;
 
-interface LoginScreenProps {
-  portal?: LoginPortal;
-}
-
-export default function LoginScreen({ portal = "user" }: LoginScreenProps) {
+export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -54,12 +49,11 @@ export default function LoginScreen({ portal = "user" }: LoginScreenProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  const isAdminPortal = portal === "admin";
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
-    const result = await login(email, password, rememberMe, portal);
+    const result = await login(email, password, rememberMe);
 
     if (!result.ok) {
       setIsLoading(false);
@@ -86,29 +80,13 @@ export default function LoginScreen({ portal = "user" }: LoginScreenProps) {
 
   return (
     <AuthShell
-      eyebrow={
-        isAdminPortal
-          ? "Secure administration portal"
-          : "Research intelligence platform"
-      }
-      heroTitle={
-        isAdminPortal
-          ? "Manage the ScholarTrend platform"
-          : "Unlock scientific publication insights"
-      }
-      heroDescription={
-        isAdminPortal
-          ? "Use an administrator account to manage users, sources, and system health."
-          : "Track emerging research trends, discover breakthrough papers, and stay ahead in your field with calm, focused analytics."
-      }
+      eyebrow="Research intelligence platform"
+      heroTitle="Unlock scientific publication insights"
+      heroDescription="Track emerging research trends, discover breakthrough papers, and stay ahead in your field with calm, focused analytics."
       features={PLATFORM_FEATURES}
       footerItems={PLATFORM_STATS}
-      formTitle={isAdminPortal ? "Administrator sign in" : "Welcome back"}
-      formDescription={
-        isAdminPortal
-          ? "Sign in with your administrator account to continue."
-          : "Sign in to continue exploring scientific publications and research trends."
-      }
+      formTitle="Welcome back"
+      formDescription="Sign in to continue exploring scientific publications and research trends."
     >
       <Card>
         <CardHeader className="border-b border-border/60 px-6 pb-7 pt-7 sm:px-8 sm:pb-8 sm:pt-8">
@@ -185,83 +163,55 @@ export default function LoginScreen({ portal = "user" }: LoginScreenProps) {
         </CardHeader>
 
         <CardContent className="space-y-5 px-6 pb-7 pt-6 sm:px-8 sm:pb-8">
-          {isAdminPortal ? (
-            <p className="text-center text-sm text-muted-foreground">
-              Need the research workspace?{" "}
-              <button
-                type="button"
-                onClick={() => router.push(routes.auth.login)}
-                className="auth-link disabled:pointer-events-none disabled:opacity-50"
-                disabled={isBusy}
-              >
-                Sign in as a user
-              </button>
-            </p>
-          ) : (
-            <>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="bg-card px-4 text-muted-foreground">
-                    Or continue with
-                  </span>
-                </div>
-              </div>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-card px-4 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                className="auth-clickable h-11 w-full"
-                onClick={handleGoogleLogin}
-                disabled={isBusy}
-              >
-                {isGoogleLoading ? (
-                  <>
-                    <Loader2 className="mr-1 animate-spin" />
-                    Connecting...
-                  </>
-                ) : (
-                  "Continue with Google"
-                )}
-              </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="auth-clickable h-11 w-full"
+            onClick={handleGoogleLogin}
+            disabled={isBusy}
+          >
+            {isGoogleLoading ? (
+              <>
+                <Loader2 className="mr-1 animate-spin" />
+                Connecting...
+              </>
+            ) : (
+              "Continue with Google"
+            )}
+          </Button>
 
-              <p className="text-center text-sm text-muted-foreground">
-                Don&apos;t have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => router.push(routes.auth.register)}
-                  className="auth-link disabled:pointer-events-none disabled:opacity-50"
-                  disabled={isBusy}
-                >
-                  Create account
-                </button>
-              </p>
+          <p className="text-center text-sm text-muted-foreground">
+            Don&apos;t have an account?{" "}
+            <button
+              type="button"
+              onClick={() => router.push(routes.auth.register)}
+              className="auth-link disabled:pointer-events-none disabled:opacity-50"
+              disabled={isBusy}
+            >
+              Create account
+            </button>
+          </p>
 
-              <Button
-                type="button"
-                variant="secondary"
-                className="auth-clickable h-11 w-full"
-                onClick={() => router.push(routes.student.journals)}
-                disabled={isBusy}
-              >
-                Continue as guest
-              </Button>
-
-              <p className="text-center text-sm text-muted-foreground">
-                Are you an administrator?{" "}
-                <button
-                  type="button"
-                  onClick={() => router.push(routes.auth.adminLogin)}
-                  className="auth-link disabled:pointer-events-none disabled:opacity-50"
-                  disabled={isBusy}
-                >
-                  Use the admin sign-in
-                </button>
-              </p>
-            </>
-          )}
+          <Button
+            type="button"
+            variant="secondary"
+            className="auth-clickable h-11 w-full"
+            onClick={() => router.push(routes.student.journals)}
+            disabled={isBusy}
+          >
+            Continue as guest
+          </Button>
         </CardContent>
       </Card>
 

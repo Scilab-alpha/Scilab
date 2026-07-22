@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { AcademicHttpModule } from '@/academic/academic-http.module';
+import { AcademicModule } from '@/academic/academic.module';
 import { AuthModule } from '@/auth/auth.module';
 import { EventsModule } from '@/events/events.module';
 import { FollowModule } from '@/follow/follow.module';
@@ -11,13 +11,13 @@ import { AlertDispatchService } from '@/notification/application/services/alert-
 import { NoopEmailDigestPort } from '@/notification/infrastructure/email/noop-email-digest.port';
 import { PrismaNotificationRepository } from '@/notification/infrastructure/persistence/prisma-notification.repository';
 import { NotificationController } from '@/notification/interfaces/http/notification.controller';
-import { PrismaModule } from '@repo/database';
+import { PrismaModule } from '@/prisma/prisma.module';
 import { PushModule } from '@/push/push.module';
 
 @Module({
   imports: [
     PrismaModule,
-    AcademicHttpModule,
+    AcademicModule,
     AuthModule,
     FollowModule,
     EventsModule,

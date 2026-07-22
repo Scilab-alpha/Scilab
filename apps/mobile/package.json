@@ -4,8 +4,6 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
-    "start:no-cache": "node scripts/start-expo-no-cache.mjs",
-    "start:offline": "node scripts/start-expo-no-cache.mjs --offline",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",

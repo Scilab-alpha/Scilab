@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -20,7 +20,8 @@ import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import Can from "@/shared/components/auth/Can";
 import { Card } from "@/shared/components/ui/card";
 import { useArticleDetail } from "@/features/experiments/hooks/use-article-detail";
-import { useBookmarks } from "@/features/submissions/hooks/use-bookmarks";
+import { toggleBookmark } from "@/features/submissions/api/bookmarks.api";
+import { isLocallyBookmarked } from "@/features/submissions/api/local-bookmarks";
 import {
   formatVolumeNumber,
   getArticleAbstract,
@@ -39,24 +40,22 @@ interface ArticleDetailProps {
 export default function ArticleDetail({ articleId }: ArticleDetailProps) {
   const router = useRouter();
   const { article, isLoading, error } = useArticleDetail(articleId);
-  const bookmarks = useBookmarks();
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isBookmarkPending, setIsBookmarkPending] = useState(false);
   const [copiedCitation, setCopiedCitation] = useState(false);
-  const isBookmarked = bookmarks.items.some(
-    (item) => item.articleId === articleId,
-  );
-  const isBookmarkPending =
-    bookmarks.isLoading ||
-    Boolean(bookmarks.error) ||
-    (bookmarks.togglePending &&
-      bookmarks.toggleVariables?.articleId === articleId);
+
+  useEffect(() => {
+    setIsBookmarked(isLocallyBookmarked(articleId));
+  }, [articleId]);
 
   const handleToggleBookmark = async () => {
     if (isBookmarkPending || !article) {
       return;
     }
 
+    setIsBookmarkPending(true);
     try {
-      await bookmarks.toggle({
+      const result = await toggleBookmark({
         articleId,
         article: {
           id: articleId,
@@ -66,8 +65,11 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
           publicationYear: article.article.publicationYear,
         },
       });
+      setIsBookmarked(result.bookmarked);
     } catch {
       // Keep previous bookmark state if the API call fails.
+    } finally {
+      setIsBookmarkPending(false);
     }
   };
 

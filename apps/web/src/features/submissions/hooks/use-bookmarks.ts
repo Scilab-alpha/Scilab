@@ -1,110 +1,61 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getUserFriendlyApiErrorMessage } from "@/core/api";
 import { listQueryStaleTimeMs } from "@/core/api/query-config";
 import {
   listBookmarks,
   toggleBookmark,
-  type ToggleBookmarkInput,
 } from "@/features/submissions/api/bookmarks.api";
-import type {
-  BookmarkItem,
-  BookmarkListResponse,
-} from "@/features/submissions/types/bookmark.types";
+import type { BookmarkItem } from "@/features/submissions/types/bookmark.types";
 
-export const BOOKMARK_QUERY_KEY = ["bookmarks"] as const;
-const bookmarksQueryKey = [
-  ...BOOKMARK_QUERY_KEY,
-  { page: 1, limit: 100 },
-] as const;
+const bookmarksQueryKey = ["bookmarks", { page: 1, limit: 50 }] as const;
 
 export function useBookmarks() {
   const queryClient = useQueryClient();
+
   const query = useQuery({
     queryKey: bookmarksQueryKey,
     staleTime: listQueryStaleTimeMs,
-    queryFn: () => listBookmarks({ page: 1, limit: 100 }),
+    queryFn: () => listBookmarks({ page: 1, limit: 50 }),
   });
 
-  const toggleMutation = useMutation({
-    mutationFn: (input: ToggleBookmarkInput) => toggleBookmark(input),
-    onMutate: async (input) => {
-      await queryClient.cancelQueries({ queryKey: BOOKMARK_QUERY_KEY });
-      const snapshots = queryClient.getQueriesData<BookmarkListResponse>({
-        queryKey: BOOKMARK_QUERY_KEY,
-      });
-      const isCurrentlyBookmarked = snapshots.some(([, page]) =>
-        page?.items.some((item) => item.articleId === input.articleId),
-      );
+  const reload = useCallback(async () => {
+    await query.refetch();
+  }, [query]);
 
-      queryClient.setQueriesData<BookmarkListResponse>(
-        { queryKey: BOOKMARK_QUERY_KEY },
-        (previous) =>
-          updateBookmarkPage(
-            previous,
-            {
-              articleId: input.articleId,
-              bookmarked: !isCurrentlyBookmarked,
-            },
-            input,
-          ),
-      );
+  const remove = useCallback(
+    async (articleId: string) => {
+      const result = await toggleBookmark({ articleId });
 
-      return { snapshots };
-    },
-    onSuccess: (result, input) => {
-      queryClient.setQueriesData<BookmarkListResponse>(
-        { queryKey: BOOKMARK_QUERY_KEY },
-        (previous) => updateBookmarkPage(previous, result, input),
-      );
-    },
-    onError: (_error, _input, context) => {
-      for (const [queryKey, previous] of context?.snapshots ?? []) {
-        queryClient.setQueryData(queryKey, previous);
+      if (!result.bookmarked) {
+        queryClient.setQueryData(
+          bookmarksQueryKey,
+          (previous: { items: BookmarkItem[] } | undefined) => {
+            if (!previous) {
+              return previous;
+            }
+            return {
+              ...previous,
+              items: previous.items.filter(
+                (item) => item.articleId !== articleId,
+              ),
+            };
+          },
+        );
       }
+
+      return result;
     },
-    onSettled: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: BOOKMARK_QUERY_KEY,
-        refetchType: "none",
-      });
-    },
-  });
+    [queryClient],
+  );
 
   return {
     items: query.data?.items ?? [],
     isLoading: query.isLoading,
-    isFetching: query.isFetching,
     error: query.error ? getUserFriendlyApiErrorMessage(query.error) : null,
-    reload: async () => {
-      await query.refetch();
-    },
-    remove: (articleId: string) => toggleMutation.mutateAsync({ articleId }),
-    toggle: toggleMutation.mutateAsync,
-    togglePending: toggleMutation.isPending,
-    toggleVariables: toggleMutation.variables,
+    reload,
+    remove,
   };
-}
-
-function updateBookmarkPage(
-  previous: BookmarkListResponse | undefined,
-  result: { articleId: string; bookmarked: boolean; bookmarkedAt?: string },
-  input: ToggleBookmarkInput,
-): BookmarkListResponse | undefined {
-  if (!previous) return previous;
-
-  const withoutTarget = previous.items.filter(
-    (item) => item.articleId !== result.articleId,
-  );
-  if (!result.bookmarked || !input.article) {
-    return { ...previous, items: withoutTarget };
-  }
-
-  const inserted: BookmarkItem = {
-    articleId: result.articleId,
-    bookmarkedAt: result.bookmarkedAt ?? new Date().toISOString(),
-    article: input.article,
-  };
-  return { ...previous, items: [inserted, ...withoutTarget] };
 }

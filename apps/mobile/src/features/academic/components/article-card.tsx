@@ -1,13 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Link, type Href } from "expo-router";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type GestureResponderEvent,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
   getArticleAuthors,
@@ -21,17 +14,9 @@ import type { ArticleGraph } from "@/features/academic/types/article.type";
 
 type ArticleCardProps = {
   article: ArticleGraph;
-  isBookmarkPending?: boolean;
-  isBookmarked?: boolean;
-  onToggleBookmark?: (article: ArticleGraph) => void;
 };
 
-export function ArticleCard({
-  article,
-  isBookmarkPending = false,
-  isBookmarked = false,
-  onToggleBookmark,
-}: ArticleCardProps) {
+export function ArticleCard({ article }: ArticleCardProps) {
   const theme = useAppTheme();
   const articleHref = `/articles/${encodeURIComponent(
     article.article.id,
@@ -39,10 +24,6 @@ export function ArticleCard({
   const journal = getArticleJournal(article);
   const publishedAt = formatPublishedAt(article);
   const citationLabel = formatCitations(article.citedArticleIds.length);
-  const handleToggleBookmark = (event: GestureResponderEvent) => {
-    event.stopPropagation();
-    onToggleBookmark?.(article);
-  };
 
   return (
     <Link asChild href={articleHref}>
@@ -71,35 +52,11 @@ export function ArticleCard({
               {publishedAt}
             </Text>
           </View>
-          <Pressable
-            accessibilityLabel={
-              isBookmarked ? "Remove bookmark" : "Save bookmark"
-            }
-            accessibilityRole="button"
-            disabled={isBookmarkPending || !onToggleBookmark}
-            hitSlop={10}
-            onPress={handleToggleBookmark}
-            style={({ pressed }) => [
-              styles.bookmarkButton,
-              {
-                backgroundColor: isBookmarked
-                  ? theme.colors.primarySoft
-                  : "transparent",
-                borderRadius: theme.radii.pill,
-                opacity: pressed || isBookmarkPending ? 0.75 : 1,
-              },
-            ]}
-          >
-            {isBookmarkPending ? (
-              <ActivityIndicator color={theme.colors.primary} size="small" />
-            ) : (
-              <Ionicons
-                color={theme.colors.primary}
-                name={isBookmarked ? "bookmark" : "bookmark-outline"}
-                size={17}
-              />
-            )}
-          </Pressable>
+          <Ionicons
+            color={theme.colors.primary}
+            name="bookmark-outline"
+            size={17}
+          />
         </View>
 
         <View style={styles.copyBlock}>
@@ -212,12 +169,6 @@ const styles = StyleSheet.create({
   authors: {
     fontStyle: "italic",
     lineHeight: 18,
-  },
-  bookmarkButton: {
-    alignItems: "center",
-    height: 32,
-    justifyContent: "center",
-    width: 32,
   },
   metaItem: {
     alignItems: "center",

@@ -10,7 +10,6 @@ export interface RouteAccessRule {
 const EXACT_ROUTES: Record<string, RouteAccessRule> = {
   "/": { public: true },
   "/auth/login": { public: true },
-  "/admin/login": { public: true },
   "/auth/register": { public: true },
   "/forbidden": { public: true },
   "/student": { public: true },

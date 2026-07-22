@@ -6,7 +6,6 @@ import {
   BookOpen,
   FileText,
   LayoutDashboard,
-  Rss,
   TrendingUp,
   User,
 } from "lucide-react";
@@ -60,13 +59,6 @@ export const STUDENT_NAV_ITEMS: StudentNavItem[] = [
     href: "/student/bookmarks",
     icon: Bookmark,
     permission: "bookmark",
-  },
-  {
-    id: "follows",
-    label: "Following",
-    href: "/student/follows",
-    icon: Rss,
-    permission: "follow",
   },
   {
     id: "notifications",

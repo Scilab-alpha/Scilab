@@ -1,117 +1,65 @@
-import { apiRequest } from "@/shared/api/http-client";
-import {
-  mapApiUserProfile,
-  toApiUserRole,
-  toApiUserStatus,
-  toApiUserUpdate,
-} from "@/features/users/api/user-mappers";
+import { apiRequest } from "@/core/api";
+import { mapApiUserToUi } from "@/features/users/api/user-mappers";
 import type {
-  ApiUserList,
+  AdminUserRole,
+  AdminUserStatus,
+  ApiUserListResponse,
   ApiUserProfile,
-  UpdateUserProfileInput,
-  UserProfile,
-  UserRole,
-  UserStatus,
+  User,
 } from "@/features/users/types/user.types";
+import {
+  mapUiRoleToApi,
+  mapUiStatusToApi,
+} from "@/features/users/api/user-mappers";
 
-export { USER_QUERY_KEYS } from "./user-query-keys";
-
-export async function getMyProfile(): Promise<UserProfile> {
-  const user = await apiRequest<ApiUserProfile>({
+/** GET /users (admin). */
+export async function listAdminUsers(): Promise<User[]> {
+  const page = await apiRequest<ApiUserListResponse>({
+    authenticated: true,
     method: "GET",
-    url: "/users/me",
+    path: "/users",
   });
-  return mapApiUserProfile(user);
+  return page.users.map(mapApiUserToUi);
 }
 
-export async function updateMyProfile(
-  patch: UpdateUserProfileInput,
-): Promise<UserProfile> {
-  const user = await apiRequest<ApiUserProfile>({
-    method: "PATCH",
-    url: "/users/me",
-    data: toApiUserUpdate(patch),
-  });
-  return mapApiUserProfile(user);
-}
-
-export async function listUsers(): Promise<UserProfile[]> {
-  const result = await apiRequest<ApiUserList>({
-    method: "GET",
-    url: "/users",
-  });
-  return result.users.map(mapApiUserProfile);
-}
-
-export async function getUserById(userId: string): Promise<UserProfile> {
-  const user = await apiRequest<ApiUserProfile>({
-    method: "GET",
-    url: `/users/${encodeURIComponent(userId)}`,
-  });
-  return mapApiUserProfile(user);
-}
-
-export async function updateUser(
-  userId: string,
-  patch: UpdateUserProfileInput,
-): Promise<UserProfile> {
-  const user = await apiRequest<ApiUserProfile>({
-    method: "PATCH",
-    url: `/users/${encodeURIComponent(userId)}`,
-    data: toApiUserUpdate(patch),
-  });
-  return mapApiUserProfile(user);
-}
-
-export async function updateUserRole(
-  userId: string,
-  role: Exclude<UserRole, "admin">,
-): Promise<UserProfile> {
-  const user = await apiRequest<ApiUserProfile>({
-    method: "PATCH",
-    url: `/users/${encodeURIComponent(userId)}/role`,
-    data: { role: toApiUserRole(role) },
-  });
-  return mapApiUserProfile(user);
-}
-
-export async function updateUserStatus(
-  userId: string,
-  status: UserStatus,
-): Promise<UserProfile> {
-  const user = await apiRequest<ApiUserProfile>({
-    method: "PATCH",
-    url: `/users/${encodeURIComponent(userId)}/status`,
-    data: { status: toApiUserStatus(status) },
-  });
-  return mapApiUserProfile(user);
-}
-
-export async function deleteUser(userId: string): Promise<void> {
-  await apiRequest<Record<string, never>>({
-    method: "DELETE",
-    url: `/users/${encodeURIComponent(userId)}`,
-  });
-}
-
-export async function listAdminUsers(): Promise<UserProfile[]> {
-  return listUsers();
-}
-
+/** PATCH /users/:id/role */
 export async function updateAdminUserRole(
   userId: string,
-  role: Exclude<UserRole, "admin">,
-): Promise<UserProfile> {
-  return updateUserRole(userId, role);
+  role: AdminUserRole,
+): Promise<User> {
+  const apiRole = mapUiRoleToApi(role);
+  if (!apiRole) {
+    throw new Error("Admin role cannot be assigned from this screen.");
+  }
+
+  const updated = await apiRequest<ApiUserProfile>({
+    authenticated: true,
+    method: "PATCH",
+    path: `/users/${encodeURIComponent(userId)}/role`,
+    body: { role: apiRole },
+  });
+  return mapApiUserToUi(updated);
 }
 
+/** PATCH /users/:id/status */
 export async function updateAdminUserStatus(
   userId: string,
-  status: UserStatus,
-): Promise<UserProfile> {
-  return updateUserStatus(userId, status);
+  status: AdminUserStatus,
+): Promise<User> {
+  const updated = await apiRequest<ApiUserProfile>({
+    authenticated: true,
+    method: "PATCH",
+    path: `/users/${encodeURIComponent(userId)}/status`,
+    body: { status: mapUiStatusToApi(status) },
+  });
+  return mapApiUserToUi(updated);
 }
 
+/** DELETE /users/:id */
 export async function deleteAdminUser(userId: string): Promise<void> {
-  return deleteUser(userId);
+  await apiRequest<Record<string, never>>({
+    authenticated: true,
+    method: "DELETE",
+    path: `/users/${encodeURIComponent(userId)}`,
+  });
 }

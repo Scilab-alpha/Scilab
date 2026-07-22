@@ -12,7 +12,6 @@ import type {
   UserProfile,
 } from "@/features/profile/types/profile.type";
 import { useAppTheme } from "@/theme";
-import { formatIsoDateInput } from "@/utils/date-input";
 
 const requiredGenderOptions: {
   label: string;
@@ -200,18 +199,15 @@ export function ProfileForm({
             <AppTextField
               autoComplete="birthdate-full"
               error={errors.dateOfBirth?.message}
-              keyboardType="number-pad"
+              keyboardType="numbers-and-punctuation"
               label={
                 canClearDateOfBirth
                   ? "Date of birth (optional)"
                   : "Date of birth"
               }
-              maxLength={10}
               onBlur={field.onBlur}
-              onChangeText={(dateOfBirth) => {
-                field.onChange(formatIsoDateInput(dateOfBirth));
-              }}
-              placeholder="YYYYMMDD"
+              onChangeText={field.onChange}
+              placeholder="YYYY-MM-DD"
               textContentType="birthdate"
               value={field.value}
             />

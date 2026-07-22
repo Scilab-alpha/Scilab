@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { AcademicGraphRepository } from '@repo/academic/domain';
+import { AcademicGraphRepository } from '@/academic/application/ports/academic-graph.port';
 import { FollowRecipient } from '@/follow/application/ports/follow.ports';
 import { PrismaFollowRepository } from '@/follow/infrastructure/persistence/prisma-follow.repository';
 import { UserEventsService } from '@/events/application/user-events.service';
@@ -11,7 +11,6 @@ import { PushNotificationDispatcher } from '@/push/application/services/push-not
 const userId = '11111111-1111-4111-8111-111111111111';
 const journalId = '22222222-2222-4222-8222-222222222222';
 const topicId = '33333333-3333-4333-8333-333333333333';
-const authorId = 'author-1';
 const articleId = '44444444-4444-4444-8444-444444444444';
 const since = new Date('2026-04-01T00:00:00.000Z');
 
@@ -20,8 +19,6 @@ function createGraphRepository(): jest.Mocked<AcademicGraphRepository> {
     ensureSchema: jest.fn(),
     upsertArticleGraph: jest.fn(),
     upsertArticleGraphs: jest.fn(),
-    upsertSemanticScholarArticleGraphs: jest.fn(),
-    findSemanticScholarDiscoveredPaperIds: jest.fn(),
     upsertJournal: jest.fn(),
     listArticles: jest.fn(),
     getArticleById: jest.fn(),
@@ -44,13 +41,6 @@ function createGraphRepository(): jest.Mocked<AcademicGraphRepository> {
     markIncomingCitationCrawled: jest.fn(),
     listHydratedArticleIdsNeedingCitation: jest.fn(),
     updateArticleCitationCounts: jest.fn(),
-    backfillRelatedWorkSyncEligibility: jest.fn(),
-    listRelatedWorkSyncRootIds: jest.fn(),
-    listPendingRelatedWorkTargetIds: jest.fn(),
-    activatePendingRelatedWorkTargets: jest.fn(),
-    discardPendingRelatedWorkTargets: jest.fn(),
-    incrementPendingRelatedWorkAttempts: jest.fn(),
-    replaceRelatedWorkSnapshots: jest.fn(),
   };
 }
 
@@ -58,7 +48,6 @@ describe('AlertDispatchService', () => {
   it('groups follow refs, creates in-app notifications, and sends email digests', async () => {
     const follows = {
       listDistinctReferences: jest.fn().mockResolvedValue([
-        { type: 'AUTHOR', id: authorId },
         { type: 'JOURNAL', id: journalId },
         { type: 'TOPIC', id: topicId },
       ]),
@@ -126,7 +115,6 @@ describe('AlertDispatchService', () => {
         journals: [journalId],
         keywords: [],
         topics: [topicId],
-        authors: [authorId],
       },
       since,
     );

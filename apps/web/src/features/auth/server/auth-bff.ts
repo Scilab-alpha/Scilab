@@ -165,7 +165,8 @@ export async function requestAuthenticated<T>(
   }
 
   let result = await requestUpstream<T>(path, {
-    ...input,
+    method: input.method,
+    body: input.body,
     accessToken: refreshedSession?.tokens.accessToken ?? accessToken,
   });
 
@@ -176,7 +177,8 @@ export async function requestAuthenticated<T>(
     }
     refreshedSession = refreshResult;
     result = await requestUpstream<T>(path, {
-      ...input,
+      method: input.method,
+      body: input.body,
       accessToken: refreshedSession.tokens.accessToken,
     });
   }
@@ -363,31 +365,11 @@ async function refreshSession(
 }
 
 function getUpstreamOrigin() {
-  const configured =
-    process.env.SCILAB_API_ORIGIN?.trim() ||
-    process.env.SCILAB_API_BASE_URL?.trim();
-  if (configured) {
-    try {
-      const url = new URL(configured);
-      if (url.protocol !== "http:" && url.protocol !== "https:") {
-        throw new Error();
-      }
-      return url.origin;
-    } catch {
-      throw new AuthBffError(
-        500,
-        "Authentication service is not configured.",
-        "UPSTREAM_NOT_CONFIGURED",
-        randomUUID(),
-      );
-    }
-  }
-
   try {
-    const resolved = resolveUpstreamApiOrigin({
+    const configured = resolveUpstreamApiOrigin({
       serverOrigin: process.env.SCILAB_API_ORIGIN,
     });
-    const url = new URL(resolved);
+    const url = new URL(configured);
     if (url.protocol !== "http:" && url.protocol !== "https:") {
       throw new Error();
     }

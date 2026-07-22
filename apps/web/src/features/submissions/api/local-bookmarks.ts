@@ -6,6 +6,14 @@ import type {
 
 export const LOCAL_BOOKMARKS_STORAGE_KEY = "scilab_local_bookmarks";
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** Public bookmark API only accepts UUID article ids (Postgres uuid column). */
+export function isServerBookmarkableArticleId(articleId: string) {
+  return UUID_PATTERN.test(articleId.trim());
+}
+
 function canUseStorage() {
   return typeof window !== "undefined" && Boolean(window.localStorage);
 }

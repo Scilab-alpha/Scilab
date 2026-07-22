@@ -2,7 +2,6 @@ import type { PageParams, PageResult } from "@/core/api/pagination";
 
 export type NotificationObjectType =
   | "ARTICLE"
-  | "AUTHOR"
   | "JOURNAL"
   | "KEYWORD"
   | "TOPIC";

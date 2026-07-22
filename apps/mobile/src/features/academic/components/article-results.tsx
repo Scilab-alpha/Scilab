@@ -1,18 +1,11 @@
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { useMemo, useState } from "react";
 
-import { useToast } from "@/components/ui";
 import { AcademicLoadMoreButton } from "@/features/academic/components/academic-load-more-button";
 import { AcademicResultsHeader } from "@/features/academic/components/academic-results-header";
 import { ArticleCard } from "@/features/academic/components/article-card";
 import { ArticleEmptyState } from "@/features/academic/components/article-empty-state";
 import { ArticleErrorState } from "@/features/academic/components/article-error-state";
 import type { ArticleGraph } from "@/features/academic/types/article.type";
-import {
-  getBookmarkedArticleIds,
-  useBookmarks,
-} from "@/features/bookmarks/hooks/use-bookmarks";
-import { useToggleBookmark } from "@/features/bookmarks/hooks/use-toggle-bookmark";
 import { getUserFriendlyApiErrorMessage } from "@/services/api";
 import { useAppTheme } from "@/theme";
 
@@ -38,47 +31,6 @@ export function ArticleResults({
   onRetry: () => void;
 }) {
   const theme = useAppTheme();
-  const { showToast } = useToast();
-  const [optimisticBookmarks, setOptimisticBookmarks] = useState<
-    Record<string, boolean>
-  >({});
-  const bookmarksQuery = useBookmarks();
-  const toggleBookmark = useToggleBookmark();
-  const bookmarkedArticleIds = useMemo(
-    () => getBookmarkedArticleIds(bookmarksQuery.data),
-    [bookmarksQuery.data],
-  );
-  const pendingArticleId = toggleBookmark.variables ?? null;
-  const isArticleBookmarked = (articleId: string) =>
-    optimisticBookmarks[articleId] ?? bookmarkedArticleIds.has(articleId);
-  const handleToggleBookmark = (article: ArticleGraph) => {
-    const articleId = article.article.id;
-    const wasBookmarked = isArticleBookmarked(articleId);
-
-    setOptimisticBookmarks((current) => ({
-      ...current,
-      [articleId]: !wasBookmarked,
-    }));
-
-    toggleBookmark.mutate(articleId, {
-      onError: (mutationError) => {
-        setOptimisticBookmarks((current) => {
-          const next = { ...current };
-          delete next[articleId];
-          return next;
-        });
-        showToast(getUserFriendlyApiErrorMessage(mutationError), {
-          tone: "error",
-        });
-      },
-      onSuccess: (result) => {
-        setOptimisticBookmarks((current) => ({
-          ...current,
-          [result.articleId]: result.bookmarked,
-        }));
-      },
-    });
-  };
 
   return (
     <>
@@ -99,16 +51,7 @@ export function ArticleResults({
         <View style={{ gap: theme.spacing.sm }}>
           <AcademicResultsHeader count={articles.length} noun="result" />
           {articles.map((article) => (
-            <ArticleCard
-              article={article}
-              isBookmarkPending={
-                toggleBookmark.isPending &&
-                pendingArticleId === article.article.id
-              }
-              isBookmarked={isArticleBookmarked(article.article.id)}
-              key={article.article.id}
-              onToggleBookmark={handleToggleBookmark}
-            />
+            <ArticleCard article={article} key={article.article.id} />
           ))}
           {hasNextPage ? (
             <AcademicLoadMoreButton

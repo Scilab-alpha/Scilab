@@ -1,7 +1,5 @@
 import type { AuthUser, Gender } from "@/features/auth/types/auth.types";
 
-export type LoginPortal = "admin" | "user";
-
 export interface ApiEnvelope<TData> {
   success: boolean;
   message: string;
@@ -12,7 +10,6 @@ export interface LoginRequest {
   email: string;
   password: string;
   rememberMe: boolean;
-  portal: LoginPortal;
 }
 
 export interface RegisterRequest {

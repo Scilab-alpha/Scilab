@@ -37,7 +37,6 @@ describe("RegisterScreen", () => {
       isAuthenticated: false,
       login: vi.fn(),
       register,
-      refreshCurrentUser: vi.fn(),
       logout: vi.fn(),
       can: vi.fn(),
     });

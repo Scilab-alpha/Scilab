@@ -97,7 +97,6 @@ describe("AuthProvider", () => {
       email: "student@example.edu",
       password: "secret",
       rememberMe: true,
-      portal: "user",
     });
   });
 

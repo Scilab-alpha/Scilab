@@ -37,7 +37,6 @@ describe("LoginScreen", () => {
       isAuthenticated: false,
       login,
       register: vi.fn(),
-      refreshCurrentUser: vi.fn(),
       logout: vi.fn(),
       can: vi.fn(),
     });
@@ -63,7 +62,6 @@ describe("LoginScreen", () => {
       "student@example.edu",
       "Strong123",
       false,
-      "user",
     );
   });
 
@@ -112,7 +110,6 @@ describe("LoginScreen", () => {
         "student@example.edu",
         "Strong123",
         true,
-        "user",
       ),
     );
   });
@@ -144,36 +141,6 @@ describe("LoginScreen", () => {
     expect(login).not.toHaveBeenCalled();
     expect(toast.info).toHaveBeenCalledWith(
       "Google sign-in is not available yet.",
-    );
-  });
-
-  it("renders the admin portal without registration or guest access", async () => {
-    login.mockResolvedValueOnce({
-      ok: true,
-      user: createTestAuthUser({ role: "admin" }),
-      redirectTo: "/admin",
-    });
-
-    render(<LoginScreen portal="admin" />);
-
-    expect(screen.getByText("Administrator sign in")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Continue as guest" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Create account" }),
-    ).not.toBeInTheDocument();
-
-    await userEvent.type(screen.getByLabelText("Email"), "admin@example.edu");
-    await userEvent.type(screen.getByLabelText("Password"), "Strong123");
-    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
-
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/admin"));
-    expect(login).toHaveBeenCalledWith(
-      "admin@example.edu",
-      "Strong123",
-      false,
-      "admin",
     );
   });
 });

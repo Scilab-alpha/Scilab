@@ -15,7 +15,6 @@ export async function login(request: LoginRequest): Promise<AuthUser> {
       email: request.email.trim().toLowerCase(),
       password: request.password,
       rememberMe: request.rememberMe,
-      portal: request.portal,
     },
   });
   return mapApiUser(user as Parameters<typeof mapApiUser>[0]);

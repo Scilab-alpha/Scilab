@@ -1,5 +1,5 @@
-import { toArticleGraphOutput } from '@repo/academic/domain';
-import { AcademicGraphRepository } from '@repo/academic/domain';
+import { toArticleGraphOutput } from '@/academic/application/academic-graph.mapper';
+import { AcademicGraphRepository } from '@/academic/application/ports/academic-graph.port';
 import { BookmarkRepository } from '@/bookmark/application/ports/bookmark.ports';
 import {
   ListBookmarksInput,
