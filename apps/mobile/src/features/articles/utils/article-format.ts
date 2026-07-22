@@ -1,6 +1,5 @@
 import type {
   ArticleGraph,
-  AuthorNode,
   KeywordNode,
   TopicNode,
 } from "@/types/academic.type";
@@ -40,6 +39,10 @@ export function getArticleYear(article: ArticleGraph) {
   return article.article.publicationYear?.toString() ?? "No year";
 }
 
+export function getArticleCitationCount(article: ArticleGraph) {
+  return article.article.citationCount ?? article.citedArticleIds.length;
+}
+
 export function getArticleAbstractPreview(article: ArticleGraph) {
   const abstract = article.article.abstract?.replace(/\s+/g, " ").trim();
 
@@ -55,8 +58,4 @@ export function getTagNames(items: (KeywordNode | TopicNode)[], maxCount = 4) {
     .map((item) => item.displayName?.trim())
     .filter((name): name is string => Boolean(name))
     .slice(0, maxCount);
-}
-
-export function getAuthorDisplayName(author: Pick<AuthorNode, "displayName">) {
-  return author.displayName?.trim() || "Unknown author";
 }

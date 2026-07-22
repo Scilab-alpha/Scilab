@@ -9,12 +9,16 @@ import type {
 const defaultLimit = 20;
 
 export function listArticles({
+  authorId,
+  country,
   cursor,
+  journalId,
   keywordId,
   limit = defaultLimit,
   publicationYear,
   publicationYearFrom,
   publicationYearTo,
+  publisher,
   q,
   sort,
   topicId,
@@ -26,7 +30,11 @@ export function listArticles({
   }
 
   setTextParam(params, "q", q);
+  setTextParam(params, "authorId", authorId);
+  setTextParam(params, "country", country);
+  setTextParam(params, "journalId", journalId);
   setTextParam(params, "keywordId", keywordId);
+  setTextParam(params, "publisher", publisher);
   setTextParam(params, "topicId", topicId);
   setNumberParam(params, "publicationYear", publicationYear);
   setNumberParam(params, "publicationYearFrom", publicationYearFrom);

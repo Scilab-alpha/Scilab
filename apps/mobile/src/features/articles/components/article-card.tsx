@@ -11,6 +11,7 @@ import {
 
 import {
   getArticleAuthors,
+  getArticleCitationCount,
   getArticleJournal,
   getArticleTitle,
   getArticleYear,
@@ -38,7 +39,7 @@ export function ArticleCard({
   )}` as Href;
   const journal = getArticleJournal(article);
   const publishedAt = formatPublishedAt(article);
-  const citationLabel = formatCitations(article.citedArticleIds.length);
+  const citationLabel = formatCitations(getArticleCitationCount(article));
   const handleToggleBookmark = (event: GestureResponderEvent) => {
     event.stopPropagation();
     onToggleBookmark?.(article);
