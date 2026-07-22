@@ -1,8 +1,8 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
   DetailSection,
-  InfoRow,
   StatusBadge,
 } from "@/features/academic/components/detail-section";
 import type { JournalListItem } from "@/features/academic/types/article.type";
@@ -17,6 +17,19 @@ export function JournalProfile({ journal }: { journal: JournalListItem }) {
     <View style={{ gap: theme.spacing.xl }}>
       <View style={[styles.hero, { gap: theme.spacing.lg }]}>
         <View style={styles.titleRow}>
+          {journal.publisherImageUrl ? (
+            <Image
+              contentFit="contain"
+              source={{ uri: journal.publisherImageUrl }}
+              style={[
+                styles.publisherLogo,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outlineSoft,
+                },
+              ]}
+            />
+          ) : null}
           <Text
             selectable
             style={[
@@ -28,16 +41,17 @@ export function JournalProfile({ journal }: { journal: JournalListItem }) {
             {name}
           </Text>
         </View>
-        <View style={styles.heroText}>
+        <View style={styles.publisherRow}>
           <Text
             selectable
-            style={[theme.typography.body, { color: theme.colors.textMuted }]}
+            style={[
+              theme.typography.body,
+              styles.publisherText,
+              { color: theme.colors.textMuted },
+            ]}
           >
             {formatJournalSubtitle(journal)}
           </Text>
-        </View>
-        <View style={styles.badgeRow}>
-          <StatusBadge label={formatArticleCount(journal.articleCount)} />
           {journal.isOpenAccess ? (
             <StatusBadge label="Open access" tone="success" />
           ) : null}
@@ -53,23 +67,20 @@ export function JournalProfile({ journal }: { journal: JournalListItem }) {
       </View>
 
       <DetailSection icon="information-circle-outline" title="Journal info">
-        <View
-          style={[
-            styles.infoCard,
+        <JournalInfoList
+          rows={[
             {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.outlineSoft,
-              borderRadius: theme.radii.lg,
+              href: getSourceWebUrl(journal.sourceId),
+              label: "Source ID",
+              value: journal.sourceId,
             },
+            { label: "Publisher", value: journal.publisherName },
+            { label: "ISSN", value: journal.issnList?.join(", ") },
+            { label: "Type", value: journal.type },
+            { label: "Country", value: journal.country },
+            { label: "Coverage", value: journal.coverage },
           ]}
-        >
-          <InfoRow label="Publisher" value={journal.publisherName} />
-          <InfoRow label="ISSN" value={journal.issnList?.join(", ")} />
-          <InfoRow label="Type" value={journal.type} />
-          <InfoRow label="Country" value={journal.country} />
-          <InfoRow label="Region" value={journal.region} />
-          <InfoRow label="Coverage" value={journal.coverage} />
-        </View>
+        />
       </DetailSection>
 
       {journal.subjectCategories?.length ? (
@@ -105,12 +116,89 @@ export function JournalProfile({ journal }: { journal: JournalListItem }) {
   );
 }
 
-function getJournalName(journal: JournalListItem) {
-  return journal.displayName?.trim() || "Untitled journal";
+function JournalInfoList({
+  rows,
+}: {
+  rows: { href?: string | null; label: string; value?: string | null }[];
+}) {
+  const theme = useAppTheme();
+
+  return (
+    <View style={styles.infoList}>
+      {rows.map((row, index) => (
+        <View
+          key={row.label}
+          style={[
+            styles.infoItem,
+            {
+              borderBottomColor: theme.colors.outlineSoft,
+              borderBottomWidth: index === rows.length - 1 ? 0 : 1,
+            },
+          ]}
+        >
+          <Text
+            numberOfLines={1}
+            selectable
+            style={[
+              theme.typography.caption,
+              styles.infoLabel,
+              { color: theme.colors.textMuted },
+            ]}
+          >
+            {row.label}
+          </Text>
+          {row.href && row.value?.trim() ? (
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => void Linking.openURL(row.href!)}
+              style={({ pressed }) => (pressed ? { opacity: 0.72 } : null)}
+            >
+              <Text
+                selectable
+                style={[
+                  theme.typography.body,
+                  styles.infoValue,
+                  styles.infoLink,
+                  { color: theme.colors.primary },
+                ]}
+              >
+                {row.value.trim()}
+              </Text>
+            </Pressable>
+          ) : (
+            <Text
+              selectable
+              style={[
+                theme.typography.body,
+                styles.infoValue,
+                { color: theme.colors.text },
+              ]}
+            >
+              {row.value?.trim() || "Unavailable"}
+            </Text>
+          )}
+        </View>
+      ))}
+    </View>
+  );
 }
 
-function formatArticleCount(count: number) {
-  return `${count} article${count === 1 ? "" : "s"}`;
+function getSourceWebUrl(sourceId?: string | null) {
+  const value = sourceId?.trim();
+
+  if (!value) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
+  return `https://openalex.org/${encodeURIComponent(value)}`;
+}
+
+function getJournalName(journal: JournalListItem) {
+  return journal.displayName?.trim() || "Untitled journal";
 }
 
 function formatJournalSubtitle(journal: JournalListItem) {
@@ -122,7 +210,8 @@ function formatJournalSubtitle(journal: JournalListItem) {
 }
 
 const styles = StyleSheet.create({
-  badgeRow: {
+  publisherRow: {
+    alignItems: "center",
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
@@ -131,13 +220,35 @@ const styles = StyleSheet.create({
     alignItems: "stretch",
     paddingTop: 4,
   },
-  heroText: {
-    gap: 8,
+  infoItem: {
+    alignItems: "flex-start",
+    gap: 6,
+    paddingVertical: 11,
   },
-  infoCard: {
-    borderCurve: "continuous",
+  infoLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+  },
+  infoLink: {
+    fontWeight: "700",
+    textDecorationLine: "underline",
+  },
+  infoList: {
+    paddingVertical: 2,
+  },
+  infoValue: {
+    lineHeight: 20,
+  },
+  publisherLogo: {
     borderWidth: 1,
-    overflow: "hidden",
+    height: 44,
+    width: 44,
+  },
+  publisherText: {
+    flexShrink: 1,
+    lineHeight: 20,
   },
   tag: {
     borderWidth: 1,
