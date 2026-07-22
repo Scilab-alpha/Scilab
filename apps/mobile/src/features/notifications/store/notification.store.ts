@@ -133,9 +133,9 @@ export const useNotificationStore = create<NotificationState>((set) => ({
   unreadCount: 0,
 }));
 
-function withUnreadCount<TState extends Pick<NotificationState, "notifications">>(
-  state: TState,
-) {
+function withUnreadCount<
+  TState extends Pick<NotificationState, "notifications">,
+>(state: TState) {
   return {
     ...state,
     unreadCount: state.notifications.filter((item) => !item.isRead).length,

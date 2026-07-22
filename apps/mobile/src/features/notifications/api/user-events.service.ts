@@ -120,9 +120,9 @@ function parseSseBlock(block: string): UserEventPayload | null {
       }
 
       const separatorIndex = line.indexOf(":");
-      const field =
-        separatorIndex >= 0 ? line.slice(0, separatorIndex) : line;
-      const rawValue = separatorIndex >= 0 ? line.slice(separatorIndex + 1) : "";
+      const field = separatorIndex >= 0 ? line.slice(0, separatorIndex) : line;
+      const rawValue =
+        separatorIndex >= 0 ? line.slice(separatorIndex + 1) : "";
       const value = rawValue.startsWith(" ") ? rawValue.slice(1) : rawValue;
 
       if (field === "id") {

@@ -66,7 +66,10 @@ export function NotificationsScreen() {
               ]}
             >
               <Text
-                style={[theme.typography.label, { color: theme.colors.primary }]}
+                style={[
+                  theme.typography.label,
+                  { color: theme.colors.primary },
+                ]}
               >
                 Mark all read
               </Text>
@@ -120,7 +123,9 @@ function NotificationCard({
             ]}
           >
             <Ionicons
-              color={item.isRead ? theme.colors.textMuted : theme.colors.primary}
+              color={
+                item.isRead ? theme.colors.textMuted : theme.colors.primary
+              }
               name={icon}
               size={20}
             />
