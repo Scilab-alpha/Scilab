@@ -3,10 +3,7 @@ import { useRouter } from "expo-router";
 
 import { AppButton, AppMessage } from "@/components/ui";
 import { useLogout } from "@/features/auth/hooks/use-logout";
-import {
-  ScreenShell,
-  SurfaceCard,
-} from "@/features/navigation/components/screen-shell";
+import { ScreenShell, SurfaceCard } from "@/components/layout/screen-shell";
 import { ProfileHeroCard } from "@/features/profile/components/profile-hero-card";
 import { ProfileSettingsList } from "@/features/profile/components/profile-settings-list";
 import { useProfile } from "@/features/profile/hooks/use-profile";

@@ -1,3 +1,3 @@
-import { JournalDetailScreen } from "@/features/academic/screens/journal-detail-screen";
+import { JournalDetailScreen } from "@/features/journals/screens/journal-detail-screen";
 
 export default JournalDetailScreen;
