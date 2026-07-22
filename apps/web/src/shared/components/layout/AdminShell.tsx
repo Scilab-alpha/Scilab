@@ -41,9 +41,7 @@ function AdminBrand() {
         <Shield className="size-5 text-primary-foreground" strokeWidth={1.75} />
       </div>
       <div className="min-w-0">
-        <span className="font-heading text-lg text-foreground">
-          SciLab
-        </span>
+        <span className="font-heading text-lg text-foreground">SciLab</span>
         <p className="truncate text-xs text-muted-foreground">
           {user ? ROLE_LABELS[user.role] : "Admin Panel"}
         </p>
@@ -129,9 +127,7 @@ function AdminAccountFooter({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-export default function AdminShell({
-  children,
-}: AdminShellProps) {
+export default function AdminShell({ children }: AdminShellProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
