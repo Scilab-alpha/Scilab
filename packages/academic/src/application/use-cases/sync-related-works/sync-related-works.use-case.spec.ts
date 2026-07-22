@@ -3,6 +3,8 @@ import { SyncRelatedWorksUseCase } from './sync-related-works.use-case';
 describe('SyncRelatedWorksUseCase', () => {
   it('refreshes eligible stale roots in configured batches and stores ordered snapshots', async () => {
     const replaceRelatedWorkSnapshots = jest.fn().mockResolvedValue(undefined);
+    const backfillRelatedWorkSyncEligibility = jest.fn();
+    const listRelatedWorkSyncRootIds = jest.fn().mockResolvedValue(['W1']);
     const fetchRelatedWorksByIds = jest.fn().mockResolvedValue({
       results: [
         {
@@ -12,6 +14,7 @@ describe('SyncRelatedWorksUseCase', () => {
             'https://openalex.org/W2',
             'https://openalex.org/W1',
             'https://openalex.org/W3',
+            'https://openalex.org/W4',
           ],
         },
       ],
@@ -34,13 +37,15 @@ describe('SyncRelatedWorksUseCase', () => {
           relatedTargetBatchSize: 100,
           relatedTargetMaxBatches: 10,
           relatedTargetMaxAttempts: 3,
+          journalCitationThreshold: 500,
+          relatedWorkLimit: 2,
         }),
         getOpenAlexConfig: jest.fn(),
       },
       { fetchRelatedWorksByIds } as never,
       {
-        backfillRelatedWorkSyncEligibility: jest.fn(),
-        listRelatedWorkSyncRootIds: jest.fn().mockResolvedValue(['W1']),
+        backfillRelatedWorkSyncEligibility,
+        listRelatedWorkSyncRootIds,
         replaceRelatedWorkSnapshots,
       } as never,
     );
@@ -53,15 +58,22 @@ describe('SyncRelatedWorksUseCase', () => {
     expect(fetchRelatedWorksByIds).toHaveBeenCalledWith(
       expect.objectContaining({ ids: ['W1'] }),
     );
-    expect(replaceRelatedWorkSnapshots).toHaveBeenCalledWith([
-      {
-        sourceId: 'W1',
-        workType: 'article',
-        references: [
-          { id: 'W2', rank: 1 },
-          { id: 'W3', rank: 3 },
-        ],
-      },
-    ]);
+    expect(backfillRelatedWorkSyncEligibility).toHaveBeenCalledWith(500);
+    expect(listRelatedWorkSyncRootIds).toHaveBeenCalledWith(
+      expect.objectContaining({ citationThreshold: 500 }),
+    );
+    expect(replaceRelatedWorkSnapshots).toHaveBeenCalledWith(
+      [
+        {
+          sourceId: 'W1',
+          workType: 'article',
+          references: [
+            { id: 'W2', rank: 1 },
+            { id: 'W3', rank: 3 },
+          ],
+        },
+      ],
+      'openalex-related-work-limit:2',
+    );
   });
 });

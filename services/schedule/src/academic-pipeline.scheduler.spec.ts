@@ -19,7 +19,6 @@ describe('AcademicPipelineScheduler', () => {
     await scheduler.enqueueScimagoReload();
     await scheduler.enqueueJournalSourceSync();
     await scheduler.enqueueJournalArticleSync();
-    await scheduler.enqueueSemanticScholarJournalSupplement();
     await scheduler.enqueueRelatedWorkSync();
     await scheduler.enqueueRelatedWorkHydration();
     await scheduler.enqueueOutgoingReference();
@@ -27,7 +26,7 @@ describe('AcademicPipelineScheduler', () => {
     await scheduler.enqueueIncomingCitation();
     await scheduler.enqueueCitationCountRefresh();
 
-    expect(enqueue).toHaveBeenCalledTimes(10);
+    expect(enqueue).toHaveBeenCalledTimes(9);
     expect(enqueue).toHaveBeenNthCalledWith(
       1,
       ACADEMIC_PIPELINE_QUEUES.scimagoReload,
@@ -48,42 +47,36 @@ describe('AcademicPipelineScheduler', () => {
     );
     expect(enqueue).toHaveBeenNthCalledWith(
       4,
-      ACADEMIC_PIPELINE_QUEUES.semanticScholarJournalSupplement,
-      expect.any(Date),
-      expect.objectContaining({ runId: 'run-id', trigger: 'CRON' }),
-    );
-    expect(enqueue).toHaveBeenNthCalledWith(
-      5,
       ACADEMIC_PIPELINE_QUEUES.relatedWorkSync,
       expect.any(Date),
       expect.objectContaining({ runId: 'run-id', trigger: 'CRON' }),
     );
     expect(enqueue).toHaveBeenNthCalledWith(
-      6,
+      5,
       ACADEMIC_PIPELINE_QUEUES.relatedWorkHydration,
       expect.any(Date),
       expect.objectContaining({ runId: 'run-id', trigger: 'CRON' }),
     );
     expect(enqueue).toHaveBeenNthCalledWith(
-      7,
+      6,
       ACADEMIC_PIPELINE_QUEUES.outgoingReference,
       expect.any(Date),
       expect.objectContaining({ runId: 'run-id', trigger: 'CRON' }),
     );
     expect(enqueue).toHaveBeenNthCalledWith(
-      8,
+      7,
       ACADEMIC_PIPELINE_QUEUES.referenceHydration,
       expect.any(Date),
       expect.objectContaining({ runId: 'run-id', trigger: 'CRON' }),
     );
     expect(enqueue).toHaveBeenNthCalledWith(
-      9,
+      8,
       ACADEMIC_PIPELINE_QUEUES.incomingCitation,
       expect.any(Date),
       expect.objectContaining({ runId: 'run-id', trigger: 'CRON' }),
     );
     expect(enqueue).toHaveBeenNthCalledWith(
-      10,
+      9,
       ACADEMIC_PIPELINE_QUEUES.citationCountRefresh,
       expect.any(Date),
       expect.objectContaining({ runId: 'run-id', trigger: 'CRON' }),

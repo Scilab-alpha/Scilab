@@ -4,12 +4,16 @@ import {
   buildScimagoDataset,
   ScimagoRecord,
 } from '@repo/academic/domain/scimago.model';
-import { RunJournalArticleSyncPipelineUseCase } from './run-journal-article-sync-pipeline.use-case';
+import {
+  createArticleDiscoveryPolicySignature,
+  RunJournalArticleSyncPipelineUseCase,
+} from './run-journal-article-sync-pipeline.use-case';
 
 const defaultConfig: OpenAlexJournalSyncConfig = {
   apiKey: 'key',
   baseUrl: 'url',
-  journalBackfillFromYear: 2020,
+  journalBackfillFromYear: 2023,
+  journalBackfillToYear: 2025,
   dailyPageBudget: 10,
   priorityPercent: 80,
   maxPagesPerPass: 10,
@@ -47,10 +51,72 @@ describe('RunJournalArticleSyncPipelineUseCase', () => {
     ];
     expect(calledInput.cursor).toBe('*');
     expect(calledInput.config.filter).toBe(
-      'primary_location.source.id:S1,type:article,from_publication_date:2020-01-01',
+      'primary_location.source.id:S1,type:article,from_publication_date:2023-01-01,to_publication_date:2025-12-31,cited_by_count:>500',
     );
     expect(upsert).toHaveBeenCalledWith(
       expect.objectContaining({ initialBackfillComplete: true, cursor: null }),
+    );
+  });
+
+  it('resets a completed journal once when the article discovery policy changes', async () => {
+    const { execute, fetchWorks, upsert } = createUseCase({
+      records: [record('source', 1)],
+      priorityStates: [
+        state('source', 'S1', {
+          initialBackfillComplete: true,
+          syncMode: 'INCREMENTAL',
+          lastSuccessfulAt: new Date('2026-07-20T00:00:00.000Z'),
+          articleDiscoveryPolicySignature: 'old-policy',
+        }),
+      ],
+      fetchWorks: jest.fn().mockResolvedValue({
+        meta: { next_cursor: null },
+        results: [],
+      }),
+    });
+
+    await execute();
+
+    expect(fetchWorks).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cursor: '*',
+        config: expect.objectContaining({
+          filter: expect.stringContaining('from_publication_date:2023-01-01'),
+        }),
+      }),
+    );
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        syncMode: 'BACKFILL',
+        initialBackfillComplete: false,
+        cursor: '*',
+        articleDiscoveryPolicySignature:
+          createArticleDiscoveryPolicySignature(defaultConfig),
+      }),
+    );
+  });
+
+  it('does not resume a stale cursor after the policy schedules a fresh backfill', async () => {
+    const staleState = state('source', 'S1', {
+      cursor: 'old-cursor',
+      articleDiscoveryPolicySignature: 'old-policy',
+    });
+    const { execute, fetchWorks } = createUseCase({
+      config: { ...defaultConfig, dailyPageBudget: 2 },
+      records: [record('source', 1)],
+      priorityStates: [staleState],
+      continuationStates: [staleState],
+      fetchWorks: jest.fn().mockResolvedValue({
+        meta: { next_cursor: null },
+        results: [],
+      }),
+    });
+
+    await execute();
+
+    expect(fetchWorks).toHaveBeenCalledTimes(1);
+    expect(fetchWorks).toHaveBeenCalledWith(
+      expect.objectContaining({ cursor: '*' }),
     );
   });
 
@@ -224,7 +290,7 @@ describe('RunJournalArticleSyncPipelineUseCase', () => {
     expect(upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         scimagoSourceId: 'first',
-        cursor: null,
+        cursor: '*',
         errorDetail: 'OpenAlex unavailable',
       }),
     );
@@ -345,6 +411,8 @@ function state(
     syncMode: 'BACKFILL',
     cursor: null,
     filterSignature: null,
+    articleDiscoveryPolicySignature:
+      createArticleDiscoveryPolicySignature(defaultConfig),
     incrementalWindowFrom: null,
     initialBackfillComplete: false,
     lastResolvedAt: null,

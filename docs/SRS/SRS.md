@@ -17,7 +17,7 @@ So với phiên bản 1.0, tài liệu phiên bản 2.0 cập nhật một thay 
 
 ### 1. Introduction
 
-SciLab – Journal Finder (Project Code: SU26SWP06) là nền tảng web học thuật, giải quyết bài toán thực tiễn: giảng viên, sinh viên và nhà nghiên cứu gặp khó khăn trong việc theo dõi xu hướng công bố khoa học do số lượng tạp chí và bài báo học thuật ngày càng gia tăng. SciLab thu thập metadata từ các API học thuật công khai (OpenAlex, Semantic Scholar, Crossref) và dữ liệu xếp hạng từ SCImago để cung cấp:
+SciLab – Journal Finder (Project Code: SU26SWP06) là nền tảng web học thuật, giải quyết bài toán thực tiễn: giảng viên, sinh viên và nhà nghiên cứu gặp khó khăn trong việc theo dõi xu hướng công bố khoa học do số lượng tạp chí và bài báo học thuật ngày càng gia tăng. SciLab thu thập metadata từ OpenAlex và Crossref cùng dữ liệu xếp hạng từ SCImago để cung cấp:
 
 - Công cụ tìm kiếm và lọc tạp chí học thuật theo nhiều tiêu chí.
 - Phân tích xu hướng công bố theo thời gian dựa trên từ khóa và chủ đề.
@@ -44,7 +44,6 @@ Về mặt lưu trữ, SciLab áp dụng kiến trúc **Polyglot Persistence**: 
 #### 1.2 Dependencies
 
 - **OpenAlex API** – metadata bài báo, tạp chí, tác giả, chủ đề (miễn phí, ~100k req/ngày).
-- **Semantic Scholar API** – bài báo, trích dẫn (nên có API key để tăng rate limit).
 - **Crossref API** – metadata DOI, thông tin tạp chí (miễn phí, polite pool).
 - **SCImago CSV** – xếp hạng tạp chí, SJR, H-Index (nhập CSV thủ công hoặc scraping theo ToS).
 - **SMTP/Email Service** – gửi thông báo cho người dùng (SendGrid hoặc tương đương).
@@ -54,14 +53,14 @@ Về mặt lưu trữ, SciLab áp dụng kiến trúc **Polyglot Persistence**: 
 
 #### 1.3 Context Diagram
 
-SciLab đóng vai trò trung tâm kết nối 3 nhóm người dùng (Nhà nghiên cứu, Giảng viên/Sinh viên, Quản trị viên) với 4 nguồn dữ liệu ngoại vi (OpenAlex, Semantic Scholar, Crossref, SCImago), 1 dịch vụ thông báo (SMTP Email), và nội bộ vận hành song song hai hệ quản trị cơ sở dữ liệu (PostgreSQL, Neo4j) đóng vai trò lưu trữ chuyên biệt theo bản chất dữ liệu.
+SciLab đóng vai trò trung tâm kết nối 3 nhóm người dùng (Nhà nghiên cứu, Giảng viên/Sinh viên, Quản trị viên) với 3 nguồn dữ liệu ngoại vi (OpenAlex, Crossref, SCImago), 1 dịch vụ thông báo (SMTP Email), và nội bộ vận hành song song hai hệ quản trị cơ sở dữ liệu (PostgreSQL, Neo4j) đóng vai trò lưu trữ chuyên biệt theo bản chất dữ liệu.
 
 **External Entities and Interactions:**
 
 - **Researcher**: Truy cập phân tích xu hướng chuyên sâu, xuất báo cáo, theo dõi keyword, khai thác công cụ đồ thị (Knowledge Graph, Graph Search).
 - **Lecturer / Student**: Tìm bài tham khảo, khám phá chủ đề phổ biến, bookmark.
 - **System Admin**: Quản lý tài khoản, cấu hình API, kích hoạt đồng bộ dữ liệu, theo dõi sức khỏe của cả hai cơ sở dữ liệu.
-- **OpenAlex / Semantic Scholar / Crossref**: Cung cấp metadata bài báo và tạp chí qua REST API, được ETL ghi vào Neo4j.
+- **OpenAlex / Crossref**: Cung cấp metadata bài báo và tạp chí qua REST API, được ETL ghi vào Neo4j.
 - **SCImago**: Cung cấp dữ liệu xếp hạng tạp chí (nhập định kỳ qua CSV), được ETL ghi vào PostgreSQL (bảng Journal_Ranking).
 - **Email Service**: Gửi thông báo alert cho người dùng đăng ký theo dõi.
 
@@ -214,7 +213,7 @@ Hệ thống SciLab có 7 luồng màn hình chính: (1) Authentication Flow, (2
 
 | # | Feature | System Function | Description |
 |---|---|---|---|
-| 1 | Data Sync | Scheduled Sync Job | Cron job định kỳ gọi OpenAlex, Semantic Scholar, Crossref; upsert Node/Edge vào Neo4j; ghi dữ liệu xếp hạng (SCImago) vào PostgreSQL. Ghi log mỗi lần chạy vào Sync_Log. |
+| 1 | Data Sync | Scheduled Sync Job | Cron job định kỳ gọi OpenAlex và Crossref; upsert Node/Edge vào Neo4j; ghi dữ liệu xếp hạng (SCImago) vào PostgreSQL. Ghi log mỗi lần chạy vào Sync_Log. |
 | 2 | Data Sync | Deduplication Service | Kiểm tra DOI (fallback: title+year+journal) trên Node Article tại Neo4j trước khi tạo/cập nhật, tránh bản ghi trùng lặp. |
 | 3 | Notification | Alert Dispatch Service | Background service truy vấn Neo4j tìm bài báo mới khớp đối tượng theo dõi (lấy danh sách object_id đang follow từ Postgres), gửi thông báo in-app và email theo lịch đã cấu hình. |
 | 4 | Analytics | Trend Aggregation Job | Tổng hợp và cache dữ liệu xu hướng công bố theo năm (Cypher aggregation trên Neo4j) để tối ưu hiệu năng truy vấn dashboard. |
@@ -269,7 +268,7 @@ SciLab áp dụng kiến trúc **Polyglot Persistence**, lựa chọn công cụ
 | 08 | **User_Bookmark** *(mới)* | Bookmark bài báo của người dùng — chỉ lưu Reference ID, **không** lưu metadata bài báo. — PK: `user_bookmark_id` (uuid) — FK: `user_id` (NN) — Fields: `article_id` (uuid, **Reference ID → Node Article tại Neo4j**), `created_at`. Unique: (`user_id`, `article_id`). |
 | 09 | **User_Follow** *(mới)* | Theo dõi Author/Journal/Keyword/Topic của người dùng — chỉ lưu Reference ID. — PK: `user_follow_id` (uuid) — FK: `user_id` (NN) — Fields: `object_type` (enum: AUTHOR/JOURNAL/KEYWORD/TOPIC, NN), `object_id` (varchar(128), **Reference ID → Node tương ứng tại Neo4j**), `notify_mode` (enum: in_app/daily/weekly/off), `created_at`. Unique: (`user_id`, `object_type`, `object_id`). |
 | 10 | **Notification** | Thông báo in-app/email cho người dùng. — PK: `notification_id` (uuid) — FK: `user_id` — Fields: `title`, `message`, `related_object_type`, `related_object_id` (Reference ID), `is_read` (bool), `created_at`. |
-| 11 | **Sync_Log** *(mới)* | Nhật ký mỗi lần chạy job đồng bộ. — PK: `sync_log_id` (uuid) — Fields: `source` (enum: openalex/semantic_scholar/crossref/scimago), `started_at`, `finished_at`, `total_fetched` (int), `total_inserted` (int), `total_updated` (int), `total_errors` (int), `status` (enum: success/failed/partial), `error_detail` (text), `created_at`. |
+| 11 | **Sync_Log** *(mới)* | Nhật ký mỗi lần chạy job đồng bộ. — PK: `sync_log_id` (uuid) — Fields: `source` (enum: openalex/crossref/scimago), `started_at`, `finished_at`, `total_fetched` (int), `total_inserted` (int), `total_updated` (int), `total_errors` (int), `status` (enum: success/failed/partial), `error_detail` (text), `created_at`. |
 
 > **Lưu ý quan trọng**: `journal_id` trong bảng `Journal_Ranking`, `article_id` trong `User_Bookmark`, và `object_id` trong `User_Follow` **không** được khai báo ràng buộc khóa ngoại (Foreign Key constraint) ở cấp database engine, vì thực thể được tham chiếu không tồn tại trong PostgreSQL — chúng là **Reference ID**, được kiểm soát toàn vẹn ở tầng ứng dụng (application-level integrity) và bởi cơ chế đối soát mô tả tại Mục IV.7.
 
@@ -500,7 +499,7 @@ Function Details:
 Function trigger: Cron job kích hoạt theo lịch đã cấu hình (hàng ngày hoặc hàng tuần).
 
 Function Details:
-- Gọi tuần tự các API: OpenAlex → Semantic Scholar → Crossref.
+- Gọi tuần tự các API: OpenAlex → Crossref.
 - Rate limiting: tuân thủ giới hạn tốc độ API bên thứ ba, dùng queue/batch (BullMQ).
 - Deduplication: kiểm tra DOI trên Node Article (Neo4j) trước khi tạo/cập nhật; fallback title+year+journal.
 - **Ghi dữ liệu**: Node/Edge học thuật (Article, Author, Keyword, Journal, Topic, WROTE, HAS_KEYWORD, PUBLISHED_IN, BELONGS_TO, CITES) → **Neo4j**; dữ liệu xếp hạng SCImago → bảng `Journal_Ranking` (**PostgreSQL**, qua Reference ID `journal_id`).

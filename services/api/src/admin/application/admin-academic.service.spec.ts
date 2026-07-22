@@ -134,4 +134,60 @@ describe('AdminAcademicService', () => {
     expect(parameters.skip.toString()).toBe('20');
     expect(parameters.limit.toString()).toBe('20');
   });
+
+  it('pages journals before counting their articles', async () => {
+    const executeRead = jest
+      .fn()
+      .mockResolvedValueOnce({ records: [29137] })
+      .mockResolvedValueOnce({ records: [] });
+    const service = new AdminAcademicService(
+      {} as never,
+      { executeRead } as never,
+      {} as never,
+    );
+
+    await service.listJournals({ page: 1, pageSize: 20 });
+
+    const calls = executeRead.mock.calls as unknown[][];
+    const rowsCypher = cypherAt(calls, 1);
+    expect(rowsCypher.indexOf('SKIP $skip LIMIT $limit')).toBeLessThan(
+      rowsCypher.indexOf('OPTIONAL MATCH (article:Article)'),
+    );
+  });
+
+  it('counts articles without joining journals and pages before loading authors', async () => {
+    const executeRead = jest
+      .fn()
+      .mockResolvedValueOnce({ records: [1200] })
+      .mockResolvedValueOnce({ records: [] });
+    const service = new AdminAcademicService(
+      {} as never,
+      { executeRead } as never,
+      {} as never,
+    );
+
+    await service.listArticles({
+      page: 1,
+      pageSize: 20,
+      source: 'OPENALEX',
+      journalId: 'S123',
+    });
+
+    const calls = executeRead.mock.calls as unknown[][];
+    const countCypher = cypherAt(calls, 0);
+    const rowsCypher = cypherAt(calls, 1);
+    expect(countCypher).toContain('EXISTS {');
+    expect(countCypher).not.toContain('OPTIONAL MATCH');
+    expect(countCypher).not.toContain('count(DISTINCT article)');
+    expect(rowsCypher.indexOf('SKIP $skip LIMIT $limit')).toBeLessThan(
+      rowsCypher.indexOf('OPTIONAL MATCH (author:Author)'),
+    );
+    expect(rowsCypher).toContain('article.crawl_source = $source');
+    expect(rowsCypher).not.toContain('$source IS NULL');
+  });
 });
+
+function cypherAt(calls: unknown[][], index: number): string {
+  const value = calls[index]?.[0];
+  return typeof value === 'string' ? value : '';
+}

@@ -289,7 +289,7 @@ export class AdminAcademicService {
     input: AdminPageInput &
       AdminDateRangeInput & { q?: string | null; source?: string | null },
   ) {
-    const where = this.journalWhere();
+    const where = this.journalWhere(input);
     const count = await this.neo4j.executeRead(
       `MATCH (journal:Journal) WHERE ${where} RETURN count(journal) AS total`,
       this.graphParameters(input),
@@ -299,6 +299,9 @@ export class AdminAcademicService {
       `
       MATCH (journal:Journal)
       WHERE ${where}
+      WITH journal
+      ORDER BY journal.last_synced_at DESC, journal.id ASC
+      SKIP $skip LIMIT $limit
       OPTIONAL MATCH (article:Article)-[:PUBLISHED_IN]->(journal)
       WITH journal, count(article) AS article_count
       RETURN journal.id AS id,
@@ -308,8 +311,7 @@ export class AdminAcademicService {
              journal.first_crawled_at AS first_crawled_at,
              journal.last_synced_at AS last_synced_at,
              article_count
-      ORDER BY last_synced_at DESC, id ASC
-      SKIP $skip LIMIT $limit
+      ORDER BY journal.last_synced_at DESC, journal.id ASC
       `,
       this.graphParameters(input),
       (record) => this.toJournalSummary(record.toObject()),
@@ -364,17 +366,21 @@ export class AdminAcademicService {
         journalId?: string | null;
       },
   ) {
-    const where = this.articleWhere();
+    const where = this.articleWhere(input);
     const count = await this.neo4j.executeRead(
-      `MATCH (article:Article) OPTIONAL MATCH (article)-[:PUBLISHED_IN]->(journal:Journal) WHERE ${where} RETURN count(DISTINCT article) AS total`,
+      `MATCH (article:Article) WHERE ${where} RETURN count(article) AS total`,
       this.graphParameters(input),
       (record) => Number(record.get('total').toString()),
     );
     const rows = await this.neo4j.executeRead(
       `
       MATCH (article:Article)
-      OPTIONAL MATCH (article)-[:PUBLISHED_IN]->(journal:Journal)
       WHERE ${where}
+      WITH article
+      ORDER BY article.last_synced_at DESC, article.id ASC
+      SKIP $skip LIMIT $limit
+      OPTIONAL MATCH (article)-[:PUBLISHED_IN]->(matched_journal:Journal)
+      WITH article, head(collect(matched_journal)) AS journal
       OPTIONAL MATCH (author:Author)-[wrote:WROTE]->(article)
       WITH article, journal, collect(author { .id, name: author.display_name, order: wrote.author_position }) AS authors
       RETURN article.id AS id,
@@ -384,8 +390,7 @@ export class AdminAcademicService {
              coalesce(article.crawl_source, 'OPENALEX') AS source,
              article.first_crawled_at AS first_crawled_at,
              article.last_synced_at AS last_synced_at
-      ORDER BY last_synced_at DESC, id ASC
-      SKIP $skip LIMIT $limit
+      ORDER BY article.last_synced_at DESC, article.id ASC
       `,
       this.graphParameters(input),
       (record) => this.toArticleSummary(record.toObject()),
@@ -614,25 +619,64 @@ export class AdminAcademicService {
     return jobId as AcademicPipelineQueueName;
   }
 
-  private journalWhere() {
-    return `($q IS NULL OR toLower(coalesce(journal.display_name, '')) CONTAINS toLower($q)
-             OR any(issn IN coalesce(journal.issn_list, []) WHERE toLower(issn) CONTAINS toLower($q)))
-      AND ($source IS NULL OR coalesce(journal.crawl_source, 'OPENALEX') = $source)
-      AND ($firstCrawledFrom IS NULL OR journal.first_crawled_at >= datetime($firstCrawledFrom))
-      AND ($firstCrawledTo IS NULL OR journal.first_crawled_at <= datetime($firstCrawledTo))
-      AND ($lastSyncedFrom IS NULL OR journal.last_synced_at >= datetime($lastSyncedFrom))
-      AND ($lastSyncedTo IS NULL OR journal.last_synced_at <= datetime($lastSyncedTo))`;
+  private journalWhere(
+    input: AdminDateRangeInput & { q?: string | null; source?: string | null },
+  ) {
+    const clauses: string[] = [];
+    if (input.q) {
+      clauses.push(`(toLower(coalesce(journal.display_name, '')) CONTAINS toLower($q)
+        OR any(issn IN coalesce(journal.issn_list, []) WHERE toLower(issn) CONTAINS toLower($q)))`);
+    }
+    if (input.source) {
+      clauses.push('journal.crawl_source = $source');
+    }
+    if (input.firstCrawledFrom) {
+      clauses.push('journal.first_crawled_at >= datetime($firstCrawledFrom)');
+    }
+    if (input.firstCrawledTo) {
+      clauses.push('journal.first_crawled_at <= datetime($firstCrawledTo)');
+    }
+    if (input.lastSyncedFrom) {
+      clauses.push('journal.last_synced_at >= datetime($lastSyncedFrom)');
+    }
+    if (input.lastSyncedTo) {
+      clauses.push('journal.last_synced_at <= datetime($lastSyncedTo)');
+    }
+    return clauses.length > 0 ? clauses.join('\n      AND ') : 'true';
   }
 
-  private articleWhere() {
-    return `article.hydration_state = 'HYDRATED'
-      AND ($q IS NULL OR toLower(coalesce(article.title, '')) CONTAINS toLower($q))
-      AND ($journalId IS NULL OR journal.id = $journalId)
-      AND ($source IS NULL OR coalesce(article.crawl_source, 'OPENALEX') = $source)
-      AND ($firstCrawledFrom IS NULL OR article.first_crawled_at >= datetime($firstCrawledFrom))
-      AND ($firstCrawledTo IS NULL OR article.first_crawled_at <= datetime($firstCrawledTo))
-      AND ($lastSyncedFrom IS NULL OR article.last_synced_at >= datetime($lastSyncedFrom))
-      AND ($lastSyncedTo IS NULL OR article.last_synced_at <= datetime($lastSyncedTo))`;
+  private articleWhere(
+    input: AdminDateRangeInput & {
+      q?: string | null;
+      source?: string | null;
+      journalId?: string | null;
+    },
+  ) {
+    const clauses = ["article.hydration_state = 'HYDRATED'"];
+    if (input.q) {
+      clauses.push("toLower(coalesce(article.title, '')) CONTAINS toLower($q)");
+    }
+    if (input.journalId) {
+      clauses.push(`EXISTS {
+        MATCH (article)-[:PUBLISHED_IN]->(:Journal {id: $journalId})
+      }`);
+    }
+    if (input.source) {
+      clauses.push('article.crawl_source = $source');
+    }
+    if (input.firstCrawledFrom) {
+      clauses.push('article.first_crawled_at >= datetime($firstCrawledFrom)');
+    }
+    if (input.firstCrawledTo) {
+      clauses.push('article.first_crawled_at <= datetime($firstCrawledTo)');
+    }
+    if (input.lastSyncedFrom) {
+      clauses.push('article.last_synced_at >= datetime($lastSyncedFrom)');
+    }
+    if (input.lastSyncedTo) {
+      clauses.push('article.last_synced_at <= datetime($lastSyncedTo)');
+    }
+    return clauses.join('\n      AND ');
   }
 
   private graphParameters(

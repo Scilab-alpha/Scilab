@@ -5,6 +5,7 @@ services:
     build:
       context: .
       dockerfile: services/academic-worker/Dockerfile
+      target: build
     container_name: scilab-migrate
     image: scilab-migrate
     restart: "no"
@@ -12,7 +13,7 @@ services:
       [
         "sh",
         "-c",
-        "pnpm --filter @repo/database prisma:deploy && node dist/initialize.js",
+        "pnpm --filter @repo/database prisma:deploy && node services/academic-worker/dist/initialize.js",
       ]
     environment:
       - NODE_ENV=production
@@ -99,7 +100,11 @@ services:
       - SCIMAGO_DATASET_DIR=/app/docs/scimagojr/normalized
       - OPENALEX_API_BASE_URL=https://api.openalex.org
       - OPENALEX_API_KEY=${OPENALEX_API_KEY:?Set OPENALEX_API_KEY in .env}
+      - OPENALEX_JOURNAL_BACKFILL_FROM_YEAR=${OPENALEX_JOURNAL_BACKFILL_FROM_YEAR:-2023}
+      - OPENALEX_JOURNAL_BACKFILL_TO_YEAR=${OPENALEX_JOURNAL_BACKFILL_TO_YEAR:-2025}
       - OPENALEX_JOURNAL_PRIORITY_PERCENT=${OPENALEX_JOURNAL_PRIORITY_PERCENT:-80}
+      - OPENALEX_JOURNAL_CITATION_THRESHOLD=${OPENALEX_JOURNAL_CITATION_THRESHOLD:-500}
+      - OPENALEX_RELATED_WORK_LIMIT=${OPENALEX_RELATED_WORK_LIMIT:-20}
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USERNAME=neo4j
       - NEO4J_PASSWORD=12345678
