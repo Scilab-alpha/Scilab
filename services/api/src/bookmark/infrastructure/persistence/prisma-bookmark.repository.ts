@@ -10,6 +10,10 @@ import { PrismaService } from '@repo/database';
 export class PrismaBookmarkRepository implements BookmarkRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  countByUser(userId: string): Promise<number> {
+    return this.prisma.userBookmark.count({ where: { userId } });
+  }
+
   async findByUserAndArticle(
     userId: string,
     articleId: string,

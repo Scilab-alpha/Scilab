@@ -55,6 +55,27 @@ export interface AdminDateRangeInput {
 
 type JobAction = 'pause' | 'resume' | 'trigger' | 'cancel' | 'retry';
 
+const DASHBOARD_TOP_LIMIT = 5;
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+const EMPTY_DASHBOARD_GRAPH = {
+  articleCount: 0,
+  journalCount: 0,
+  authorCount: 0,
+  growth: {
+    last7Days: { articles: 0, journals: 0, authorsWithNewArticles: 0 },
+    last30Days: { articles: 0, journals: 0, authorsWithNewArticles: 0 },
+  },
+  rankings: { topJournals: [], topArticles: [] },
+  dataQuality: {
+    hydratedArticles: 0,
+    placeholderArticles: 0,
+    missingDoi: 0,
+    missingAbstract: 0,
+    missingAuthors: 0,
+  },
+};
+
 @Injectable()
 export class AdminAcademicService {
   constructor(
@@ -62,6 +83,277 @@ export class AdminAcademicService {
     private readonly neo4j: Neo4jService,
     private readonly queues: AcademicPipelineQueueProducer,
   ) {}
+
+  async getDashboardMetrics() {
+    const generatedAt = new Date();
+    const last24Hours = new Date(generatedAt.getTime() - DAY_IN_MS);
+    const last7Days = new Date(generatedAt.getTime() - DAY_IN_MS * 7);
+    const last30Days = new Date(generatedAt.getTime() - DAY_IN_MS * 30);
+
+    try {
+      const [database, graph] = await Promise.all([
+        this.loadDashboardDatabaseMetrics(last24Hours, last7Days, last30Days),
+        this.loadDashboardGraphMetrics(last7Days, last30Days),
+      ]);
+
+      return {
+        generatedAt: generatedAt.toISOString(),
+        articleCount: graph.articleCount,
+        journalCount: graph.journalCount,
+        authorCount: graph.authorCount,
+        userCount: database.userCount,
+        summary: {
+          articleCount: graph.articleCount,
+          journalCount: graph.journalCount,
+          authorCount: graph.authorCount,
+          userCount: database.userCount,
+        },
+        users: database.users,
+        engagement: database.engagement,
+        sync: database.sync,
+        growth: graph.growth,
+        rankings: graph.rankings,
+        dataQuality: graph.dataQuality,
+        sources: database.sources,
+      };
+    } catch {
+      throw new ServiceUnavailableException(
+        'Dashboard metrics are unavailable',
+      );
+    }
+  }
+
+  private async loadDashboardDatabaseMetrics(
+    last24Hours: Date,
+    last7Days: Date,
+    last30Days: Date,
+  ) {
+    const [
+      userCount,
+      usersByStatus,
+      usersByRole,
+      newUsersLast7Days,
+      newUsersLast30Days,
+      bookmarkCount,
+      followCount,
+      unreadNotificationCount,
+      runningJobCount,
+      failedSyncCount,
+      recentSyncLogs,
+      sourceConfigs,
+      failuresByConfig,
+    ] = await Promise.all([
+      this.prisma.user.count(),
+      this.prisma.user.groupBy({ by: ['status'], _count: { _all: true } }),
+      this.prisma.user.groupBy({ by: ['role'], _count: { _all: true } }),
+      this.prisma.user.count({ where: { createdAt: { gte: last7Days } } }),
+      this.prisma.user.count({ where: { createdAt: { gte: last30Days } } }),
+      this.prisma.userBookmark.count(),
+      this.prisma.userFollow.count(),
+      this.prisma.notification.count({ where: { isRead: false } }),
+      this.prisma.academicJobRun.count({
+        where: { status: AcademicJobRunStatus.RUNNING },
+      }),
+      this.prisma.syncLog.count({
+        where: { status: SyncStatus.FAILED, startedAt: { gte: last24Hours } },
+      }),
+      this.prisma.syncLog.findMany({
+        orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+        take: 5,
+        include: { config: { select: { apiName: true } } },
+      }),
+      this.prisma.systemConfig.findMany({
+        select: {
+          id: true,
+          apiName: true,
+          isActive: true,
+          lastTestedAt: true,
+          syncLogs: {
+            orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+            take: 1,
+            select: { status: true, startedAt: true },
+          },
+        },
+      }),
+      this.prisma.syncLog.groupBy({
+        by: ['configId'],
+        where: { status: SyncStatus.FAILED, startedAt: { gte: last24Hours } },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const byStatus = { active: 0, inactive: 0, banned: 0 };
+    for (const row of usersByStatus) {
+      const key = String(row.status).toLowerCase() as keyof typeof byStatus;
+      if (key in byStatus) byStatus[key] = row._count._all;
+    }
+    const byRole = { student: 0, researcher: 0, admin: 0 };
+    for (const row of usersByRole) {
+      const key = String(row.role).toLowerCase() as keyof typeof byRole;
+      if (key in byRole) byRole[key] = row._count._all;
+    }
+    const failedByConfig = new Map(
+      failuresByConfig.map((row) => [row.configId, row._count._all]),
+    );
+
+    return {
+      userCount,
+      users: {
+        byStatus,
+        byRole,
+        registrations: {
+          last7Days: newUsersLast7Days,
+          last30Days: newUsersLast30Days,
+        },
+      },
+      engagement: {
+        bookmarkCount,
+        followCount,
+        unreadNotificationCount,
+      },
+      sync: {
+        runningJobCount,
+        failedSyncCountLast24Hours: failedSyncCount,
+        lastSyncAt: recentSyncLogs[0]?.startedAt ?? null,
+        recentLogs: recentSyncLogs.map((log) => ({
+          id: log.id,
+          source: String(log.source).toLowerCase(),
+          jobType: String(log.jobType).toLowerCase(),
+          status: String(log.status).toLowerCase(),
+          startedAt: log.startedAt,
+          finishedAt: log.finishedAt,
+          insertedCount: log.totalInserted,
+          updatedCount: log.totalUpdated,
+          errorCount: log.totalErrors,
+          sourceName: log.config.apiName,
+        })),
+      },
+      sources: sourceConfigs.map((source) => {
+        const latestSync = source.syncLogs[0];
+        return {
+          id: source.id,
+          name: source.apiName,
+          isActive: source.isActive,
+          lastTestedAt: source.lastTestedAt,
+          latestSyncStatus: latestSync
+            ? String(latestSync.status).toLowerCase()
+            : null,
+          latestSyncAt: latestSync?.startedAt ?? null,
+          failedSyncCountLast24Hours: failedByConfig.get(source.id) ?? 0,
+        };
+      }),
+    };
+  }
+
+  private async loadDashboardGraphMetrics(last7Days: Date, last30Days: Date) {
+    const result = await this.neo4j.executeRead(
+      `
+      CALL { MATCH (article:Article) RETURN count(article) AS article_count }
+      CALL { MATCH (journal:Journal) RETURN count(journal) AS journal_count }
+      CALL { MATCH (author:Author) RETURN count(author) AS author_count }
+      CALL {
+        MATCH (article:Article)
+        RETURN sum(CASE WHEN article.hydration_state = 'HYDRATED' THEN 1 ELSE 0 END) AS hydrated_articles,
+               sum(CASE WHEN article.hydration_state = 'PLACEHOLDER' THEN 1 ELSE 0 END) AS placeholder_articles,
+               sum(CASE WHEN article.hydration_state = 'HYDRATED' AND trim(coalesce(article.doi, '')) = '' THEN 1 ELSE 0 END) AS missing_doi,
+               sum(CASE WHEN article.hydration_state = 'HYDRATED' AND trim(coalesce(article.abstract, '')) = '' THEN 1 ELSE 0 END) AS missing_abstract,
+               sum(CASE WHEN article.hydration_state = 'HYDRATED' AND NOT EXISTS { MATCH (:Author)-[:WROTE]->(article) } THEN 1 ELSE 0 END) AS missing_authors
+      }
+      CALL {
+        MATCH (article:Article)
+        WHERE article.hydration_state = 'HYDRATED' AND article.first_crawled_at >= datetime($last7Days)
+        RETURN count(article) AS articles_7_days
+      }
+      CALL {
+        MATCH (journal:Journal)
+        WHERE journal.first_crawled_at >= datetime($last7Days)
+        RETURN count(journal) AS journals_7_days
+      }
+      CALL {
+        MATCH (author:Author)-[:WROTE]->(article:Article)
+        WHERE article.hydration_state = 'HYDRATED' AND article.first_crawled_at >= datetime($last7Days)
+        RETURN count(DISTINCT author) AS authors_7_days
+      }
+      CALL {
+        MATCH (article:Article)
+        WHERE article.hydration_state = 'HYDRATED' AND article.first_crawled_at >= datetime($last30Days)
+        RETURN count(article) AS articles_30_days
+      }
+      CALL {
+        MATCH (journal:Journal)
+        WHERE journal.first_crawled_at >= datetime($last30Days)
+        RETURN count(journal) AS journals_30_days
+      }
+      CALL {
+        MATCH (author:Author)-[:WROTE]->(article:Article)
+        WHERE article.hydration_state = 'HYDRATED' AND article.first_crawled_at >= datetime($last30Days)
+        RETURN count(DISTINCT author) AS authors_30_days
+      }
+      CALL {
+        MATCH (journal:Journal)
+        OPTIONAL MATCH (article:Article {hydration_state: 'HYDRATED'})-[:PUBLISHED_IN]->(journal)
+        WITH journal, count(article) AS article_count
+        ORDER BY article_count DESC, coalesce(journal.display_name, '') ASC
+        LIMIT $topLimit
+        RETURN collect({ id: journal.id, title: journal.display_name, articleCount: article_count }) AS top_journals
+      }
+      CALL {
+        MATCH (article:Article)
+        WHERE article.hydration_state = 'HYDRATED'
+        WITH article
+        ORDER BY coalesce(article.citation_count, 0) DESC, coalesce(article.title, '') ASC
+        LIMIT $topLimit
+        RETURN collect({ id: article.id, title: article.title, citationCount: coalesce(article.citation_count, 0), publicationYear: article.publication_year }) AS top_articles
+      }
+      RETURN article_count, journal_count, author_count,
+             hydrated_articles, placeholder_articles, missing_doi, missing_abstract, missing_authors,
+             articles_7_days, journals_7_days, authors_7_days,
+             articles_30_days, journals_30_days, authors_30_days,
+             top_journals, top_articles
+      `,
+      {
+        last7Days: last7Days.toISOString(),
+        last30Days: last30Days.toISOString(),
+        topLimit: neo4j.int(DASHBOARD_TOP_LIMIT),
+      },
+      (record) => this.toDashboardGraphMetrics(record.toObject()),
+    );
+
+    return result.records[0] ?? EMPTY_DASHBOARD_GRAPH;
+  }
+
+  private toDashboardGraphMetrics(row: Record<string, unknown>) {
+    const values = this.toPlain(row) as Record<string, unknown>;
+    const count = (key: string) => Number(values[key] ?? 0);
+    return {
+      articleCount: count('article_count'),
+      journalCount: count('journal_count'),
+      authorCount: count('author_count'),
+      growth: {
+        last7Days: {
+          articles: count('articles_7_days'),
+          journals: count('journals_7_days'),
+          authorsWithNewArticles: count('authors_7_days'),
+        },
+        last30Days: {
+          articles: count('articles_30_days'),
+          journals: count('journals_30_days'),
+          authorsWithNewArticles: count('authors_30_days'),
+        },
+      },
+      rankings: {
+        topJournals: (values.top_journals as unknown[]) ?? [],
+        topArticles: (values.top_articles as unknown[]) ?? [],
+      },
+      dataQuality: {
+        hydratedArticles: count('hydrated_articles'),
+        placeholderArticles: count('placeholder_articles'),
+        missingDoi: count('missing_doi'),
+        missingAbstract: count('missing_abstract'),
+        missingAuthors: count('missing_authors'),
+      },
+    };
+  }
 
   async listSyncLogs(input: {
     page: number;

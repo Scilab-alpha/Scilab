@@ -27,6 +27,7 @@ function createGraphRepository(): jest.Mocked<AcademicGraphRepository> {
     getAuthorById: jest.fn(),
     listJournals: jest.fn(),
     getJournalById: jest.fn(),
+    getCatalogDashboardInsights: jest.fn(),
     findArticlesByIds: jest.fn(),
     findFollowTargetsByReferences: jest.fn(),
     findArticlesMatchingFollowedTargets: jest.fn(),

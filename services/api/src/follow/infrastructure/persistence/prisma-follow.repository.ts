@@ -14,6 +14,10 @@ import { PrismaService } from '@repo/database';
 export class PrismaFollowRepository implements FollowRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  countByUser(userId: string): Promise<number> {
+    return this.prisma.userFollow.count({ where: { userId } });
+  }
+
   async findByUserAndTarget(input: {
     userId: string;
     objectType: FollowObjectType;

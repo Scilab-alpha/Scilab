@@ -5,6 +5,7 @@ import { AcademicHttpModule } from '@/academic/academic-http.module';
 import { AdminAcademicModule } from '@/admin/admin-academic.module';
 import { AuthModule } from '@/auth/auth.module';
 import { BookmarkModule } from '@/bookmark/bookmark.module';
+import { DashboardModule } from '@/dashboard/dashboard.module';
 import { EventsModule } from '@/events/events.module';
 import { FollowModule } from '@/follow/follow.module';
 import { Neo4jModule } from '@repo/neo4j';
@@ -30,6 +31,7 @@ import { VisualizeModule } from '@/visualize/visualize.module';
     EventsModule,
     FollowModule,
     BookmarkModule,
+    DashboardModule,
     PushModule,
     NotificationModule,
   ],

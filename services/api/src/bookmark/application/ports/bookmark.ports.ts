@@ -6,6 +6,7 @@ export interface BookmarkRecord {
 }
 
 export interface BookmarkRepository {
+  countByUser(userId: string): Promise<number>;
   findByUserAndArticle(
     userId: string,
     articleId: string,

@@ -4,6 +4,87 @@ import { ServiceUnavailableException } from '@nestjs/common';
 import { AdminAcademicService } from './admin-academic.service';
 
 describe('AdminAcademicService', () => {
+  it('returns the complete administration dashboard from PostgreSQL and Neo4j', async () => {
+    const executeRead = jest
+      .fn()
+      .mockImplementation(
+        (
+          _cypher: string,
+          _parameters: unknown,
+          mapRecord: (record: {
+            toObject(): Record<string, unknown>;
+          }) => unknown,
+        ) =>
+          Promise.resolve({
+            records: [
+              mapRecord({
+                toObject: () => dashboardGraphRow(),
+              }),
+            ],
+          }),
+      );
+    const prisma = dashboardPrisma();
+    const service = new AdminAcademicService(
+      prisma as never,
+      { executeRead } as never,
+      {} as never,
+    );
+
+    const result = await service.getDashboardMetrics();
+
+    expect(result).toMatchObject({
+      articleCount: 1200,
+      journalCount: 42,
+      authorCount: 900,
+      userCount: 24,
+      summary: {
+        articleCount: 1200,
+        journalCount: 42,
+        authorCount: 900,
+        userCount: 24,
+      },
+      users: {
+        byStatus: { active: 20, inactive: 3, banned: 1 },
+        byRole: { student: 18, researcher: 5, admin: 1 },
+        registrations: { last7Days: 4, last30Days: 10 },
+      },
+      engagement: {
+        bookmarkCount: 30,
+        followCount: 20,
+        unreadNotificationCount: 7,
+      },
+      sync: {
+        runningJobCount: 2,
+        failedSyncCountLast24Hours: 1,
+        recentLogs: [{ sourceName: 'OpenAlex', insertedCount: 5 }],
+      },
+      growth: { last7Days: { authorsWithNewArticles: 10 } },
+      rankings: { topArticles: [{ id: 'W1', citationCount: 99 }] },
+      dataQuality: { missingDoi: 10 },
+      sources: [{ name: 'OpenAlex', failedSyncCountLast24Hours: 1 }],
+    });
+    expect(result.generatedAt).toEqual(expect.any(String));
+    expect(executeRead).toHaveBeenCalledWith(
+      expect.stringContaining('MATCH (article:Article)'),
+      expect.objectContaining({ topLimit: expect.anything() }),
+      expect.any(Function),
+    );
+  });
+
+  it('reports unavailable dashboard metrics when a data store fails', async () => {
+    const prisma = dashboardPrisma();
+    prisma.user.count.mockReset().mockRejectedValue(new Error());
+    const service = new AdminAcademicService(
+      prisma as never,
+      { executeRead: jest.fn().mockResolvedValue({ records: [] }) } as never,
+      {} as never,
+    );
+
+    await expect(service.getDashboardMetrics()).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+  });
+
   it('writes a pending audit before pausing a queue and completes it on success', async () => {
     const auditCreate = jest.fn().mockResolvedValue({ id: 'audit-1' });
     const auditUpdate = jest.fn().mockResolvedValue(undefined);
@@ -186,6 +267,104 @@ describe('AdminAcademicService', () => {
     expect(rowsCypher).not.toContain('$source IS NULL');
   });
 });
+
+function dashboardPrisma() {
+  return {
+    user: {
+      count: jest
+        .fn()
+        .mockResolvedValueOnce(24)
+        .mockResolvedValueOnce(4)
+        .mockResolvedValueOnce(10),
+      groupBy: jest.fn().mockImplementation(({ by }: { by: string[] }) =>
+        Promise.resolve(
+          by[0] === 'status'
+            ? [
+                { status: 'ACTIVE', _count: { _all: 20 } },
+                { status: 'INACTIVE', _count: { _all: 3 } },
+                { status: 'BANNED', _count: { _all: 1 } },
+              ]
+            : [
+                { role: 'STUDENT', _count: { _all: 18 } },
+                { role: 'RESEARCHER', _count: { _all: 5 } },
+                { role: 'ADMIN', _count: { _all: 1 } },
+              ],
+        ),
+      ),
+    },
+    userBookmark: { count: jest.fn().mockResolvedValue(30) },
+    userFollow: { count: jest.fn().mockResolvedValue(20) },
+    notification: { count: jest.fn().mockResolvedValue(7) },
+    academicJobRun: { count: jest.fn().mockResolvedValue(2) },
+    syncLog: {
+      count: jest
+        .fn()
+        .mockImplementation(
+          ({ where }: { where?: { status?: unknown } } = {}) =>
+            Promise.resolve(where?.status ? 1 : 0),
+        ),
+      findMany: jest.fn().mockResolvedValue([
+        {
+          id: 'log-1',
+          source: 'OPENALEX',
+          jobType: 'JOURNAL_ARTICLE_SYNC',
+          status: 'SUCCESS',
+          startedAt: new Date('2026-07-23T08:00:00.000Z'),
+          finishedAt: new Date('2026-07-23T08:02:00.000Z'),
+          totalInserted: 5,
+          totalUpdated: 4,
+          totalErrors: 0,
+          config: { apiName: 'OpenAlex' },
+        },
+      ]),
+      groupBy: jest
+        .fn()
+        .mockResolvedValue([{ configId: 'source-1', _count: { _all: 1 } }]),
+    },
+    systemConfig: {
+      findMany: jest.fn().mockResolvedValue([
+        {
+          id: 'source-1',
+          apiName: 'OpenAlex',
+          isActive: true,
+          lastTestedAt: new Date('2026-07-23T07:00:00.000Z'),
+          syncLogs: [
+            {
+              status: 'SUCCESS',
+              startedAt: new Date('2026-07-23T08:00:00.000Z'),
+            },
+          ],
+        },
+      ]),
+    },
+  };
+}
+
+function dashboardGraphRow(): Record<string, unknown> {
+  const neoInt = (value: number) => ({ toNumber: () => value });
+  return {
+    article_count: neoInt(1200),
+    journal_count: neoInt(42),
+    author_count: neoInt(900),
+    hydrated_articles: neoInt(1100),
+    placeholder_articles: neoInt(100),
+    missing_doi: neoInt(10),
+    missing_abstract: neoInt(12),
+    missing_authors: neoInt(4),
+    articles_7_days: neoInt(12),
+    journals_7_days: neoInt(2),
+    authors_7_days: neoInt(10),
+    articles_30_days: neoInt(50),
+    journals_30_days: neoInt(4),
+    authors_30_days: neoInt(40),
+    top_journals: [
+      { id: 'S1', title: 'Journal One', articleCount: neoInt(20) },
+    ],
+    top_articles: [
+      { id: 'W1', title: 'Article One', citationCount: neoInt(99) },
+    ],
+  };
+}
 
 function cypherAt(calls: unknown[][], index: number): string {
   const value = calls[index]?.[0];

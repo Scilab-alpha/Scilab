@@ -27,6 +27,7 @@ describe('ToggleBookmarkUseCase', () => {
     );
 
     const bookmarks: BookmarkRepository = {
+      countByUser: jest.fn().mockResolvedValue(0),
       findByUserAndArticle,
       create,
       deleteByUserAndArticle: jest.fn().mockResolvedValue(true),

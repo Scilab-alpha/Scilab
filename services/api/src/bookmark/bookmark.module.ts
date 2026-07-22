@@ -34,6 +34,6 @@ import { PrismaModule } from '@repo/database';
       inject: [PrismaBookmarkRepository, ACADEMIC_GRAPH_REPOSITORY],
     },
   ],
-  exports: [PrismaBookmarkRepository],
+  exports: [PrismaBookmarkRepository, ListBookmarksUseCase],
 })
 export class BookmarkModule {}

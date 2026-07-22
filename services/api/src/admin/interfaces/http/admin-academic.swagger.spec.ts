@@ -40,6 +40,7 @@ describe('Admin academic OpenAPI contract', () => {
       new DocumentBuilder().setTitle('Scilab API').addBearerAuth().build(),
     );
     const expected = [
+      '/admin/dashboard',
       '/admin/sync-logs',
       '/admin/sync-logs/{id}',
       '/admin/jobs',
@@ -66,6 +67,7 @@ describe('Admin academic OpenAPI contract', () => {
       expect(operation?.responses?.['404']).toBeDefined();
       expect(operation?.responses?.['409']).toBeDefined();
       expect(operation?.responses?.['503']).toBeDefined();
+      expect(operation?.responses?.['500']).toBeDefined();
       expect(JSON.stringify(operation)).toContain('success');
       expect(JSON.stringify(operation)).toContain('message');
       expect(JSON.stringify(operation)).toContain('data');
@@ -86,6 +88,23 @@ describe('Admin academic OpenAPI contract', () => {
     expect(
       document.paths['/admin/jobs/{id}/retry']?.post?.responses?.['202'],
     ).toBeDefined();
+    expect(JSON.stringify(document.paths['/admin/dashboard']?.get)).toContain(
+      'articleCount',
+    );
+    expect(JSON.stringify(document.paths['/admin/dashboard']?.get)).toContain(
+      'generatedAt',
+    );
+    expect(JSON.stringify(document.paths['/admin/dashboard']?.get)).toContain(
+      'dataQuality',
+    );
+    expect(JSON.stringify(document.paths['/admin/dashboard']?.get)).toContain(
+      'unreadNotificationCount',
+    );
+    expect(
+      JSON.stringify(
+        document.paths['/admin/dashboard']?.get?.responses?.['503'],
+      ),
+    ).toContain('success');
 
     for (const path of [
       '/admin/jobs/{id}',
