@@ -42,11 +42,6 @@ export function ProfileSettingsList({
         showDivider={false}
         title="Edit profile"
       />
-      <SettingRow
-        icon="lock-closed-outline"
-        meta="Waiting API"
-        title="Change password"
-      />
       <View
         style={[
           styles.themeRow,
@@ -139,7 +134,6 @@ export function ProfileSettingsList({
 function SettingRow({
   icon,
   isLoading = false,
-  meta,
   onPress,
   showDivider = true,
   title,
@@ -147,7 +141,6 @@ function SettingRow({
 }: {
   icon: React.ComponentProps<typeof Ionicons>["name"];
   isLoading?: boolean;
-  meta?: string;
   onPress?: () => void;
   showDivider?: boolean;
   title: string;
@@ -185,17 +178,6 @@ function SettingRow({
       </View>
       {isLoading ? (
         <ActivityIndicator color={theme.colors.error} />
-      ) : meta ? (
-        <Text
-          numberOfLines={1}
-          style={[
-            theme.typography.caption,
-            styles.meta,
-            { color: theme.colors.outline },
-          ]}
-        >
-          {meta}
-        </Text>
       ) : onPress ? (
         <Ionicons color={iconColor} name="chevron-forward" size={16} />
       ) : null}
@@ -210,10 +192,6 @@ const styles = StyleSheet.create({
     height: 36,
     justifyContent: "center",
     width: 36,
-  },
-  meta: {
-    maxWidth: 136,
-    textAlign: "right",
   },
   settingCopy: { flex: 1 },
   settingRow: {
