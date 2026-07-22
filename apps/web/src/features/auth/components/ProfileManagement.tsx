@@ -239,7 +239,7 @@ export default function ProfileManagement() {
           <CardHeader>
             <CardTitle>Basic information</CardTitle>
             <CardDescription>
-              Keep the details associated with your ScholarTrend account up to
+              Keep the details associated with your Scilab account up to
               date.
             </CardDescription>
           </CardHeader>
