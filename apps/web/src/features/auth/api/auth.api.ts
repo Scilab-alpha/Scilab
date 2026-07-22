@@ -53,13 +53,6 @@ export async function logout(): Promise<void> {
   });
 }
 
-export async function getGoogleOAuthAvailability() {
-  return {
-    available: false,
-    message: "Google authentication is not available yet.",
-  };
-}
-
 export function toRegisterApiRequest(
   request: RegisterRequest,
 ): RegisterApiRequest {

@@ -5,29 +5,29 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BookmarkItem } from "@/features/submissions/types/bookmark.types";
 import { useBookmarks } from "./use-bookmarks";
 
-const { listBookmarksMock, toggleBookmarkMock } = vi.hoisted(() => ({
-  listBookmarksMock: vi.fn(),
+const { listAllBookmarksMock, toggleBookmarkMock } = vi.hoisted(() => ({
+  listAllBookmarksMock: vi.fn(),
   toggleBookmarkMock: vi.fn(),
 }));
 
 vi.mock("@/features/submissions/api/bookmarks.api", () => ({
-  listBookmarks: listBookmarksMock,
+  listAllBookmarks: listAllBookmarksMock,
   toggleBookmark: toggleBookmarkMock,
 }));
 
 describe("useBookmarks", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    listBookmarksMock.mockResolvedValue(emptyPage);
+    listAllBookmarksMock.mockResolvedValue(emptyPage);
   });
 
-  it("shows Saved immediately and reloads bookmarks when the tab mounts", async () => {
+  it("uses the server timestamp and actively refetches after saving", async () => {
     const savedItem: BookmarkItem = {
       articleId: article.id,
       bookmarkedAt: "2026-07-22T08:00:00.000Z",
       article,
     };
-    listBookmarksMock
+    listAllBookmarksMock
       .mockResolvedValueOnce(emptyPage)
       .mockResolvedValue({ ...emptyPage, items: [savedItem] });
 
@@ -57,14 +57,11 @@ describe("useBookmarks", () => {
     });
 
     await waitFor(() =>
-      expect(
-        searchHook.result.current.items.map((item) => item.articleId),
-      ).toContain(article.id),
+      expect(toggleBookmarkMock).toHaveBeenCalledWith({
+        articleId: article.id,
+        article,
+      }),
     );
-    expect(toggleBookmarkMock).toHaveBeenCalledWith({
-      articleId: article.id,
-      article,
-    });
 
     await act(async () => {
       resolveToggle({
@@ -74,20 +71,14 @@ describe("useBookmarks", () => {
       });
       await togglePromise;
     });
-    expect(listBookmarksMock).toHaveBeenCalledTimes(1);
-
-    searchHook.unmount();
-    const bookmarkTabHook = renderHook(() => useBookmarks(), {
-      wrapper: Wrapper,
-    });
-    await waitFor(() => expect(listBookmarksMock).toHaveBeenCalledTimes(2));
     await waitFor(() =>
       expect(
-        bookmarkTabHook.result.current.items.map((item) => item.articleId),
+        searchHook.result.current.items.map((item) => item.articleId),
       ).toContain(article.id),
     );
+    expect(listAllBookmarksMock).toHaveBeenCalledTimes(2);
 
-    bookmarkTabHook.unmount();
+    searchHook.unmount();
     queryClient.clear();
   });
 });

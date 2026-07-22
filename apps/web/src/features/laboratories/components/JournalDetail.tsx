@@ -295,12 +295,6 @@ export default function JournalDetail({ journalId }: JournalDetailProps) {
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Region</span>
-                    <span className="text-foreground font-medium">
-                      {journal.region ?? "—"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Country</span>
                     <span className="text-foreground font-medium">
                       {getJournalCountry(journal)}

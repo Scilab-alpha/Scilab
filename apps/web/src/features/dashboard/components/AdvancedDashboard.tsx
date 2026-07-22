@@ -1,14 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment } from "react";
-import {
-  ArrowDown,
-  ArrowUp,
-  FileText,
-  Image as ImageIcon,
-  TrendingUp,
-} from "lucide-react";
+import { Fragment, useState } from "react";
+import { FileText, Image as ImageIcon, TrendingUp } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -21,12 +15,27 @@ import {
 } from "recharts";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
+import { Badge } from "@/shared/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/table";
 import PageContainer from "@/shared/components/layout/PageContainer";
 import StudentTopHeader from "@/shared/components/layout/StudentTopHeader";
 import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import Can from "@/shared/components/auth/Can";
 import { useAdvancedDashboard } from "@/features/dashboard/hooks/use-advanced-dashboard";
 import { heatmapCellClass } from "@/features/dashboard/lib/build-advanced-dashboard-insights";
+import { useJournalRankings } from "@/features/laboratories/hooks/use-journal-rankings";
+import {
+  JOURNAL_RANKING_YEARS,
+  type JournalRankingMatchStatus,
+  type JournalRankingYear,
+} from "@/features/experiments/types/journal.types";
 
 const chartTooltipStyle = {
   backgroundColor: "var(--card)",
@@ -59,8 +68,8 @@ export default function AdvancedDashboard() {
                 Advanced Dashboard
               </h1>
               <p className="text-muted-foreground mt-1">
-                Compare keywords/topics, explore activity heatmaps, and track
-                journal ranking from the live catalog.
+                Compare keyword/topic activity from the loaded catalog snapshot
+                and browse exact SCImago rankings.
               </p>
             </div>
 
@@ -111,13 +120,13 @@ export default function AdvancedDashboard() {
                   </h2>
                   <p className="text-sm text-muted-foreground mt-0.5">
                     Publication volume by year for top topics & keywords ·{" "}
-                    {data.sampleHint}
+                    {data.coverageHint}
                   </p>
                 </div>
                 {data.keywordComparisonSeries.length === 0 ||
                 data.keywordLines.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-16 text-center">
-                    Not enough topic/keyword data in the catalog sample yet.
+                    Not enough topic/keyword data in the backend snapshot yet.
                   </p>
                 ) : (
                   <ResponsiveContainer width="100%" height={320}>
@@ -169,12 +178,13 @@ export default function AdvancedDashboard() {
                     Research Activity Heatmap
                   </h2>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    Relative intensity (0–100) by field and publication year
+                    Relative intensity (0–100) by field and publication year ·{" "}
+                    {data.coverageHint}
                   </p>
                 </div>
                 {data.heatmapRows.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-12 text-center">
-                    No heatmap rows available for this sample.
+                    No heatmap rows are available in this backend snapshot.
                   </p>
                 ) : (
                   <div className="overflow-x-auto">
@@ -216,112 +226,191 @@ export default function AdvancedDashboard() {
                   </div>
                 )}
               </Card>
-
-              <Card className="p-6">
-                <div className="mb-6 flex items-center justify-between gap-4">
-                  <div>
-                    <h2 className="font-heading text-lg text-foreground">
-                      Journal Ranking Progress
-                    </h2>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      Ranked by article volume in the catalog sample
-                    </p>
-                  </div>
-                  <Button asChild variant="ghost" size="sm">
-                    <Link href="/student/journals">Browse journals</Link>
-                  </Button>
-                </div>
-
-                {data.rankingProgress.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-12 text-center">
-                    No journal ranking data in this sample.
-                  </p>
-                ) : (
-                  <div className="space-y-6">
-                    {data.rankingProgress.map((item) => {
-                      const improved = item.currentRank < item.previousRank;
-
-                      return (
-                        <div
-                          key={item.id}
-                          className="rounded-[var(--radius-card)] border border-border p-5"
-                        >
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                            <div>
-                              <Link
-                                href={`/student/journals/${encodeURIComponent(item.id)}`}
-                                className="text-sm font-medium text-foreground hover:underline"
-                              >
-                                {item.journal}
-                              </Link>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                Current rank #{item.currentRank} · was #
-                                {item.previousRank} · {item.articleCount}{" "}
-                                articles in sample
-                              </p>
-                            </div>
-                            <div
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-[var(--radius-button)] text-xs font-medium ${
-                                improved
-                                  ? "bg-teal/10 text-teal"
-                                  : "bg-destructive/10 text-destructive"
-                              }`}
-                            >
-                              {improved ? (
-                                <ArrowUp
-                                  className="w-3.5 h-3.5"
-                                  strokeWidth={1.75}
-                                />
-                              ) : (
-                                <ArrowDown
-                                  className="w-3.5 h-3.5"
-                                  strokeWidth={1.75}
-                                />
-                              )}
-                              {improved ? "Improved" : "Declined"}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            {item.timeline.map((point) => (
-                              <div
-                                key={`${item.id}-${point.period}`}
-                                className="space-y-2"
-                              >
-                                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                  <span>{point.period}</span>
-                                  <span className="font-medium text-foreground">
-                                    #{point.rank}
-                                  </span>
-                                </div>
-                                <div className="h-2 bg-surface-raised rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full bg-teal rounded-full transition-all"
-                                    style={{
-                                      width: `${Math.max(
-                                        8,
-                                        ((Math.max(item.previousRank, 6) -
-                                          point.rank +
-                                          1) /
-                                          Math.max(item.previousRank, 6)) *
-                                          100,
-                                      )}%`,
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </Card>
             </>
           )}
+          <JournalRankingTable />
         </PageContainer>
       </main>
     </>
   );
+}
+
+const rankingPageSize = 20;
+
+export function JournalRankingTable() {
+  const [year, setYear] = useState<JournalRankingYear>(2025);
+  const [pageIndex, setPageIndex] = useState(0);
+  const ranking = useJournalRankings(year, rankingPageSize);
+  const page = ranking.pages[pageIndex];
+
+  const goNext = async () => {
+    const nextIndex = pageIndex + 1;
+    if (ranking.pages[nextIndex]) {
+      setPageIndex(nextIndex);
+      return;
+    }
+    if (!ranking.hasMore) return;
+    const result = await ranking.loadMore();
+    if (result.data?.pages[nextIndex]) {
+      setPageIndex(nextIndex);
+    }
+  };
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="font-heading text-lg text-foreground">
+            SCImago Journal Rankings
+          </h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Exact {year} dataset returned by the academic ranking API
+          </p>
+        </div>
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          Ranking year
+          <select
+            aria-label="Ranking year"
+            className="h-9 rounded-lg border border-border bg-card px-3 text-foreground"
+            value={year}
+            onChange={(event) => {
+              setYear(Number(event.target.value) as JournalRankingYear);
+              setPageIndex(0);
+            }}
+          >
+            {JOURNAL_RANKING_YEARS.map((availableYear) => (
+              <option key={availableYear} value={availableYear}>
+                {availableYear}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {ranking.isLoading ? (
+        <RouteDataLoading label={`Loading ${year} SCImago rankings…`} />
+      ) : ranking.error ? (
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-4 px-6 pb-6"
+        >
+          <p className="text-sm text-destructive">{ranking.error}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void ranking.reload()}
+          >
+            Try again
+          </Button>
+        </div>
+      ) : !page || page.items.length === 0 ? (
+        <p className="px-6 pb-10 text-center text-sm text-muted-foreground">
+          No SCImago ranking records were returned for {year}.
+        </p>
+      ) : (
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>API order</TableHead>
+                <TableHead>Journal</TableHead>
+                <TableHead>SJR</TableHead>
+                <TableHead>H-index</TableHead>
+                <TableHead>Docs ({year})</TableHead>
+                <TableHead>Citations (3y)</TableHead>
+                <TableHead>Citations / doc (2y)</TableHead>
+                <TableHead>Country</TableHead>
+                <TableHead>Match</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {page.items.map((item, index) => {
+                const canOpen =
+                  item.matchStatus === "MATCHED" && Boolean(item.journalId);
+                return (
+                  <TableRow key={item.scimagoSourceId}>
+                    <TableCell>
+                      {pageIndex * rankingPageSize + index + 1}
+                    </TableCell>
+                    <TableCell>
+                      <div className="max-w-80 whitespace-normal">
+                        {canOpen ? (
+                          <Link
+                            href={`/student/journals/${encodeURIComponent(item.journalId!)}`}
+                            className="font-medium text-foreground hover:underline"
+                          >
+                            {item.title}
+                          </Link>
+                        ) : (
+                          <span className="font-medium text-foreground">
+                            {item.title}
+                          </span>
+                        )}
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {item.issns.join(", ") || "No ISSN"}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>{formatRankingMetric(item.sjr)}</TableCell>
+                    <TableCell>{formatRankingMetric(item.hIndex)}</TableCell>
+                    <TableCell>{formatRankingMetric(item.totalDocs)}</TableCell>
+                    <TableCell>
+                      {formatRankingMetric(item.totalCitations3Years)}
+                    </TableCell>
+                    <TableCell>
+                      {formatRankingMetric(item.citationsPerDoc2Years)}
+                    </TableCell>
+                    <TableCell>{item.countryCode ?? "—"}</TableCell>
+                    <TableCell>
+                      <RankingStatus status={item.matchStatus} />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          <div className="flex items-center justify-between border-t border-border px-6 py-4">
+            <p className="text-sm text-muted-foreground">
+              API page {pageIndex + 1} · {page.items.length} records
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pageIndex === 0}
+                onClick={() => setPageIndex((value) => Math.max(0, value - 1))}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={
+                  (ranking.isLoadingMore && !ranking.pages[pageIndex + 1]) ||
+                  (!ranking.pages[pageIndex + 1] && !ranking.hasMore)
+                }
+                onClick={() => void goNext()}
+              >
+                {ranking.isLoadingMore ? "Loading…" : "Next"}
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
+    </Card>
+  );
+}
+
+function RankingStatus({ status }: { status: JournalRankingMatchStatus }) {
+  const variant =
+    status === "MATCHED"
+      ? "teal"
+      : status === "CONFLICT"
+        ? "destructive"
+        : "secondary";
+  return <Badge variant={variant}>{status.replaceAll("_", " ")}</Badge>;
+}
+
+function formatRankingMetric(value: number | null) {
+  return value === null ? "—" : value.toLocaleString();
 }

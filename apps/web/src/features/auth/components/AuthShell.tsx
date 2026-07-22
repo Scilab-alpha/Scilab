@@ -13,7 +13,7 @@ interface AuthShellProps {
   heroTitle: string;
   heroDescription: string;
   features: readonly AuthHeroFeature[];
-  footerItems: readonly string[];
+  footerItems?: readonly string[];
   formTitle: string;
   formDescription: string;
   formWidth?: "login" | "register";
@@ -25,7 +25,7 @@ export default function AuthShell({
   heroTitle,
   heroDescription,
   features,
-  footerItems,
+  footerItems = [],
   formTitle,
   formDescription,
   formWidth = "login",
@@ -89,13 +89,15 @@ export default function AuthShell({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-5 border-t border-border pt-6">
-            {footerItems.map((item) => (
-              <span key={item} className="text-sm text-muted-foreground">
-                {item}
-              </span>
-            ))}
-          </div>
+          {footerItems.length > 0 ? (
+            <div className="grid grid-cols-3 gap-5 border-t border-border pt-6">
+              {footerItems.map((item) => (
+                <span key={item} className="text-sm text-muted-foreground">
+                  {item}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
       </section>
 

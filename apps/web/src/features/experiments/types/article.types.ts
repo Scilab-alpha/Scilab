@@ -20,6 +20,7 @@ export type ArticleNode = {
   version: string | null;
   volumeNumber: number | string | null;
   issueNumber: string | null;
+  citationCount: number | null;
   createdAt: string | null;
   updatedAt: string | null;
 };
@@ -58,13 +59,16 @@ export type ArticleListParams = {
   cursor?: string | null;
   q?: string | null;
   limit?: number;
+  keywordId?: string | null;
+  topicId?: string | null;
+  authorId?: string | null;
+  journalId?: string | null;
+  publicationYear?: number;
+  publicationYearFrom?: number;
+  publicationYearTo?: number;
+  publisher?: string | null;
+  country?: string | null;
+  sort?: "relevant" | "newest" | "most_cited";
 };
 export type ArticleListResponse = CursorPage<ArticleGraph>;
 export type ArticleDetailResponse = ArticleGraph;
-
-export const yearOptions = ["2024", "2023", "2022", "2021", "2020", "2019"];
-
-export interface ArticleSearchProps {
-  onNavigate?: (view: string) => void;
-  onViewArticle?: (articleId: string) => void;
-}

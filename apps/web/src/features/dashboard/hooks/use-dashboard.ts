@@ -2,13 +2,13 @@
 
 import { useMemo } from "react";
 import {
-  getCatalogSampleError,
-  useCatalogSample,
-} from "@/features/dashboard/hooks/use-catalog-sample";
+  getCatalogSnapshotError,
+  useCatalogSnapshot,
+} from "@/features/dashboard/hooks/use-catalog-snapshot";
 import { buildDashboardInsights } from "@/features/dashboard/lib/build-dashboard-insights";
 
 export function useDashboard() {
-  const query = useCatalogSample();
+  const query = useCatalogSnapshot();
 
   const data = useMemo(
     () => (query.data ? buildDashboardInsights(query.data) : null),
@@ -18,7 +18,7 @@ export function useDashboard() {
   return {
     data,
     isLoading: query.isLoading,
-    error: getCatalogSampleError(query.error),
+    error: getCatalogSnapshotError(query.error),
     reload: () => query.refetch(),
   };
 }
