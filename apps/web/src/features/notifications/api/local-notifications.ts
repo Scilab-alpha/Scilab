@@ -1,3 +1,4 @@
+import type { FollowObjectType } from "@/features/follows/types/follow.types";
 import type { NotificationItem } from "@/features/notifications/types/notification.types";
 import { listLocalFollows } from "@/features/follows/api/local-follows";
 import { publishNotificationPopup } from "@/features/notifications/lib/notification-popup";
@@ -174,7 +175,7 @@ export function syncLocalFollowNotifications(
 }
 
 export function notifyFollowStarted(input: {
-  objectType: "JOURNAL" | "KEYWORD" | "TOPIC";
+  objectType: FollowObjectType;
   objectId: string;
   displayName: string;
 }) {

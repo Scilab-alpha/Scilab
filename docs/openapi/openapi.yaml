@@ -597,7 +597,7 @@ paths:
           $ref: "#/components/responses/Unauthorized"
   /follows/toggle:
     post:
-      summary: Toggle follow for a journal, keyword, or topic
+      summary: Toggle follow for an author, journal, keyword, or topic
       operationId: toggleFollow
       tags:
         - Follows
@@ -2053,6 +2053,7 @@ components:
     FollowObjectType:
       type: string
       enum:
+        - AUTHOR
         - JOURNAL
         - KEYWORD
         - TOPIC

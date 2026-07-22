@@ -1260,6 +1260,18 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
     const result = await this.neo4j.executeRead<FollowTargetRecord>(
       `
       CALL {
+        WITH $authors AS ids
+        MATCH (node:Author)
+        WHERE node.id IN ids
+        RETURN 'AUTHOR' AS type,
+               node.id AS id,
+               node.display_name AS display_name,
+               null AS source_id,
+               null AS journal_type,
+               null AS country,
+               null AS region,
+               null AS score
+        UNION
         WITH $journals AS ids
         MATCH (node:Journal)
         WHERE node.id IN ids
@@ -1328,7 +1340,8 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
     if (
       groups.journals.length === 0 &&
       groups.keywords.length === 0 &&
-      groups.topics.length === 0
+      groups.topics.length === 0 &&
+      groups.authors.length === 0
     ) {
       return [];
     }
@@ -1354,8 +1367,12 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
       WHERE matched_topic.id IN $topics
       WITH article, journal_matches, keyword_matches,
            collect(DISTINCT {type: 'TOPIC', id: matched_topic.id}) AS topic_matches
+      OPTIONAL MATCH (matched_author:Author)-[:WROTE]->(article)
+      WHERE matched_author.id IN $authors
+      WITH article, journal_matches, keyword_matches, topic_matches,
+           collect(DISTINCT {type: 'AUTHOR', id: matched_author.id}) AS author_matches
       WITH article,
-           [row IN journal_matches + keyword_matches + topic_matches WHERE row.id IS NOT NULL] AS matches
+           [row IN journal_matches + keyword_matches + topic_matches + author_matches WHERE row.id IS NOT NULL] AS matches
       WHERE size(matches) > 0
       OPTIONAL MATCH (article)-[:PUBLISHED_IN]->(journal:Journal)
       OPTIONAL MATCH (author:Author)-[wrote:WROTE]->(article)
@@ -1696,13 +1713,16 @@ function groupFollowReferences(
   refs: FollowTargetReference[],
 ): FollowedTargetGroups {
   const groups: FollowedTargetGroups = {
+    authors: [],
     journals: [],
     keywords: [],
     topics: [],
   };
 
   for (const ref of refs) {
-    if (ref.type === 'JOURNAL') {
+    if (ref.type === 'AUTHOR') {
+      groups.authors.push(ref.id);
+    } else if (ref.type === 'JOURNAL') {
       groups.journals.push(ref.id);
     } else if (ref.type === 'KEYWORD') {
       groups.keywords.push(ref.id);
@@ -1712,6 +1732,7 @@ function groupFollowReferences(
   }
 
   return {
+    authors: unique(groups.authors),
     journals: unique(groups.journals),
     keywords: unique(groups.keywords),
     topics: unique(groups.topics),

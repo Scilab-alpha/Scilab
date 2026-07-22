@@ -13,7 +13,11 @@ import {
 
 export const ACADEMIC_GRAPH_REPOSITORY = Symbol('ACADEMIC_GRAPH_REPOSITORY');
 
-export type FollowableAcademicNodeType = 'JOURNAL' | 'KEYWORD' | 'TOPIC';
+export type FollowableAcademicNodeType =
+  | 'AUTHOR'
+  | 'JOURNAL'
+  | 'KEYWORD'
+  | 'TOPIC';
 
 export interface FollowTargetReference {
   type: FollowableAcademicNodeType;
@@ -37,6 +41,7 @@ export interface ArticleFollowMatch {
 }
 
 export interface FollowedTargetGroups {
+  authors: string[];
   journals: string[];
   keywords: string[];
   topics: string[];
