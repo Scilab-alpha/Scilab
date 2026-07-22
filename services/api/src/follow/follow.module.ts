@@ -41,6 +41,6 @@ import { PrismaModule } from '@repo/database';
       inject: [PrismaFollowRepository],
     },
   ],
-  exports: [PrismaFollowRepository],
+  exports: [PrismaFollowRepository, ListFollowsUseCase],
 })
 export class FollowModule {}

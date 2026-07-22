@@ -27,6 +27,7 @@ export interface FollowRecipient {
 }
 
 export interface FollowRepository {
+  countByUser(userId: string): Promise<number>;
   findByUserAndTarget(input: {
     userId: string;
     objectType: FollowObjectType;

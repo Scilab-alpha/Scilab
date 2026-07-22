@@ -25,6 +25,7 @@ import {
 } from '@/admin/interfaces/http/admin-academic.dto';
 import {
   ApiAdminAction,
+  ApiAdminDashboardMetrics,
   ApiAdminRead,
 } from '@/admin/interfaces/http/admin-academic.swagger';
 import { AdminGuard } from '@/user/interfaces/guards/admin.guard';
@@ -70,6 +71,15 @@ const ACADEMIC_JOB_ID_PARAM = {
 @UseGuards(JwtAuthGuard, AdminGuard)
 export class AdminAcademicController {
   constructor(private readonly admin: AdminAcademicService) {}
+
+  @Get('dashboard')
+  @ApiAdminDashboardMetrics()
+  async getDashboardMetrics() {
+    return createSuccessResponse(
+      await this.admin.getDashboardMetrics(),
+      'Dashboard metrics retrieved',
+    );
+  }
 
   @Get('sync-logs')
   @ApiAdminRead('List academic crawl and sync logs', 'Sync logs retrieved')

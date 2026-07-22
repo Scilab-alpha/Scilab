@@ -97,6 +97,10 @@ import { AcademicController } from './http/academic.controller';
       useExisting: PrismaAcademicJournalSyncStateRepository,
     },
   ],
-  exports: [ACADEMIC_GRAPH_REPOSITORY],
+  exports: [
+    ACADEMIC_GRAPH_REPOSITORY,
+    SCIMAGO_DATASET_READER,
+    ACADEMIC_JOURNAL_SYNC_STATE_REPOSITORY,
+  ],
 })
 export class AcademicHttpModule {}

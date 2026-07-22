@@ -46,6 +46,29 @@ export interface FollowedTargetGroups {
   topics: string[];
 }
 
+export interface CatalogDashboardInsights {
+  catalog: {
+    journalCount: number;
+    articleCount: number;
+    uniqueKeywordCount: number;
+    topicsAndSubjectsCount: number;
+    asOf: string | null;
+  };
+  publicationGrowth: Array<{ year: number; articles: number }>;
+  trendingTopics: Array<{
+    name: string;
+    count: number;
+    changePercent: number;
+  }>;
+  recentPublications: Array<{
+    id: string;
+    title: string | null;
+    journal: string | null;
+    publicationYear: number | null;
+    citationCount: number;
+  }>;
+}
+
 export interface AcademicGraphRepository {
   ensureSchema(): Promise<void>;
   upsertArticleGraph(graph: ArticleGraph): Promise<void>;
@@ -63,6 +86,7 @@ export interface AcademicGraphRepository {
     input: CursorPaginationInput,
   ): Promise<CursorPage<JournalListItem>>;
   getJournalById(id: string): Promise<JournalListItem | null>;
+  getCatalogDashboardInsights(): Promise<CatalogDashboardInsights>;
   findArticlesByIds(ids: string[]): Promise<ArticleGraph[]>;
   findFollowTargetsByReferences(
     refs: FollowTargetReference[],

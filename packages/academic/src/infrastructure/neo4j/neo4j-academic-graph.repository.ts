@@ -4,6 +4,7 @@ import neo4j from 'neo4j-driver';
 import {
   AcademicGraphRepository,
   ArticleFollowMatch,
+  CatalogDashboardInsights,
   FollowedTargetGroups,
   FollowTargetRecord,
   FollowTargetReference,
@@ -772,6 +773,140 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
     );
 
     return result.records[0] ?? null;
+  }
+
+  async getCatalogDashboardInsights(): Promise<CatalogDashboardInsights> {
+    const result = await this.neo4j.executeRead<CatalogDashboardInsights>(
+      `
+      CALL { MATCH (journal:Journal) RETURN count(journal) AS journal_count }
+      CALL {
+        MATCH (article:Article)
+        WHERE article.hydration_state = 'HYDRATED'
+        RETURN count(article) AS article_count,
+               max(article.last_synced_at) AS catalog_as_of
+      }
+      CALL { MATCH (keyword:Keyword) RETURN count(keyword) AS keyword_count }
+      CALL { MATCH (topic:Topic) RETURN count(topic) AS topic_count }
+      CALL {
+        MATCH (journal:Journal)
+        UNWIND coalesce(journal.subject_categories, []) AS subject
+        RETURN count(DISTINCT subject) AS subject_count
+      }
+      CALL {
+        MATCH (article:Article)
+        WHERE article.hydration_state = 'HYDRATED'
+          AND article.publication_year IS NOT NULL
+        WITH article.publication_year AS year, count(article) AS articles
+        ORDER BY year ASC
+        RETURN collect({ year: year, articles: articles }) AS publication_growth
+      }
+      CALL {
+        MATCH (article:Article)
+        WHERE article.hydration_state = 'HYDRATED'
+          AND article.publication_year IS NOT NULL
+        RETURN max(article.publication_year) AS latest_year
+      }
+      CALL {
+        WITH latest_year
+        CALL {
+          MATCH (article:Article)-[:BELONGS_TO]->(topic:Topic)
+          WHERE article.hydration_state = 'HYDRATED'
+            AND article.publication_year IS NOT NULL
+          RETURN coalesce(topic.display_name, topic.id) AS name,
+                 article.publication_year AS year
+          UNION ALL
+          MATCH (article:Article)-[:HAS_KEYWORD]->(keyword:Keyword)
+          WHERE article.hydration_state = 'HYDRATED'
+            AND article.publication_year IS NOT NULL
+          RETURN coalesce(keyword.display_name, keyword.id) AS name,
+                 article.publication_year AS year
+        }
+        WITH latest_year, name, year, count(*) AS occurrences
+        WITH latest_year, name,
+             sum(occurrences) AS total_count,
+             sum(CASE WHEN year = latest_year THEN occurrences ELSE 0 END) AS current_count,
+             sum(CASE WHEN year = latest_year - 1 THEN occurrences ELSE 0 END) AS previous_count
+        ORDER BY total_count DESC, name ASC
+        LIMIT 5
+        RETURN collect({ name: name, count: total_count, currentCount: current_count, previousCount: previous_count }) AS trending_topics
+      }
+      CALL {
+        MATCH (article:Article)
+        WHERE article.hydration_state = 'HYDRATED'
+        OPTIONAL MATCH (article)-[:PUBLISHED_IN]->(journal:Journal)
+        WITH article, head(collect(journal.display_name)) AS journal
+        ORDER BY article.last_synced_at DESC, article.id ASC
+        LIMIT 5
+        RETURN collect({
+          id: article.id,
+          title: article.title,
+          journal: journal,
+          publicationYear: article.publication_year,
+          citationCount: coalesce(article.citation_count, 0)
+        }) AS recent_publications
+      }
+      RETURN {
+        catalog: {
+          journalCount: journal_count,
+          articleCount: article_count,
+          uniqueKeywordCount: keyword_count,
+          topicsAndSubjectsCount: topic_count + subject_count,
+          asOf: catalog_as_of
+        },
+        publicationGrowth: publication_growth,
+        trendingTopics: trending_topics,
+        recentPublications: recent_publications
+      } AS dashboard
+      `,
+      {},
+      (record) => {
+        const dashboard = toPlain(record.get('dashboard')) as Record<
+          string,
+          unknown
+        >;
+        const topics = (
+          dashboard.trendingTopics as Array<Record<string, unknown>>
+        ).map((topic) => {
+          const current = Number(topic.currentCount ?? 0);
+          const previous = Number(topic.previousCount ?? 0);
+          const changePercent =
+            previous === 0
+              ? current > 0
+                ? 100
+                : 0
+              : Math.round(((current - previous) / previous) * 1000) / 10;
+          return {
+            name: String(topic.name),
+            count: Number(topic.count ?? 0),
+            changePercent,
+          };
+        });
+
+        return {
+          catalog: dashboard.catalog as CatalogDashboardInsights['catalog'],
+          publicationGrowth:
+            dashboard.publicationGrowth as CatalogDashboardInsights['publicationGrowth'],
+          trendingTopics: topics,
+          recentPublications:
+            dashboard.recentPublications as CatalogDashboardInsights['recentPublications'],
+        };
+      },
+    );
+
+    return (
+      result.records[0] ?? {
+        catalog: {
+          journalCount: 0,
+          articleCount: 0,
+          uniqueKeywordCount: 0,
+          topicsAndSubjectsCount: 0,
+          asOf: null,
+        },
+        publicationGrowth: [],
+        trendingTopics: [],
+        recentPublications: [],
+      }
+    );
   }
 
   async findArticlesByIds(ids: string[]): Promise<ArticleGraph[]> {

@@ -3,6 +3,7 @@ import { AdminAcademicController } from './admin-academic.controller';
 
 describe('AdminAcademicController', () => {
   const service = {
+    getDashboardMetrics: jest.fn(),
     listSyncLogs: jest.fn(),
     getSyncLog: jest.fn(),
     listJobs: jest.fn(),
@@ -45,6 +46,55 @@ describe('AdminAcademicController', () => {
     expect(service.listSyncLogs).toHaveBeenCalledWith(
       expect.objectContaining({ page: 1, pageSize: 20, source: 'OPENALEX' }),
     );
+  });
+
+  it('wraps dashboard metrics in the standard response envelope', async () => {
+    service.getDashboardMetrics.mockResolvedValue({
+      generatedAt: '2026-07-23T08:00:00.000Z',
+      articleCount: 1200,
+      journalCount: 42,
+      authorCount: 900,
+      userCount: 24,
+      summary: {
+        articleCount: 1200,
+        journalCount: 42,
+        authorCount: 900,
+        userCount: 24,
+      },
+      users: { byStatus: {}, byRole: {}, registrations: {} },
+      engagement: {},
+      sync: {},
+      growth: {},
+      rankings: {},
+      dataQuality: {},
+      sources: [],
+    });
+    const controller = new AdminAcademicController(service as never);
+
+    await expect(controller.getDashboardMetrics()).resolves.toEqual({
+      success: true,
+      message: 'Dashboard metrics retrieved',
+      data: {
+        generatedAt: '2026-07-23T08:00:00.000Z',
+        articleCount: 1200,
+        journalCount: 42,
+        authorCount: 900,
+        userCount: 24,
+        summary: {
+          articleCount: 1200,
+          journalCount: 42,
+          authorCount: 900,
+          userCount: 24,
+        },
+        users: { byStatus: {}, byRole: {}, registrations: {} },
+        engagement: {},
+        sync: {},
+        growth: {},
+        rankings: {},
+        dataQuality: {},
+        sources: [],
+      },
+    });
   });
 
   it('rejects invalid admin list inputs before querying storage', async () => {

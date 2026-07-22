@@ -10,6 +10,7 @@ import {
 
 function createFollowRepository(): jest.Mocked<FollowRepository> {
   return {
+    countByUser: jest.fn(),
     findByUserAndTarget: jest.fn(),
     create: jest.fn(),
     deleteByUserAndTarget: jest.fn(),
