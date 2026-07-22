@@ -38,7 +38,7 @@ import {
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
-import { PROVIDER_PRESETS } from "@/features/api-sources/api/mockApiSources";
+import { PROVIDER_PRESETS } from "@/features/api-sources/api/provider-presets";
 import { useApiSources } from "@/features/api-sources/hooks/use-api-sources";
 import type {
   ApiProviderId,
