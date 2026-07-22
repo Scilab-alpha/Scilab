@@ -249,17 +249,6 @@ export default function LoginScreen({ portal = "user" }: LoginScreenProps) {
                 Continue as guest
               </Button>
 
-              <p className="text-center text-sm text-muted-foreground">
-                Are you an administrator?{" "}
-                <button
-                  type="button"
-                  onClick={() => router.push(routes.auth.adminLogin)}
-                  className="auth-link disabled:pointer-events-none disabled:opacity-50"
-                  disabled={isBusy}
-                >
-                  Use the admin sign-in
-                </button>
-              </p>
             </>
           )}
         </CardContent>
