@@ -218,7 +218,7 @@ export default function TrendAnalysis() {
                   <option value="1y">Last year</option>
                   <option value="2y">Last 2 years</option>
                   <option value="5y">Last 5 years</option>
-                  <option value="all">All years in sample</option>
+                  <option value="all">All years in backend snapshot</option>
                 </select>
               </div>
 
@@ -327,7 +327,7 @@ export default function TrendAnalysis() {
                     Publications in view
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {data.metrics.sampleHint}
+                    {data.metrics.coverageHint}
                   </p>
                 </Card>
 
@@ -361,7 +361,7 @@ export default function TrendAnalysis() {
                     {data.metrics.emergingCount}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    High-momentum topics
+                    High-momentum labels in snapshot
                   </p>
                 </Card>
 
@@ -378,7 +378,7 @@ export default function TrendAnalysis() {
                     {data.metrics.topKeyword?.label ?? "—"}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Top trending label
+                    Most frequent label in snapshot
                   </p>
                   {data.metrics.topKeyword && (
                     <p className="text-xs text-muted-foreground mt-1">
@@ -457,7 +457,7 @@ export default function TrendAnalysis() {
                       Growth Comparison
                     </h2>
                     <p className="text-sm text-muted-foreground mt-0.5">
-                      Newer half of years vs older half in the sample
+                      Newer half of years vs older half in the backend snapshot
                     </p>
                   </div>
                   <div className="space-y-4">
@@ -479,15 +479,19 @@ export default function TrendAnalysis() {
                             </span>
                             <span
                               className={`px-2 py-0.5 rounded text-xs font-semibold flex items-center gap-1 ${
-                                item.growth >= 0
+                                item.growth > 0
                                   ? "bg-teal/10 text-teal"
-                                  : "bg-destructive/10 text-destructive"
+                                  : item.growth < 0
+                                    ? "bg-destructive/10 text-destructive"
+                                    : "bg-surface-raised text-muted-foreground"
                               }`}
                             >
-                              {item.growth >= 0 ? (
+                              {item.growth > 0 ? (
                                 <ArrowUp className="w-3 h-3" />
-                              ) : (
+                              ) : item.growth < 0 ? (
                                 <ArrowDown className="w-3 h-3" />
+                              ) : (
+                                <Minus className="w-3 h-3" />
                               )}
                               {Math.abs(item.growth)}%
                             </span>
@@ -518,7 +522,7 @@ export default function TrendAnalysis() {
                       Publication Velocity
                     </h2>
                     <p className="text-sm text-muted-foreground mt-0.5">
-                      Articles per year vs sample average
+                      Articles per year vs backend snapshot average
                     </p>
                   </div>
                   {data.velocityByYear.length === 0 ? (
@@ -579,10 +583,11 @@ export default function TrendAnalysis() {
                 <Card className="xl:col-span-2 p-6 border-border bg-card">
                   <div className="mb-6">
                     <h2 className="font-heading text-lg text-foreground">
-                      Emerging Topics
+                      Positive-Growth Labels in Snapshot
                     </h2>
                     <p className="text-sm text-muted-foreground mt-0.5">
-                      Ranked by growth between older and newer years
+                      Positive growth between older and newer years in the
+                      loaded snapshot
                     </p>
                   </div>
                   <div className="space-y-3">
@@ -659,7 +664,8 @@ export default function TrendAnalysis() {
                     })}
                     {data.emergingTopics.length === 0 && (
                       <p className="text-sm text-muted-foreground">
-                        No emerging topics in the current filter.
+                        No positive-growth labels in the current snapshot
+                        filter.
                       </p>
                     )}
                   </div>
@@ -691,13 +697,6 @@ export default function TrendAnalysis() {
                             </span>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            {journal.trend === "up" ? (
-                              <ArrowUp className="w-3.5 h-3.5 text-teal" />
-                            ) : journal.trend === "down" ? (
-                              <ArrowDown className="w-3.5 h-3.5 text-destructive" />
-                            ) : (
-                              <Minus className="w-3.5 h-3.5 text-muted-foreground" />
-                            )}
                             <span className="text-sm font-semibold text-foreground">
                               {journal.share}%
                             </span>

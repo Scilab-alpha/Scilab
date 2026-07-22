@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getUserFriendlyApiErrorMessage } from "@/core/api";
 import { listQueryStaleTimeMs } from "@/core/api/query-config";
 import {
-  listBookmarks,
+  listAllBookmarks,
   toggleBookmark,
   type ToggleBookmarkInput,
 } from "@/features/submissions/api/bookmarks.api";
@@ -14,17 +14,14 @@ import type {
 } from "@/features/submissions/types/bookmark.types";
 
 export const BOOKMARK_QUERY_KEY = ["bookmarks"] as const;
-const bookmarksQueryKey = [
-  ...BOOKMARK_QUERY_KEY,
-  { page: 1, limit: 100 },
-] as const;
+const bookmarksQueryKey = [...BOOKMARK_QUERY_KEY, "all"] as const;
 
 export function useBookmarks() {
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: bookmarksQueryKey,
     staleTime: listQueryStaleTimeMs,
-    queryFn: () => listBookmarks({ page: 1, limit: 100 }),
+    queryFn: listAllBookmarks,
   });
 
   const toggleMutation = useMutation({
@@ -38,18 +35,17 @@ export function useBookmarks() {
         page?.items.some((item) => item.articleId === input.articleId),
       );
 
-      queryClient.setQueriesData<BookmarkListResponse>(
-        { queryKey: BOOKMARK_QUERY_KEY },
-        (previous) =>
-          updateBookmarkPage(
-            previous,
-            {
-              articleId: input.articleId,
-              bookmarked: !isCurrentlyBookmarked,
-            },
-            input,
-          ),
-      );
+      if (isCurrentlyBookmarked) {
+        queryClient.setQueriesData<BookmarkListResponse>(
+          { queryKey: BOOKMARK_QUERY_KEY },
+          (previous) =>
+            updateBookmarkPage(
+              previous,
+              { articleId: input.articleId, bookmarked: false },
+              input,
+            ),
+        );
+      }
 
       return { snapshots };
     },
@@ -67,7 +63,7 @@ export function useBookmarks() {
     onSettled: async () => {
       await queryClient.invalidateQueries({
         queryKey: BOOKMARK_QUERY_KEY,
-        refetchType: "none",
+        refetchType: "active",
       });
     },
   });
@@ -97,13 +93,13 @@ function updateBookmarkPage(
   const withoutTarget = previous.items.filter(
     (item) => item.articleId !== result.articleId,
   );
-  if (!result.bookmarked || !input.article) {
+  if (!result.bookmarked || !input.article || !result.bookmarkedAt) {
     return { ...previous, items: withoutTarget };
   }
 
   const inserted: BookmarkItem = {
     articleId: result.articleId,
-    bookmarkedAt: result.bookmarkedAt ?? new Date().toISOString(),
+    bookmarkedAt: result.bookmarkedAt,
     article: input.article,
   };
   return { ...previous, items: [inserted, ...withoutTarget] };

@@ -4,7 +4,7 @@ import {
   getArticleJournal,
   getArticleTitle,
 } from "@/features/experiments/utils/article-format";
-import type { CatalogSample } from "@/features/dashboard/api/fetch-catalog-sample";
+import type { CatalogSnapshot } from "@/features/dashboard/api/fetch-catalog-snapshot";
 
 export type DashboardStat = {
   label: string;
@@ -18,15 +18,13 @@ export type DashboardTopicTrend = {
   topic: string;
   count: number;
   change: number;
-  trend: "up" | "down";
+  trend: "up" | "down" | "flat";
 };
 
 export type DashboardJournalRow = {
   id: string;
   name: string;
   articles: number;
-  lastUpdate: string;
-  trend: string;
 };
 
 export type DashboardPublicationRow = {
@@ -34,25 +32,23 @@ export type DashboardPublicationRow = {
   title: string;
   journal: string;
   year: number | null;
-  citations: number;
+  outgoingReferences: number;
 };
 
 export type DashboardInsights = {
   stats: DashboardStat[];
   publicationGrowth: Array<{ year: string; publications: number }>;
   yearDistribution: Array<{ year: string; articles: number }>;
-  trendingTopics: DashboardTopicTrend[];
-  recentJournals: DashboardJournalRow[];
+  topicFrequencyChanges: DashboardTopicTrend[];
+  catalogJournals: DashboardJournalRow[];
   recentPublications: DashboardPublicationRow[];
-  sampleSize: {
+  snapshotSize: {
     articles: number;
     journals: number;
     articlesHasMore: boolean;
     journalsHasMore: boolean;
   };
 };
-
-const TREND_COLORS_UNUSED = 0; // keep file focused
 
 function percentChange(current: number, previous: number) {
   if (previous <= 0) {
@@ -99,23 +95,10 @@ function uniqueSubjects(journals: JournalListItem[]) {
   return set.size;
 }
 
-function formatRelativeFromIso(value: string | null) {
-  if (!value) return "Recently indexed";
-  const ms = Date.now() - new Date(value).getTime();
-  if (Number.isNaN(ms) || ms < 0) return "Recently indexed";
-  const hours = Math.floor(ms / 3_600_000);
-  if (hours < 1) return "Just now";
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 14) return `${days}d ago`;
-  return new Date(value).toLocaleDateString();
-}
-
 export function buildDashboardInsights(
-  sample: CatalogSample,
+  snapshot: CatalogSnapshot,
 ): DashboardInsights {
-  void TREND_COLORS_UNUSED;
-  const { articles, journals, articlesHasMore, journalsHasMore } = sample;
+  const { articles, journals, articlesHasMore, journalsHasMore } = snapshot;
   const byYear = countByYear(articles);
   const topicCounts = countTopics(articles);
   const keywordCount = new Set(
@@ -137,13 +120,6 @@ export function buildDashboardInsights(
   const currentYearCount = recentYears.at(-1)?.[1] ?? 0;
   const previousYearCount = recentYears.at(-2)?.[1] ?? 0;
   const articleYoY = percentChange(currentYearCount, previousYearCount);
-
-  const journalArticleTotal = journals.reduce(
-    (sum, journal) => sum + (journal.articleCount ?? 0),
-    0,
-  );
-  const avgArticles =
-    journals.length > 0 ? Math.round(journalArticleTotal / journals.length) : 0;
 
   const publicationGrowth = byYear.map(([year, publications]) => ({
     year: String(year),
@@ -180,7 +156,7 @@ export function buildDashboardInsights(
     }
   }
 
-  const trendingTopics: DashboardTopicTrend[] = topicCounts
+  const topicFrequencyChanges: DashboardTopicTrend[] = topicCounts
     .slice(0, 5)
     .map(([topic, count]) => {
       const eras = topicByEra.get(topic) ?? { old: 0, neu: 0 };
@@ -189,22 +165,17 @@ export function buildDashboardInsights(
         topic,
         count,
         change,
-        trend: change >= 0 ? "up" : "down",
+        trend: change > 0 ? "up" : change < 0 ? "down" : "flat",
       };
     });
 
-  const recentJournals: DashboardJournalRow[] = [...journals]
+  const catalogJournals: DashboardJournalRow[] = [...journals]
     .sort((a, b) => (b.articleCount ?? 0) - (a.articleCount ?? 0))
     .slice(0, 5)
     .map((journal) => ({
       id: journal.id,
       name: journal.displayName?.trim() || journal.id,
       articles: journal.articleCount ?? 0,
-      lastUpdate: "In catalog",
-      trend:
-        (journal.articleCount ?? 0) >= avgArticles
-          ? `+${Math.max(1, Math.round(((journal.articleCount ?? 0) / Math.max(avgArticles, 1)) * 10))}%`
-          : "—",
     }));
 
   const recentPublications: DashboardPublicationRow[] = [...articles]
@@ -222,30 +193,30 @@ export function buildDashboardInsights(
       title: getArticleTitle(item),
       journal: getArticleJournal(item),
       year: item.article.publicationYear,
-      citations: item.citedArticleIds?.length ?? 0,
+      outgoingReferences: item.citedArticleIds?.length ?? 0,
     }));
-
-  void formatRelativeFromIso;
 
   const stats: DashboardStat[] = [
     {
-      label: "Journals in sample",
+      label: "Journals retrieved",
       value: journals.length,
       hint: journalsHasMore ? "More available in catalog" : "Catalog page",
       changePercent: null,
       direction: "flat",
     },
     {
-      label: "Articles sampled",
+      label: "Articles retrieved",
       value: articles.length,
-      hint: articlesHasMore ? "Load more in Articles" : "Full sample loaded",
+      hint: articlesHasMore
+        ? "More records are available from the backend"
+        : "All records in this backend snapshot are loaded",
       changePercent: articleYoY,
       direction: articleYoY > 0 ? "up" : articleYoY < 0 ? "down" : "flat",
     },
     {
       label: "Unique keywords",
       value: keywordCount,
-      hint: "From sampled articles",
+      hint: "From backend snapshot articles",
       changePercent: null,
       direction: "flat",
     },
@@ -262,10 +233,10 @@ export function buildDashboardInsights(
     stats,
     publicationGrowth,
     yearDistribution,
-    trendingTopics,
-    recentJournals,
+    topicFrequencyChanges,
+    catalogJournals,
     recentPublications,
-    sampleSize: {
+    snapshotSize: {
       articles: articles.length,
       journals: journals.length,
       articlesHasMore,

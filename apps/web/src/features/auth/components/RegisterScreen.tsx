@@ -102,7 +102,6 @@ export default function RegisterScreen({
 }: RegisterScreenProps) {
   const router = useRouter();
   const { register: registerWithAuth } = useAuth();
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [globalError, setGlobalError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
 
@@ -119,7 +118,7 @@ export default function RegisterScreen({
   const password = useWatch({ control, name: "password" }) ?? "";
   const confirmPassword = useWatch({ control, name: "confirmPassword" }) ?? "";
   const passwordStrength = calculatePasswordStrength(password);
-  const isBusy = isSubmitting || isGoogleLoading;
+  const isBusy = isSubmitting;
   const passwordStatus =
     password && !errors.password
       ? `Password strength: ${strengthText[passwordStrength - 1] ?? "Very weak"}`
@@ -171,19 +170,6 @@ export default function RegisterScreen({
       toast.error(message);
     }
   });
-
-  const handleGoogleRegister = () => {
-    setIsGoogleLoading(true);
-    setGlobalError("");
-    setStatusMessage("Google registration is waiting for backend support.");
-
-    const message =
-      "Google registration is not available yet. Please create an account with email for now.";
-    setGlobalError(message);
-    setStatusMessage(message);
-    toast.info("Google registration is not available yet.");
-    setIsGoogleLoading(false);
-  };
 
   return (
     <AuthShell
@@ -499,34 +485,6 @@ export default function RegisterScreen({
         </CardHeader>
 
         <CardContent className="px-8 pt-6 pb-8 space-y-5">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-card text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="auth-clickable h-11 w-full"
-            onClick={handleGoogleRegister}
-            disabled={isBusy}
-          >
-            {isGoogleLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Connecting
-              </>
-            ) : (
-              "Continue with Google"
-            )}
-          </Button>
-
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}
             <button

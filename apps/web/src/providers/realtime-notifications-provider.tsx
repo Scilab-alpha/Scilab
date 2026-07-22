@@ -1,14 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/providers/auth-provider";
 import type { NotificationItem } from "@/features/notifications/types/notification.types";
-import {
-  NOTIFICATION_POPUP_EVENT,
-  NOTIFICATION_UNREAD_EVENT,
-  type NotificationPopupDetail,
-} from "@/features/notifications/lib/notification-popup";
+import { NOTIFICATION_UNREAD_EVENT } from "@/features/notifications/lib/notification-popup";
 
 type UserEventPayload = {
   eventId: string;
@@ -41,7 +38,8 @@ function asNotificationItem(data: unknown): NotificationItem | null {
   if (
     typeof item.notificationId !== "string" ||
     typeof item.title !== "string" ||
-    typeof item.message !== "string"
+    typeof item.message !== "string" ||
+    typeof item.createdAt !== "string"
   ) {
     return null;
   }
@@ -53,7 +51,7 @@ function asNotificationItem(data: unknown): NotificationItem | null {
     relatedObjectType: item.relatedObjectType ?? null,
     relatedObjectId: item.relatedObjectId ?? null,
     isRead: Boolean(item.isRead),
-    createdAt: item.createdAt ?? new Date().toISOString(),
+    createdAt: item.createdAt,
     readAt: item.readAt ?? null,
   };
 }
@@ -83,7 +81,7 @@ function showNotificationToast(item: NotificationItem) {
 
 /**
  * Subscribes to server SSE `/api/events` and shows an immediate toast popup
- * when `notification.created` arrives. Also listens for local popup events.
+ * when `notification.created` arrives.
  */
 export function RealtimeNotificationsProvider({
   children,
@@ -91,19 +89,7 @@ export function RealtimeNotificationsProvider({
   children: React.ReactNode;
 }) {
   const { isAuthenticated } = useAuth();
-
-  useEffect(() => {
-    const onPopup = (event: Event) => {
-      const detail = (event as CustomEvent<NotificationPopupDetail>).detail;
-      if (!detail?.notification) {
-        return;
-      }
-      showNotificationToast(detail.notification);
-    };
-
-    window.addEventListener(NOTIFICATION_POPUP_EVENT, onPopup);
-    return () => window.removeEventListener(NOTIFICATION_POPUP_EVENT, onPopup);
-  }, []);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -122,6 +108,7 @@ export function RealtimeNotificationsProvider({
       source = new EventSource("/api/events");
 
       source.addEventListener("notification.created", (event) => {
+        void queryClient.invalidateQueries({ queryKey: ["notifications"] });
         try {
           const raw = (event as MessageEvent).data as string;
           const parsed = JSON.parse(raw) as unknown;
@@ -158,7 +145,7 @@ export function RealtimeNotificationsProvider({
       }
       source?.close();
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, queryClient]);
 
   return children;
 }

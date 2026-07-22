@@ -22,7 +22,7 @@ export default function StudentTopHeader({
   onSearchChange,
 }: StudentTopHeaderProps) {
   const { user } = useAuth();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,14 +35,16 @@ export default function StudentTopHeader({
       })
       .catch(() => {
         if (!cancelled) {
-          setUnreadCount(0);
+          setUnreadCount(null);
         }
       });
 
     const onUnread = (event: Event) => {
       const delta = (event as CustomEvent<{ delta?: number }>).detail?.delta;
       if (typeof delta === "number" && delta !== 0) {
-        setUnreadCount((previous) => Math.max(0, previous + delta));
+        setUnreadCount((previous) =>
+          previous === null ? null : Math.max(0, previous + delta),
+        );
       } else {
         void getUnreadNotificationCount()
           .then((result) => setUnreadCount(result.unreadCount))
@@ -61,25 +63,22 @@ export default function StudentTopHeader({
   return (
     <header className="h-16 bg-card border-b border-border px-8 flex items-center justify-between gap-4">
       <div className="flex-1 max-w-xl">
-        <div className="relative">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground"
-            strokeWidth={1.75}
-          />
-          <Input
-            type="search"
-            placeholder={searchPlaceholder}
-            className="pl-10 h-10 bg-background"
-            value={searchValue ?? ""}
-            readOnly={!onSearchChange}
-            onChange={
-              onSearchChange
-                ? (event) => onSearchChange(event.target.value)
-                : undefined
-            }
-            aria-label={searchPlaceholder}
-          />
-        </div>
+        {onSearchChange ? (
+          <div className="relative">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground"
+              strokeWidth={1.75}
+            />
+            <Input
+              type="search"
+              placeholder={searchPlaceholder}
+              className="pl-10 h-10 bg-background"
+              value={searchValue ?? ""}
+              onChange={(event) => onSearchChange(event.target.value)}
+              aria-label={searchPlaceholder}
+            />
+          </div>
+        ) : null}
       </div>
 
       <div className="flex items-center gap-4">
@@ -92,7 +91,7 @@ export default function StudentTopHeader({
             href="/student/notifications"
             className="relative p-2 hover:bg-accent rounded-[var(--radius-button)] transition-colors"
             aria-label={
-              unreadCount > 0
+              unreadCount !== null && unreadCount > 0
                 ? `${unreadCount} unread notifications`
                 : "Notifications"
             }
@@ -101,7 +100,7 @@ export default function StudentTopHeader({
               className="w-5 h-5 text-muted-foreground"
               strokeWidth={1.75}
             />
-            {unreadCount > 0 && (
+            {unreadCount !== null && unreadCount > 0 && (
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
             )}
           </Link>

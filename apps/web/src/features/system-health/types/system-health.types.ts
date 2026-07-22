@@ -1,70 +1,50 @@
-export type SyncStatus = "success" | "running" | "failed" | "delayed";
+export interface AdminJobProgress {
+  current: number;
+  total: number;
+  percentage: number;
+  message: string | null;
+}
 
-export type ErrorSeverity = "critical" | "warning" | "info";
-
-export type PlatformMetric = {
+export interface AdminAcademicJob {
   id: string;
-  label: string;
-  value: number;
-  change: number;
-  trend: "up" | "down";
-};
+  name: string;
+  queueName: string;
+  dataType: string;
+  source: string;
+  cron: string;
+  timeZone: string;
+  schedulerStatus: "active" | "paused";
+  status: string;
+  progress: AdminJobProgress | null;
+  lastError: string | null;
+  lastRunAt: string | null;
+  nextRunAt: string | null;
+  pausedAt: string | null;
+}
 
-export type SyncJob = {
+export interface AdminSyncLog {
   id: string;
   source: string;
-  lastSyncTime: string;
-  status: SyncStatus;
-  recordsUpdated: number;
-  durationMs: number;
-};
+  dataType: string;
+  status: string;
+  startedAt: string;
+  finishedAt: string | null;
+  successCount: number;
+  failureCount: number;
+  errorDetail: string | null;
+}
 
-export type ErrorLogEntry = {
-  id: string;
-  timestamp: string;
-  severity: ErrorSeverity;
-  service: string;
-  message: string;
-};
+export interface AdminSyncLogPage {
+  items: AdminSyncLog[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
 
-export type ApiFailure = {
-  id: string;
-  provider: string;
-  endpoint: string;
-  statusCode: number;
-  timestamp: string;
-  message: string;
-};
-
-export type SyncPerformancePoint = {
-  time: string;
-  records: number;
-  duration: number;
-};
-
-export type DataGrowthPoint = {
-  month: string;
-  journals: number;
-  articles: number;
-  authors: number;
-};
-
-export type ApiAvailabilityPoint = {
-  hour: string;
-  openalex: number;
-  crossref: number;
-  semanticScholar: number;
-};
-
-export interface SystemHealthSnapshot {
-  metrics: PlatformMetric[];
-  syncJobs: SyncJob[];
-  errorLogs: ErrorLogEntry[];
-  recentFailures: ErrorLogEntry[];
-  apiFailures: ApiFailure[];
-  syncPerformance: SyncPerformancePoint[];
-  dataGrowth: DataGrowthPoint[];
-  apiAvailability: ApiAvailabilityPoint[];
-  overallStatus: "operational" | "degraded" | "incident";
-  uptimePercent: number;
+export interface AdminSyncLogParams {
+  page?: number;
+  pageSize?: number;
 }

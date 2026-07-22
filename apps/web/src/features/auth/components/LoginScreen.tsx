@@ -36,12 +36,6 @@ const PLATFORM_FEATURES = [
   },
 ] as const;
 
-const PLATFORM_STATS = [
-  "50M+ research papers",
-  "10K+ active researchers",
-  "500+ universities",
-] as const;
-
 interface LoginScreenProps {
   portal?: LoginPortal;
 }
@@ -50,7 +44,6 @@ export default function LoginScreen({ portal = "user" }: LoginScreenProps) {
   const router = useRouter();
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -72,17 +65,7 @@ export default function LoginScreen({ portal = "user" }: LoginScreenProps) {
     router.push(result.redirectTo);
   };
 
-  const handleGoogleLogin = () => {
-    setIsGoogleLoading(true);
-    toast.info("Google sign-in is not available yet.");
-    setIsGoogleLoading(false);
-  };
-
-  const handleForgotPassword = () => {
-    toast.info("Password recovery is coming soon.");
-  };
-
-  const isBusy = isLoading || isGoogleLoading;
+  const isBusy = isLoading;
 
   return (
     <AuthShell
@@ -102,7 +85,6 @@ export default function LoginScreen({ portal = "user" }: LoginScreenProps) {
           : "Track emerging research trends, discover breakthrough papers, and stay ahead in your field with calm, focused analytics."
       }
       features={PLATFORM_FEATURES}
-      footerItems={PLATFORM_STATS}
       formTitle={isAdminPortal ? "Administrator sign in" : "Welcome back"}
       formDescription={
         isAdminPortal
@@ -142,7 +124,7 @@ export default function LoginScreen({ portal = "user" }: LoginScreenProps) {
               />
             </div>
 
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <Checkbox
                   id="remember"
@@ -157,14 +139,6 @@ export default function LoginScreen({ portal = "user" }: LoginScreenProps) {
                   Remember me
                 </Label>
               </div>
-              <button
-                type="button"
-                className="auth-link text-sm disabled:pointer-events-none disabled:opacity-50"
-                onClick={handleForgotPassword}
-                disabled={isBusy}
-              >
-                Forgot password?
-              </button>
             </div>
 
             <Button
@@ -199,34 +173,6 @@ export default function LoginScreen({ portal = "user" }: LoginScreenProps) {
             </p>
           ) : (
             <>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="bg-card px-4 text-muted-foreground">
-                    Or continue with
-                  </span>
-                </div>
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                className="auth-clickable h-11 w-full"
-                onClick={handleGoogleLogin}
-                disabled={isBusy}
-              >
-                {isGoogleLoading ? (
-                  <>
-                    <Loader2 className="mr-1 animate-spin" />
-                    Connecting...
-                  </>
-                ) : (
-                  "Continue with Google"
-                )}
-              </Button>
-
               <p className="text-center text-sm text-muted-foreground">
                 Don&apos;t have an account?{" "}
                 <button
@@ -248,7 +194,6 @@ export default function LoginScreen({ portal = "user" }: LoginScreenProps) {
               >
                 Continue as guest
               </Button>
-
             </>
           )}
         </CardContent>
