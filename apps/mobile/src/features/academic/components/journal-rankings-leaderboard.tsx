@@ -49,6 +49,7 @@ export function JournalRankingsLeaderboard({
     <View style={styles.leaderboard}>
       <View style={styles.leaderboardHeader}>
         <Text
+          numberOfLines={1}
           selectable
           style={[
             theme.typography.heading,
@@ -56,7 +57,7 @@ export function JournalRankingsLeaderboard({
             { color: theme.colors.text },
           ]}
         >
-          Journal{"\n"}rankings
+          Journal rankings
         </Text>
         <Pressable
           accessibilityRole="button"
@@ -309,7 +310,7 @@ function JournalRankingCard({
             selectable
             style={[styles.rankingDetails, { color: theme.colors.textMuted }]}
           >
-            {details.join(" · ")}
+            {details.join(" - ")}
           </Text>
         ) : null}
       </View>
@@ -329,6 +330,18 @@ function JournalRankingCard({
         >
           SJR
         </Text>
+        {journal.citationsPerDoc2Years !== null ? (
+          <Text
+            numberOfLines={1}
+            selectable
+            style={[
+              styles.rankingSecondaryScore,
+              { color: theme.colors.textMuted },
+            ]}
+          >
+            {formatMetric(journal.citationsPerDoc2Years)} cites/doc
+          </Text>
+        ) : null}
       </View>
     </View>
   );
@@ -361,6 +374,10 @@ function JournalRankingCard({
 function buildJournalDetails(journal: JournalRankingListItem) {
   const details: string[] = [];
 
+  if (journal.type) {
+    details.push(formatJournalType(journal.type));
+  }
+
   if (journal.countryCode) {
     details.push(journal.countryCode);
   }
@@ -378,6 +395,14 @@ function buildJournalDetails(journal: JournalRankingListItem) {
   }
 
   return details;
+}
+
+function formatJournalType(value: string) {
+  return value
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((part) => part[0].toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
 }
 
 function formatMetric(value: number | null) {
@@ -448,6 +473,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   leaderboardTitle: {
+    flexShrink: 1,
     fontWeight: "700",
   },
   rankMarker: {
@@ -518,6 +544,14 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 0.4,
     lineHeight: 10,
+  },
+  rankingSecondaryScore: {
+    fontSize: 8,
+    fontVariant: ["tabular-nums"],
+    fontWeight: "800",
+    lineHeight: 11,
+    marginTop: 3,
+    textAlign: "right",
   },
   yearMenu: {
     borderWidth: 1,

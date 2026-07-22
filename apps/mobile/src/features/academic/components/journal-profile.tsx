@@ -2,7 +2,6 @@ import { StyleSheet, Text, View } from "react-native";
 
 import {
   DetailSection,
-  InfoRow,
   StatusBadge,
 } from "@/features/academic/components/detail-section";
 import type { JournalListItem } from "@/features/academic/types/article.type";
@@ -53,23 +52,16 @@ export function JournalProfile({ journal }: { journal: JournalListItem }) {
       </View>
 
       <DetailSection icon="information-circle-outline" title="Journal info">
-        <View
-          style={[
-            styles.infoCard,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.outlineSoft,
-              borderRadius: theme.radii.lg,
-            },
+        <JournalInfoList
+          rows={[
+            { label: "Publisher", value: journal.publisherName },
+            { label: "ISSN", value: journal.issnList?.join(", ") },
+            { label: "Type", value: journal.type },
+            { label: "Country", value: journal.country },
+            { label: "Region", value: journal.region },
+            { label: "Coverage", value: journal.coverage },
           ]}
-        >
-          <InfoRow label="Publisher" value={journal.publisherName} />
-          <InfoRow label="ISSN" value={journal.issnList?.join(", ")} />
-          <InfoRow label="Type" value={journal.type} />
-          <InfoRow label="Country" value={journal.country} />
-          <InfoRow label="Region" value={journal.region} />
-          <InfoRow label="Coverage" value={journal.coverage} />
-        </View>
+        />
       </DetailSection>
 
       {journal.subjectCategories?.length ? (
@@ -105,6 +97,53 @@ export function JournalProfile({ journal }: { journal: JournalListItem }) {
   );
 }
 
+function JournalInfoList({
+  rows,
+}: {
+  rows: { label: string; value?: string | null }[];
+}) {
+  const theme = useAppTheme();
+
+  return (
+    <View style={styles.infoList}>
+      {rows.map((row, index) => (
+        <View
+          key={row.label}
+          style={[
+            styles.infoItem,
+            {
+              borderBottomColor: theme.colors.outlineSoft,
+              borderBottomWidth: index === rows.length - 1 ? 0 : 1,
+            },
+          ]}
+        >
+          <Text
+            numberOfLines={1}
+            selectable
+            style={[
+              theme.typography.caption,
+              styles.infoLabel,
+              { color: theme.colors.textMuted },
+            ]}
+          >
+            {row.label}
+          </Text>
+          <Text
+            selectable
+            style={[
+              theme.typography.body,
+              styles.infoValue,
+              { color: theme.colors.text },
+            ]}
+          >
+            {row.value?.trim() || "Unavailable"}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function getJournalName(journal: JournalListItem) {
   return journal.displayName?.trim() || "Untitled journal";
 }
@@ -134,10 +173,22 @@ const styles = StyleSheet.create({
   heroText: {
     gap: 8,
   },
-  infoCard: {
-    borderCurve: "continuous",
-    borderWidth: 1,
-    overflow: "hidden",
+  infoItem: {
+    alignItems: "flex-start",
+    gap: 6,
+    paddingVertical: 11,
+  },
+  infoLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+  },
+  infoList: {
+    paddingVertical: 2,
+  },
+  infoValue: {
+    lineHeight: 20,
   },
   tag: {
     borderWidth: 1,
