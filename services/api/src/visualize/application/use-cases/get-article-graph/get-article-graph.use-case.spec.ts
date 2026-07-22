@@ -8,14 +8,20 @@ describe('GetArticleGraphUseCase', () => {
     getArticleGraph.mockReset();
   });
 
-  it('returns related edges in their stored direction and virtual deduplicated year nodes', async () => {
+  it('returns only related-work edges and includes each publication year in its article label', async () => {
     getArticleGraph.mockResolvedValue({
-      root: { id: 'W1', title: 'Root article', publicationYear: 2024 },
+      root: {
+        id: 'W1',
+        title: 'Root article',
+        publicationYear: 2024,
+        citationCount: 885,
+      },
       neighbors: [
         {
           id: 'W2',
           title: 'Outgoing paper',
           publicationYear: 2024,
+          citationCount: 421,
           rank: 1,
           tier: 0,
         },
@@ -23,6 +29,7 @@ describe('GetArticleGraphUseCase', () => {
           id: 'W3',
           title: 'Incoming paper',
           publicationYear: null,
+          citationCount: 0,
           rank: 2,
           tier: 1,
         },
@@ -38,10 +45,24 @@ describe('GetArticleGraphUseCase', () => {
       useCase.execute({ articleId: 'W1', cursor: null, limit: 20 }),
     ).resolves.toEqual({
       nodes: [
-        { id: 'article:W1', type: 'article', label: 'Root article' },
-        { id: 'article:W2', type: 'article', label: 'Outgoing paper' },
-        { id: 'article:W3', type: 'article', label: 'Incoming paper' },
-        { id: 'year:2024', type: 'year', label: '2024' },
+        {
+          id: 'article:W1',
+          type: 'article',
+          label: 'Root article (2024)',
+          citationCount: 885,
+        },
+        {
+          id: 'article:W2',
+          type: 'article',
+          label: 'Outgoing paper (2024)',
+          citationCount: 421,
+        },
+        {
+          id: 'article:W3',
+          type: 'article',
+          label: 'Incoming paper',
+          citationCount: 0,
+        },
       ],
       edges: [
         {
@@ -51,22 +72,10 @@ describe('GetArticleGraphUseCase', () => {
           type: 'RELATED_TO',
         },
         {
-          id: 'article:W1->year:2024',
-          sourceId: 'article:W1',
-          targetId: 'year:2024',
-          type: 'PUBLISHED_IN_YEAR',
-        },
-        {
           id: 'article:W2->article:W1',
           sourceId: 'article:W2',
           targetId: 'article:W1',
           type: 'RELATED_TO',
-        },
-        {
-          id: 'article:W2->year:2024',
-          sourceId: 'article:W2',
-          targetId: 'year:2024',
-          type: 'PUBLISHED_IN_YEAR',
         },
         {
           id: 'article:W3->article:W2',
@@ -82,10 +91,29 @@ describe('GetArticleGraphUseCase', () => {
 
   it('returns an opaque cursor for the final selected neighbor and rejects a cursor for another root', async () => {
     getArticleGraph.mockResolvedValue({
-      root: { id: 'W1', title: 'Root article', publicationYear: null },
+      root: {
+        id: 'W1',
+        title: 'Root article',
+        publicationYear: null,
+        citationCount: 0,
+      },
       neighbors: [
-        { id: 'W2', title: 'First', publicationYear: null, rank: 1, tier: 0 },
-        { id: 'W3', title: 'Second', publicationYear: null, rank: 2, tier: 0 },
+        {
+          id: 'W2',
+          title: 'First',
+          publicationYear: null,
+          citationCount: 0,
+          rank: 1,
+          tier: 0,
+        },
+        {
+          id: 'W3',
+          title: 'Second',
+          publicationYear: null,
+          citationCount: 0,
+          rank: 2,
+          tier: 0,
+        },
       ],
       edges: [],
     });

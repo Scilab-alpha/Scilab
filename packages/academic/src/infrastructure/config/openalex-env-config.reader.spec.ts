@@ -18,4 +18,23 @@ describe('OpenAlexEnvConfigReader', () => {
 
     expect(reader.getJournalSyncConfig().priorityPercent).toBe(80);
   });
+
+  it('reads the high-impact journal threshold and related-work limit', () => {
+    const reader = new OpenAlexEnvConfigReader({
+      get: (name: string) =>
+        ({
+          OPENALEX_JOURNAL_CITATION_THRESHOLD: '500',
+          OPENALEX_JOURNAL_BACKFILL_FROM_YEAR: '2023',
+          OPENALEX_JOURNAL_BACKFILL_TO_YEAR: '2025',
+          OPENALEX_RELATED_WORK_LIMIT: '20',
+        })[name],
+    } as never);
+
+    expect(reader.getJournalSyncConfig()).toMatchObject({
+      journalCitationThreshold: 500,
+      journalBackfillFromYear: 2023,
+      journalBackfillToYear: 2025,
+      relatedWorkLimit: 20,
+    });
+  });
 });

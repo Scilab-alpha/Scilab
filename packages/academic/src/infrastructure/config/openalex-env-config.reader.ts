@@ -10,6 +10,10 @@ const OPENALEX_API_KEY_CONFIG_KEY = 'OPENALEX_API_KEY';
 const OPENALEX_API_BASE_URL_CONFIG_KEY = 'OPENALEX_API_BASE_URL';
 const OPENALEX_JOURNAL_BACKFILL_FROM_YEAR_CONFIG_KEY =
   'OPENALEX_JOURNAL_BACKFILL_FROM_YEAR';
+const OPENALEX_JOURNAL_BACKFILL_TO_YEAR_CONFIG_KEY =
+  'OPENALEX_JOURNAL_BACKFILL_TO_YEAR';
+const OPENALEX_JOURNAL_CITATION_THRESHOLD_CONFIG_KEY =
+  'OPENALEX_JOURNAL_CITATION_THRESHOLD';
 const OPENALEX_JOURNAL_DAILY_PAGE_BUDGET_CONFIG_KEY =
   'OPENALEX_JOURNAL_DAILY_PAGE_BUDGET';
 const OPENALEX_JOURNAL_PRIORITY_PERCENT_CONFIG_KEY =
@@ -32,6 +36,7 @@ const OPENALEX_RELATED_TARGET_MAX_BATCHES_CONFIG_KEY =
   'OPENALEX_RELATED_TARGET_MAX_BATCHES';
 const OPENALEX_RELATED_TARGET_MAX_ATTEMPTS_CONFIG_KEY =
   'OPENALEX_RELATED_TARGET_MAX_ATTEMPTS';
+const OPENALEX_RELATED_WORK_LIMIT_CONFIG_KEY = 'OPENALEX_RELATED_WORK_LIMIT';
 
 const DEFAULT_OPENALEX_API_BASE_URL = 'https://api.openalex.org';
 
@@ -49,13 +54,27 @@ export class OpenAlexEnvConfigReader implements OpenAlexConfigReader {
   }
 
   getJournalSyncConfig(): OpenAlexJournalSyncConfig {
+    const journalBackfillFromYear = this.readPositiveInteger(
+      OPENALEX_JOURNAL_BACKFILL_FROM_YEAR_CONFIG_KEY,
+      2023,
+      1900,
+      new Date().getUTCFullYear(),
+    );
+    const journalBackfillToYear = this.readPositiveInteger(
+      OPENALEX_JOURNAL_BACKFILL_TO_YEAR_CONFIG_KEY,
+      2025,
+      journalBackfillFromYear,
+      new Date().getUTCFullYear(),
+    );
+
     return {
       ...this.getOpenAlexConfig(),
-      journalBackfillFromYear: this.readPositiveInteger(
-        OPENALEX_JOURNAL_BACKFILL_FROM_YEAR_CONFIG_KEY,
-        2020,
-        1900,
-        new Date().getUTCFullYear(),
+      journalBackfillFromYear,
+      journalBackfillToYear,
+      journalCitationThreshold: this.readPositiveInteger(
+        OPENALEX_JOURNAL_CITATION_THRESHOLD_CONFIG_KEY,
+        500,
+        0,
       ),
       dailyPageBudget: this.readPositiveInteger(
         OPENALEX_JOURNAL_DAILY_PAGE_BUDGET_CONFIG_KEY,
@@ -114,6 +133,12 @@ export class OpenAlexEnvConfigReader implements OpenAlexConfigReader {
       relatedTargetMaxAttempts: this.readPositiveInteger(
         OPENALEX_RELATED_TARGET_MAX_ATTEMPTS_CONFIG_KEY,
         3,
+      ),
+      relatedWorkLimit: this.readPositiveInteger(
+        OPENALEX_RELATED_WORK_LIMIT_CONFIG_KEY,
+        20,
+        1,
+        100,
       ),
     };
   }

@@ -46,12 +46,13 @@ const graphResponseSchema = envelopeSchema(
         type: 'array',
         items: {
           type: 'object',
-          required: ['id', 'type', 'label'],
+          required: ['id', 'type', 'label', 'citationCount'],
           additionalProperties: false,
           properties: {
+            citationCount: { type: 'integer', minimum: 0, example: 885 },
             id: { type: 'string', example: 'article:W123' },
-            type: { type: 'string', enum: ['article', 'year'] },
-            label: { type: 'string', example: 'Machine Learning...' },
+            type: { type: 'string', enum: ['article'] },
+            label: { type: 'string', example: 'Machine Learning... (2024)' },
           },
         },
       },
@@ -62,12 +63,12 @@ const graphResponseSchema = envelopeSchema(
           required: ['id', 'sourceId', 'targetId', 'type'],
           additionalProperties: false,
           properties: {
-            id: { type: 'string', example: 'article:W123->year:2024' },
+            id: { type: 'string', example: 'article:W123->article:W456' },
             sourceId: { type: 'string' },
             targetId: { type: 'string' },
             type: {
               type: 'string',
-              enum: ['RELATED_TO', 'PUBLISHED_IN_YEAR'],
+              enum: ['RELATED_TO'],
             },
           },
         },

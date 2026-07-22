@@ -1,10 +1,8 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { getRoleLabel } from "@/features/auth/utils/roles";
-import { SurfaceCard } from "@/features/navigation/components/screen-shell";
 import type { UserProfile } from "@/features/profile/types/profile.type";
 import { useAppTheme } from "@/theme";
 
@@ -24,10 +22,16 @@ export function ProfileHeroCard({ profile }: { profile: UserProfile }) {
     Boolean(profile.imageUrl) && failedImageUrl !== profile.imageUrl;
 
   return (
-    <SurfaceCard>
-      <View style={styles.header}>
+    <View style={[styles.profile, { gap: theme.spacing.xl }]}>
+      <View style={styles.summary}>
         <View
-          style={[styles.avatar, { backgroundColor: theme.colors.primarySoft }]}
+          style={[
+            styles.avatar,
+            {
+              backgroundColor: theme.colors.primarySoft,
+              borderColor: theme.colors.outlineSoft,
+            },
+          ]}
         >
           {showImage ? (
             <Image
@@ -59,39 +63,104 @@ export function ProfileHeroCard({ profile }: { profile: UserProfile }) {
           >
             {profile.email}
           </Text>
-          <View style={styles.badges}>
-            <ProfileBadge
-              icon="school-outline"
-              label={getRoleLabel(profile.role)}
-            />
-            <ProfileBadge
-              icon="checkmark-circle-outline"
-              label={formatStatus(profile.status)}
-            />
-          </View>
         </View>
       </View>
-    </SurfaceCard>
+
+      <View
+        style={[
+          styles.details,
+          {
+            borderTopColor: theme.colors.outlineSoft,
+            gap: theme.spacing.lg,
+            paddingTop: theme.spacing.lg,
+          },
+        ]}
+      >
+        <ProfileInfoList
+          rows={[
+            { label: "First name", value: profile.firstName },
+            { label: "Last name", value: profile.lastName },
+            { label: "Gender", value: formatGender(profile.gender) },
+            {
+              label: "Date of birth",
+              value: formatDateOfBirth(profile.dateOfBirth),
+            },
+            { label: "Role", value: getRoleLabel(profile.role) },
+            { label: "Status", value: formatStatus(profile.status) },
+          ]}
+        />
+      </View>
+    </View>
   );
 }
 
-function ProfileBadge({
-  icon,
-  label,
+function ProfileInfoList({
+  rows,
 }: {
-  icon: React.ComponentProps<typeof Ionicons>["name"];
-  label: string;
+  rows: { label: string; value: string | null }[];
 }) {
   const theme = useAppTheme();
 
   return (
-    <View style={[styles.badge, { backgroundColor: theme.colors.primarySoft }]}>
-      <Ionicons color={theme.colors.primary} name={icon} size={12} />
-      <Text style={[styles.badgeText, { color: theme.colors.primary }]}>
-        {label}
-      </Text>
+    <View style={styles.infoList}>
+      {rows.map((row, index) => (
+        <View
+          key={row.label}
+          style={[
+            styles.infoItem,
+            {
+              borderBottomColor: theme.colors.outlineSoft,
+              borderBottomWidth:
+                index === rows.length - 1 ? 0 : StyleSheet.hairlineWidth,
+            },
+          ]}
+        >
+          <Text
+            numberOfLines={1}
+            style={[
+              theme.typography.caption,
+              styles.infoLabel,
+              { color: theme.colors.outline },
+            ]}
+          >
+            {row.label}
+          </Text>
+          <Text
+            selectable
+            style={[styles.infoValue, { color: theme.colors.text }]}
+          >
+            {row.value?.trim() || "Not set"}
+          </Text>
+        </View>
+      ))}
     </View>
   );
+}
+
+function formatGender(gender: UserProfile["gender"]) {
+  if (!gender) {
+    return null;
+  }
+
+  return gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase();
+}
+
+function formatDateOfBirth(dateOfBirth: string | null) {
+  if (!dateOfBirth) {
+    return null;
+  }
+
+  const parsedDate = new Date(dateOfBirth);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return dateOfBirth;
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(parsedDate);
 }
 
 function formatStatus(status: string) {
@@ -101,30 +170,51 @@ function formatStatus(status: string) {
 const styles = StyleSheet.create({
   avatar: {
     alignItems: "center",
-    borderRadius: 36,
-    height: 72,
+    borderRadius: 52,
+    borderWidth: 1,
+    height: 104,
     justifyContent: "center",
     overflow: "hidden",
-    width: 72,
+    width: 104,
   },
   avatarImage: { height: "100%", width: "100%" },
   displayName: {
-    fontSize: 18,
-    fontWeight: "700",
-    lineHeight: 24,
+    fontSize: 22,
+    fontWeight: "800",
+    lineHeight: 28,
   },
   email: { fontSize: 13, lineHeight: 19 },
-  header: { alignItems: "center", flexDirection: "row", gap: 16 },
-  identity: { flex: 1, gap: 3 },
-  initials: { fontSize: 23, fontWeight: "800" },
-  badges: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingTop: 5 },
-  badge: {
-    alignItems: "center",
-    borderRadius: 12,
-    flexDirection: "row",
-    gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
+  identity: { flex: 1, gap: 4 },
+  initials: { fontSize: 27, fontWeight: "800" },
+  details: {
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  badgeText: { fontSize: 10, fontWeight: "800" },
+  infoItem: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 20,
+    paddingVertical: 9,
+  },
+  infoLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    lineHeight: 16,
+    width: 118,
+  },
+  infoList: {
+    gap: 0,
+  },
+  infoValue: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 18,
+    minWidth: 0,
+  },
+  profile: {},
+  summary: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 14,
+  },
 });

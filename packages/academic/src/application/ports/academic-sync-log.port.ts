@@ -1,5 +1,5 @@
 export type AcademicSyncStatus = 'SUCCESS' | 'FAILED' | 'PARTIAL' | 'CANCELLED';
-export type AcademicSyncSource = 'OPENALEX' | 'SCIMAGO' | 'SEMANTIC_SCHOLAR';
+export type AcademicSyncSource = 'OPENALEX' | 'SCIMAGO';
 export type AcademicSyncJobType =
   | 'SCIMAGO_RELOAD'
   | 'JOURNAL_SOURCE_SYNC'
@@ -9,8 +9,7 @@ export type AcademicSyncJobType =
   | 'OUTGOING_REFERENCE_CRAWL'
   | 'REFERENCE_HYDRATION'
   | 'INCOMING_CITATION_CRAWL'
-  | 'CITATION_COUNT_REFRESH'
-  | 'SEMANTIC_SCHOLAR_JOURNAL_SUPPLEMENT';
+  | 'CITATION_COUNT_REFRESH';
 
 export interface StartAcademicPipelineJobInput {
   apiName: string;

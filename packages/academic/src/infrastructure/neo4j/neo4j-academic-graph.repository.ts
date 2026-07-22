@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import neo4j from 'neo4j-driver';
 import {
@@ -22,7 +22,6 @@ import {
   JournalNode,
   KeywordNode,
   RelatedWorkSnapshot,
-  SemanticScholarArticleGraph,
   TopicNode,
 } from '@repo/academic/domain/academic-graph.model';
 import { normalizeExactName } from '@repo/academic/domain/normalize-exact-name';
@@ -38,6 +37,7 @@ type Neo4jAuthorListItem = AuthorListItem;
 type Neo4jJournalListItem = JournalListItem;
 
 const ARTICLE_FILTER_CYPHER = articleFilter('article');
+const LEGACY_BACKFILL_BATCH_SIZE = 500;
 const ARTICLE_GRAPH_PROJECTION = `{
   article: article {
     .id,
@@ -77,6 +77,8 @@ const ARTICLE_GRAPH_PROJECTION = `{
 
 @Injectable()
 export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
+  private readonly logger = new Logger(Neo4jAcademicGraphRepository.name);
+
   constructor(private readonly neo4j: Neo4jService) {}
 
   async ensureSchema(): Promise<void> {
@@ -84,10 +86,9 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
       await this.neo4j.executeWrite(cypher);
     }
 
+    await this.neo4j.executeRead('CALL db.awaitIndexes(300)');
     await this.backfillCrawlTimestamps();
     await this.backfillExternalArticleIdentifiers();
-
-    await this.neo4j.executeRead('CALL db.awaitIndexes(300)');
   }
 
   async upsertArticleGraph(graph: ArticleGraph): Promise<void> {
@@ -122,17 +123,10 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
           article.volume_number = graph.article.volume_number,
           article.issue_number = graph.article.issue_number,
           article.openalex_citation_count = graph.article.openalex_citation_count,
-          article.citation_count = CASE
-            WHEN graph.article.openalex_citation_count IS NULL THEN article.citation_count
-            ELSE CASE
-              WHEN article.semantic_scholar_citation_count IS NULL THEN graph.article.openalex_citation_count
-              ELSE CASE
-                WHEN graph.article.openalex_citation_count >= article.semantic_scholar_citation_count
-                  THEN graph.article.openalex_citation_count
-                ELSE article.semantic_scholar_citation_count
-              END
-            END
-          END,
+          article.citation_count = coalesce(
+            graph.article.openalex_citation_count,
+            article.citation_count
+          ),
           article.work_type = coalesce(graph.article.work_type, article.work_type),
           article.related_sync_eligible = CASE
             WHEN graph.article.related_sync_eligible = true THEN true
@@ -238,114 +232,6 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
     };
   }
 
-  async findSemanticScholarDiscoveredPaperIds(
-    scimagoSourceId: string,
-  ): Promise<Set<string>> {
-    const result = await this.neo4j.executeRead<string>(
-      `
-      MATCH (article:Article)-[:DISCOVERED_VIA {
-        source: 'SEMANTIC_SCHOLAR',
-        scimago_source_id: $scimago_source_id
-      }]->(:Journal)
-      WHERE article.semantic_scholar_id IS NOT NULL
-      RETURN DISTINCT article.semantic_scholar_id AS id
-      `,
-      { scimago_source_id: scimagoSourceId },
-      (record) => String(record.get('id')),
-    );
-    return new Set(result.records);
-  }
-
-  async upsertSemanticScholarArticleGraphs(
-    graphs: SemanticScholarArticleGraph[],
-  ): Promise<{ inserted: number; updated: number }> {
-    if (graphs.length === 0) {
-      return { inserted: 0, updated: 0 };
-    }
-
-    const result = await this.neo4j.executeWrite<{ inserted: number; updated: number }>(
-      `
-      UNWIND $graphs AS graph
-      OPTIONAL MATCH (semantic_match:Article {
-        semantic_scholar_id: graph.article.semantic_scholar_id
-      })
-      WITH graph, [node IN collect(semantic_match) WHERE node IS NOT NULL] AS semantic_matches
-      OPTIONAL MATCH (doi_match:Article {doi_normalized: graph.article.doi_normalized})
-      WITH graph, semantic_matches,
-           [node IN collect(doi_match) WHERE node IS NOT NULL] AS doi_matches
-      WITH graph,
-           reduce(unique = [], node IN semantic_matches + doi_matches |
-             CASE WHEN node IN unique THEN unique ELSE unique + node END
-           ) AS matches
-      WHERE size(matches) <= 1
-      CALL {
-        WITH graph, matches
-        WITH graph, matches WHERE size(matches) = 1
-        RETURN matches[0] AS article, false AS created
-        UNION
-        WITH graph, matches
-        WITH graph, matches WHERE size(matches) = 0
-        CREATE (article:Article {id: graph.article.id})
-        RETURN article, true AS created
-      }
-      SET article.semantic_scholar_id = coalesce(article.semantic_scholar_id, graph.article.semantic_scholar_id),
-          article.title = coalesce(article.title, graph.article.title),
-          article.abstract = coalesce(article.abstract, graph.article.abstract),
-          article.doi = coalesce(article.doi, graph.article.doi),
-          article.doi_normalized = coalesce(article.doi_normalized, graph.article.doi_normalized),
-          article.publication_year = coalesce(article.publication_year, graph.article.publication_year),
-          article.work_type = coalesce(article.work_type, graph.article.work_type),
-          article.semantic_scholar_venue_name = coalesce(graph.article.semantic_scholar_venue_name, article.semantic_scholar_venue_name),
-          article.semantic_scholar_citation_count = graph.article.semantic_scholar_citation_count,
-          article.citation_count = CASE
-            WHEN graph.article.semantic_scholar_citation_count IS NULL THEN article.citation_count
-            WHEN article.openalex_citation_count IS NULL THEN graph.article.semantic_scholar_citation_count
-            WHEN article.openalex_citation_count >= graph.article.semantic_scholar_citation_count
-              THEN article.openalex_citation_count
-            ELSE graph.article.semantic_scholar_citation_count
-          END,
-          article.hydration_state = coalesce(article.hydration_state, 'HYDRATED'),
-          article.first_crawled_at = coalesce(article.first_crawled_at, datetime()),
-          article.last_synced_at = datetime(),
-          article.ingested_at = datetime(),
-          article.crawl_source = coalesce(article.crawl_source, 'SEMANTIC_SCHOLAR'),
-          article.citation_count_updated_at = CASE
-            WHEN graph.article.semantic_scholar_citation_count IS NULL THEN article.citation_count_updated_at
-            ELSE datetime()
-          END
-      WITH graph, article, created
-      MATCH (origin:Journal {id: graph.origin_journal_id})
-      MERGE (article)-[:DISCOVERED_VIA {
-        source: 'SEMANTIC_SCHOLAR',
-        scimago_source_id: graph.scimago_source_id,
-        lane: graph.lane
-      }]->(origin)
-      FOREACH (_ IN CASE WHEN graph.attach_origin_journal THEN [1] ELSE [] END |
-        MERGE (article)-[:PUBLISHED_IN]->(origin)
-      )
-      WITH graph, article, created
-      OPTIONAL MATCH (related_source:Article {
-        semantic_scholar_id: graph.related_from_semantic_scholar_id
-      })
-      FOREACH (_ IN CASE WHEN related_source IS NULL THEN [] ELSE [1] END |
-        MERGE (related_source)-[related:RELATED_TO {source: 'SEMANTIC_SCHOLAR'}]->(article)
-        SET related.status = 'ACTIVE',
-            related.rank = coalesce(related.rank, 0),
-            related.synced_at = datetime()
-      )
-      RETURN sum(CASE WHEN created THEN 1 ELSE 0 END) AS inserted,
-             sum(CASE WHEN created THEN 0 ELSE 1 END) AS updated
-      `,
-      { graphs: graphs.map(toNeo4jSemanticScholarGraph) },
-      (record) => ({
-        inserted: Number(record.get('inserted')?.toString() ?? 0),
-        updated: Number(record.get('updated')?.toString() ?? 0),
-      }),
-    );
-
-    return result.records[0] ?? { inserted: 0, updated: 0 };
-  }
-
   async upsertJournal(journal: JournalNode): Promise<void> {
     await this.neo4j.executeWrite(
       `
@@ -383,31 +269,49 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
     if (states.length === 0) {
       return;
     }
-    await this.neo4j.executeWrite(
-      `
-      UNWIND $states AS state
-      MATCH (journal:Journal {id: state.openalex_journal_id})
-      SET journal.first_crawled_at = datetime(state.first_crawled_at),
-          journal.last_synced_at = CASE
-            WHEN state.last_synced_at IS NULL THEN journal.last_synced_at
-            ELSE datetime(state.last_synced_at)
-          END,
-          journal.crawl_source = coalesce(journal.crawl_source, 'OPENALEX')
-      `,
-      {
-        states: states.map((state) => ({
-          openalex_journal_id: state.openAlexJournalId,
-          first_crawled_at: state.firstCrawledAt.toISOString(),
-          last_synced_at: state.lastSyncedAt?.toISOString() ?? null,
-        })),
-      },
-    );
+    let processed = 0;
+    for (const stateBatch of chunk(states, LEGACY_BACKFILL_BATCH_SIZE)) {
+      await this.neo4j.executeWrite(
+        `
+        UNWIND $states AS state
+        MATCH (journal:Journal {id: state.openalex_journal_id})
+        SET journal.first_crawled_at = datetime(state.first_crawled_at),
+            journal.last_synced_at = CASE
+              WHEN state.last_synced_at IS NULL THEN journal.last_synced_at
+              ELSE datetime(state.last_synced_at)
+            END,
+            journal.crawl_source = coalesce(journal.crawl_source, 'OPENALEX')
+        `,
+        {
+          states: stateBatch.map((state) => ({
+            openalex_journal_id: state.openAlexJournalId,
+            first_crawled_at: state.firstCrawledAt.toISOString(),
+            last_synced_at: state.lastSyncedAt?.toISOString() ?? null,
+          })),
+        },
+      );
+      processed += stateBatch.length;
+      this.logger.log(
+        `Backfilled journal timestamps for ${processed}/${states.length} journal states.`,
+      );
+    }
   }
 
   private async backfillCrawlTimestamps(): Promise<void> {
-    await this.neo4j.executeWrite(
+    await this.backfillNodesById(
+      'article crawl timestamps',
       `
       MATCH (article:Article)
+      WHERE article.first_crawled_at IS NULL
+         OR article.last_synced_at IS NULL
+         OR article.crawl_source IS NULL
+      RETURN article.id AS id
+      ORDER BY article.id ASC
+      LIMIT $limit
+      `,
+      `
+      UNWIND $ids AS id
+      MATCH (article:Article {id: id})
       SET article.first_crawled_at = coalesce(
             article.first_crawled_at,
             article.ingested_at,
@@ -416,14 +320,26 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
           article.last_synced_at = coalesce(
             article.last_synced_at,
             article.ingested_at,
-            article.first_crawled_at
+            article.first_crawled_at,
+            datetime()
           ),
           article.crawl_source = coalesce(article.crawl_source, 'OPENALEX')
       `,
     );
-    await this.neo4j.executeWrite(
+    await this.backfillNodesById(
+      'journal crawl timestamps',
       `
       MATCH (journal:Journal)
+      WHERE journal.first_crawled_at IS NULL
+         OR journal.last_synced_at IS NULL
+         OR journal.crawl_source IS NULL
+      RETURN journal.id AS id
+      ORDER BY journal.id ASC
+      LIMIT $limit
+      `,
+      `
+      UNWIND $ids AS id
+      MATCH (journal:Journal {id: id})
       OPTIONAL MATCH (article:Article)-[:PUBLISHED_IN]->(journal)
       WITH journal, min(article.ingested_at) AS first_article_ingested_at,
            max(article.ingested_at) AS last_article_ingested_at
@@ -435,7 +351,8 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
           journal.last_synced_at = coalesce(
             journal.last_synced_at,
             last_article_ingested_at,
-            journal.first_crawled_at
+            journal.first_crawled_at,
+            datetime()
           ),
           journal.crawl_source = coalesce(journal.crawl_source, 'OPENALEX')
       `,
@@ -443,9 +360,23 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
   }
 
   private async backfillExternalArticleIdentifiers(): Promise<void> {
-    await this.neo4j.executeWrite(
+    await this.backfillNodesById(
+      'article external identifiers',
       `
       MATCH (article:Article)
+      WHERE (article.openalex_id IS NULL AND article.id STARTS WITH 'W')
+         OR (article.doi IS NOT NULL
+             AND (article.doi_normalized IS NULL
+                  OR article.doi_normalized <> toLower(article.doi)))
+         OR (article.openalex_citation_count IS NULL
+             AND article.citation_count IS NOT NULL)
+      RETURN article.id AS id
+      ORDER BY article.id ASC
+      LIMIT $limit
+      `,
+      `
+      UNWIND $ids AS id
+      MATCH (article:Article {id: id})
       SET article.openalex_id = coalesce(
             article.openalex_id,
             CASE WHEN article.id STARTS WITH 'W' THEN article.id ELSE NULL END
@@ -460,13 +391,66 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
           )
       `,
     );
-    await this.neo4j.executeWrite(
-      `
-      MATCH ()-[related:RELATED_TO]->()
-      WHERE related.source IS NULL
-      SET related.source = 'OPENALEX'
-      `,
-    );
+    await this.backfillRelatedWorkSources();
+  }
+
+  private async backfillNodesById(
+    name: string,
+    selectIdsCypher: string,
+    updateCypher: string,
+  ): Promise<void> {
+    let processed = 0;
+    let batches = 0;
+    while (true) {
+      const result = await this.neo4j.executeRead<string>(
+        selectIdsCypher,
+        { limit: neo4j.int(LEGACY_BACKFILL_BATCH_SIZE) },
+        (record) => String(record.get('id')),
+      );
+      if (result.records.length === 0) {
+        this.logger.log(
+          `Completed ${name}: ${processed} records in ${batches} batches.`,
+        );
+        return;
+      }
+      await this.neo4j.executeWrite(updateCypher, { ids: result.records });
+      processed += result.records.length;
+      batches += 1;
+      this.logger.log(
+        `Backfilled ${name}: ${processed} records across ${batches} batches.`,
+      );
+    }
+  }
+
+  private async backfillRelatedWorkSources(): Promise<void> {
+    let processed = 0;
+    let batches = 0;
+    while (true) {
+      const result = await this.neo4j.executeWrite<number>(
+        `
+        MATCH ()-[related:RELATED_TO]->()
+        WHERE related.source IS NULL
+        WITH related
+        LIMIT $limit
+        SET related.source = 'OPENALEX'
+        RETURN count(related) AS updated
+        `,
+        { limit: neo4j.int(LEGACY_BACKFILL_BATCH_SIZE) },
+        (record) => Number(record.get('updated').toString()),
+      );
+      const updated = result.records[0] ?? 0;
+      processed += updated;
+      if (updated === 0) {
+        this.logger.log(
+          `Completed related-work source backfill: ${processed} relationships in ${batches} batches.`,
+        );
+        return;
+      }
+      batches += 1;
+      this.logger.log(
+        `Backfilled related-work sources: ${processed} relationships across ${batches} batches.`,
+      );
+    }
   }
 
   async listArticles(
@@ -1070,12 +1054,7 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
       WHERE article.openalex_id = update.id OR article.id = update.id
         AND article.hydration_state = 'HYDRATED'
       SET article.openalex_citation_count = update.citation_count,
-          article.citation_count = CASE
-            WHEN article.semantic_scholar_citation_count IS NULL THEN update.citation_count
-            WHEN update.citation_count >= article.semantic_scholar_citation_count
-              THEN update.citation_count
-            ELSE article.semantic_scholar_citation_count
-          END,
+          article.citation_count = update.citation_count,
           article.citation_count_updated_at = datetime()
       `,
       {
@@ -1087,20 +1066,25 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
     );
   }
 
-  async backfillRelatedWorkSyncEligibility(): Promise<void> {
+  async backfillRelatedWorkSyncEligibility(
+    citationThreshold: number,
+  ): Promise<void> {
     await this.neo4j.executeWrite(
       `
       MATCH (article:Article)-[:PUBLISHED_IN]->(journal:Journal)
       WHERE article.hydration_state = 'HYDRATED'
         AND journal.scimago_source_id IS NOT NULL
-      SET article.related_sync_eligible = true
+      SET article.related_sync_eligible = coalesce(article.citation_count, 0) > $citation_threshold
       `,
+      { citation_threshold: neo4j.int(citationThreshold) },
     );
   }
 
   async listRelatedWorkSyncRootIds(input: {
     limit: number;
     staleBefore: Date;
+    citationThreshold: number;
+    policySignature: string;
   }): Promise<string[]> {
     const result = await this.neo4j.executeRead<string>(
       `
@@ -1108,9 +1092,12 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
       WHERE article.hydration_state = 'HYDRATED'
         AND article.related_sync_eligible = true
         AND article.openalex_id IS NOT NULL
+        AND coalesce(article.citation_count, 0) > $citation_threshold
         AND (
           article.related_works_synced_at IS NULL
           OR article.related_works_synced_at < datetime($stale_before)
+          OR article.related_work_policy_signature IS NULL
+          OR article.related_work_policy_signature <> $policy_signature
         )
       RETURN article.openalex_id AS id
       ORDER BY article.related_works_synced_at ASC, article.id ASC
@@ -1119,6 +1106,8 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
       {
         limit: neo4j.int(input.limit),
         stale_before: input.staleBefore.toISOString(),
+        citation_threshold: neo4j.int(input.citationThreshold),
+        policy_signature: input.policySignature,
       },
       (record) => String(record.get('id')),
     );
@@ -1155,6 +1144,7 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
         AND target.work_type = 'article'
       SET related.status = 'ACTIVE',
           related.resolve_attempts = 0,
+          related.deactivated_at = null,
           related.synced_at = datetime()
       `,
       { ids },
@@ -1199,6 +1189,7 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
 
   async replaceRelatedWorkSnapshots(
     snapshots: RelatedWorkSnapshot[],
+    policySignature: string,
   ): Promise<void> {
     if (snapshots.length === 0) {
       return;
@@ -1212,7 +1203,9 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
       WITH source, snapshot,
         [(source)-[stale:RELATED_TO {source: 'OPENALEX'}]->(stale_target:Article)
           WHERE NOT (stale_target.id IN snapshot.target_ids) | stale] AS stale_relationships
-      FOREACH (stale IN stale_relationships | DELETE stale)
+      FOREACH (stale IN stale_relationships |
+        SET stale.status = 'INACTIVE', stale.deactivated_at = datetime()
+      )
       WITH source, snapshot
       FOREACH (reference IN snapshot.references |
         MERGE (target:Article {id: reference.id})
@@ -1230,12 +1223,15 @@ export class Neo4jAcademicGraphRepository implements AcademicGraphRepository {
                 AND target.work_type = 'article' THEN 0
               ELSE coalesce(related.resolve_attempts, 0)
             END,
+            related.deactivated_at = null,
             related.synced_at = datetime()
       )
       SET source.work_type = coalesce(snapshot.work_type, source.work_type),
-          source.related_works_synced_at = datetime()
+          source.related_works_synced_at = datetime(),
+          source.related_work_policy_signature = $policy_signature
       `,
       {
+        policy_signature: policySignature,
         snapshots: snapshots.map((snapshot) => ({
           source_id: snapshot.sourceId,
           work_type: snapshot.workType ?? null,
@@ -1791,7 +1787,6 @@ function toNeo4jArticle(article: ArticleNode) {
   return clean({
     id: article.id,
     openalex_id: article.openAlexId ?? null,
-    semantic_scholar_id: article.semanticScholarId ?? null,
     title: article.title,
     abstract: article.abstract ?? null,
     doi: article.doi ?? null,
@@ -1802,26 +1797,11 @@ function toNeo4jArticle(article: ArticleNode) {
     issue_number: article.issueNumber ?? null,
     citation_count: article.citationCount ?? null,
     openalex_citation_count: article.openAlexCitationCount ?? null,
-    semantic_scholar_citation_count:
-      article.semanticScholarCitationCount ?? null,
-    semantic_scholar_venue_name: article.semanticScholarVenueName ?? null,
     work_type: article.workType ?? null,
     related_sync_eligible: article.relatedSyncEligible,
     created_at: article.createdAt ?? null,
     updated_at: article.updatedAt ?? null,
   });
-}
-
-function toNeo4jSemanticScholarGraph(graph: SemanticScholarArticleGraph) {
-  return {
-    article: toNeo4jArticle(graph.article),
-    scimago_source_id: graph.scimagoSourceId,
-    origin_journal_id: graph.originJournalId,
-    lane: graph.lane,
-    attach_origin_journal: graph.attachOriginJournal,
-    related_from_semantic_scholar_id:
-      graph.relatedFromSemanticScholarId ?? null,
-  };
 }
 
 function toNeo4jAuthor(author: AuthorNode) {
@@ -1893,4 +1873,12 @@ function clean<T extends Record<string, unknown>>(value: T): T {
   return Object.fromEntries(
     Object.entries(value).filter(([, entry]) => entry !== undefined),
   ) as T;
+}
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
 }

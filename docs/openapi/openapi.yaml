@@ -2587,8 +2587,13 @@ components:
         - id
         - type
         - label
+        - citationCount
       additionalProperties: false
       properties:
+        citationCount:
+          type: integer
+          minimum: 0
+          example: 885
         id:
           type: string
           example: article:W123
@@ -2596,10 +2601,9 @@ components:
           type: string
           enum:
             - article
-            - year
         label:
           type: string
-          example: Machine Learning...
+          example: Machine Learning... (2024)
     AcademicArticleGraphEdge:
       type: object
       required:
@@ -2611,7 +2615,7 @@ components:
       properties:
         id:
           type: string
-          example: article:W123->year:2024
+          example: article:W123->article:W456
         sourceId:
           type: string
         targetId:
@@ -2620,7 +2624,6 @@ components:
           type: string
           enum:
             - RELATED_TO
-            - PUBLISHED_IN_YEAR
     AcademicArticle:
       type: object
       required:

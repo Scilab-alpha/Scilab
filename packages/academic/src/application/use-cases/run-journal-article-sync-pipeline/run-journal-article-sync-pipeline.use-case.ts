@@ -50,10 +50,14 @@ export class RunJournalArticleSyncPipelineUseCase {
       throw new Error('OPENALEX_API_KEY is required for journal article sync');
     }
 
-    const [priorityStates, continuationStates] = await Promise.all([
-      this.listPriorityStates(config),
+    const policySignature = createArticleDiscoveryPolicySignature(config);
+    const [priorityStates, storedContinuationStates] = await Promise.all([
+      this.listPriorityStates(config, policySignature),
       this.states.listMatchedBackfillContinuations(config.dailyPageBudget),
     ]);
+    const continuationStates = storedContinuationStates.filter(
+      (state) => state.articleDiscoveryPolicySignature === policySignature,
+    );
     const output = createOutput();
     const progress = { current: 0, total: config.dailyPageBudget };
     const priorityQuota = Math.floor(
@@ -106,6 +110,7 @@ export class RunJournalArticleSyncPipelineUseCase {
 
   private async listPriorityStates(
     config: OpenAlexJournalSyncConfig,
+    policySignature: string,
   ): Promise<AcademicJournalSyncState[]> {
     const dataset = await this.datasets.load();
     const latestCatalogYear = Math.max(...dataset.years);
@@ -143,13 +148,15 @@ export class RunJournalArticleSyncPipelineUseCase {
 
       for (const sourceId of batch) {
         const state = states.get(sourceId);
+        const needsPolicyBackfill =
+          state?.articleDiscoveryPolicySignature !== policySignature;
         if (
           !state ||
           state.catalogYear !== latestCatalogYear ||
           state.matchStatus !== 'MATCHED' ||
           !state.openAlexJournalId ||
-          state.initialBackfillComplete ||
-          state.cursor !== null
+          (!needsPolicyBackfill &&
+            (state.initialBackfillComplete || state.cursor !== null))
         ) {
           continue;
         }
@@ -235,8 +242,20 @@ export class RunJournalArticleSyncPipelineUseCase {
     const journalId = original.openAlexJournalId;
     let state = { ...original };
     let persistedState = { ...original };
+    const policySignature = createArticleDiscoveryPolicySignature(config);
+    if (state.articleDiscoveryPolicySignature !== policySignature) {
+      state = resetForArticleDiscoveryPolicy(state, policySignature);
+      await this.states.upsert(state);
+      persistedState = state;
+    }
     const windowFrom = getWindowFrom(state, config);
-    const filter = createJournalWorksFilter(journalId, windowFrom);
+    const windowTo = getWindowTo(config);
+    const filter = createJournalWorksFilter(
+      journalId,
+      windowFrom,
+      windowTo,
+      config.journalCitationThreshold ?? 500,
+    );
     const signature = createHash('sha256').update(filter).digest('hex');
     if (state.filterSignature !== signature) {
       state.cursor = '*';
@@ -244,6 +263,8 @@ export class RunJournalArticleSyncPipelineUseCase {
       state.incrementalWindowFrom = state.initialBackfillComplete
         ? windowFrom
         : null;
+      await this.states.upsert(state);
+      persistedState = state;
     }
     let cursor = state.cursor ?? '*';
     let pagesAttempted = 0;
@@ -373,12 +394,53 @@ export class RunJournalArticleSyncPipelineUseCase {
 export function createJournalWorksFilter(
   journalId: string,
   from: Date,
+  to: Date,
+  citationThreshold: number,
 ): string {
   return [
     `primary_location.source.id:${journalId}`,
     'type:article',
     `from_publication_date:${toDateOnly(from)}`,
+    `to_publication_date:${toDateOnly(to)}`,
+    `cited_by_count:>${citationThreshold}`,
   ].join(',');
+}
+
+export function createArticleDiscoveryPolicySignature(
+  config: Pick<
+    OpenAlexJournalSyncConfig,
+    | 'journalBackfillFromYear'
+    | 'journalBackfillToYear'
+    | 'journalCitationThreshold'
+  >,
+): string {
+  return createHash('sha256')
+    .update(
+      JSON.stringify({
+        version: 2,
+        fromYear: config.journalBackfillFromYear,
+        toYear: config.journalBackfillToYear ?? 2025,
+        citationThreshold: config.journalCitationThreshold ?? 500,
+      }),
+    )
+    .digest('hex');
+}
+
+function resetForArticleDiscoveryPolicy(
+  state: AcademicJournalSyncState,
+  policySignature: string,
+): AcademicJournalSyncState {
+  return {
+    ...state,
+    syncMode: 'BACKFILL',
+    cursor: null,
+    filterSignature: null,
+    articleDiscoveryPolicySignature: policySignature,
+    incrementalWindowFrom: null,
+    initialBackfillComplete: false,
+    lastSuccessfulAt: null,
+    errorDetail: null,
+  };
 }
 
 function createOutput(): RunJournalArticleSyncPipelineOutput {
@@ -449,6 +511,10 @@ function getWindowFrom(
   const from = new Date(state.lastSuccessfulAt ?? new Date());
   from.setUTCDate(from.getUTCDate() - 1);
   return from;
+}
+
+function getWindowTo(config: OpenAlexJournalSyncConfig): Date {
+  return new Date(Date.UTC(config.journalBackfillToYear ?? 2025, 11, 31));
 }
 
 function toDateOnly(value: Date): string {

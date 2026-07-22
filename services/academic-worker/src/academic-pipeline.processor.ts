@@ -10,13 +10,11 @@ import {
   ReloadScimagoDatasetUseCase,
   ResolveScimagoJournalsUseCase,
   RunJournalArticleSyncPipelineUseCase,
-  SupplementJournalsWithSemanticScholarUseCase,
   SyncRelatedWorksUseCase,
 } from '@repo/academic/sync';
 import { PipelineExecutionControl } from '@repo/academic/domain';
 import {
   OpenAlexEnvConfigReader,
-  SemanticScholarEnvConfigReader,
   PrismaAcademicSyncLogRepository,
 } from '@repo/academic/adapters';
 import {
@@ -34,7 +32,6 @@ export class AcademicPipelineJobRunner {
   constructor(
     private readonly logs: PrismaAcademicSyncLogRepository,
     private readonly openAlexConfig: OpenAlexEnvConfigReader,
-    private readonly semanticScholarConfig: SemanticScholarEnvConfigReader,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -49,9 +46,8 @@ export class AcademicPipelineJobRunner {
         | 'OUTGOING_REFERENCE_CRAWL'
         | 'REFERENCE_HYDRATION'
         | 'INCOMING_CITATION_CRAWL'
-        | 'CITATION_COUNT_REFRESH'
-        | 'SEMANTIC_SCHOLAR_JOURNAL_SUPPLEMENT';
-      source: 'OPENALEX' | 'SCIMAGO' | 'SEMANTIC_SCHOLAR';
+        | 'CITATION_COUNT_REFRESH';
+      source: 'OPENALEX' | 'SCIMAGO';
     },
     job: Job<PipelineJobData>,
     task: (control: PipelineExecutionControl) => Promise<T>,
@@ -100,16 +96,12 @@ export class AcademicPipelineJobRunner {
       apiName:
         context.source === 'SCIMAGO'
           ? 'SCImago Dataset'
-          : context.source === 'SEMANTIC_SCHOLAR'
-            ? 'Semantic Scholar'
-            : 'OpenAlex',
+          : 'OpenAlex',
       apiEndpoint:
         context.source === 'SCIMAGO'
           ? (process.env.SCIMAGO_DATASET_DIR ??
             '/app/docs/scimagojr/normalized')
-          : context.source === 'SEMANTIC_SCHOLAR'
-            ? this.semanticScholarConfig.getSemanticScholarSupplementConfig().baseUrl
-            : config.baseUrl,
+          : config.baseUrl,
       source: context.source,
       jobType: context.type,
       startedAt: new Date(),
@@ -305,32 +297,6 @@ export class JournalArticleSyncProcessor extends WorkerHost {
   }
 }
 
-@Processor(ACADEMIC_PIPELINE_QUEUES.semanticScholarJournalSupplement)
-export class SemanticScholarJournalSupplementProcessor extends WorkerHost {
-  constructor(
-    private readonly jobs: AcademicPipelineJobRunner,
-    private readonly supplement: SupplementJournalsWithSemanticScholarUseCase,
-  ) {
-    super();
-  }
-
-  async process(job: Job<PipelineJobData>): Promise<unknown> {
-    return this.jobs.run(
-      {
-        source: 'SEMANTIC_SCHOLAR',
-        type: 'SEMANTIC_SCHOLAR_JOURNAL_SUPPLEMENT',
-      },
-      job,
-      (control) => this.supplement.execute(control),
-      (output) => ({
-        fetched: output.newAccepted + output.relatedAccepted,
-        inserted: output.articlesInserted,
-        updated: output.articlesUpdated,
-      }),
-    );
-  }
-}
-
 @Processor(ACADEMIC_PIPELINE_QUEUES.relatedWorkSync)
 export class RelatedWorkSyncProcessor extends WorkerHost {
   constructor(
@@ -480,7 +446,6 @@ export const ACADEMIC_PIPELINE_PROCESSORS = [
   ScimagoReloadProcessor,
   JournalSourceSyncProcessor,
   JournalArticleSyncProcessor,
-  SemanticScholarJournalSupplementProcessor,
   RelatedWorkSyncProcessor,
   RelatedWorkHydrationProcessor,
   OutgoingReferenceProcessor,
@@ -513,7 +478,6 @@ function queueNameFor(
     | 'SCIMAGO_RELOAD'
     | 'JOURNAL_SOURCE_SYNC'
     | 'JOURNAL_ARTICLE_SYNC'
-    | 'SEMANTIC_SCHOLAR_JOURNAL_SUPPLEMENT'
     | 'RELATED_WORK_SYNC'
     | 'RELATED_WORK_HYDRATION'
     | 'OUTGOING_REFERENCE_CRAWL'

@@ -41,7 +41,6 @@ export type JournalNode = {
   issnList: string[] | null;
   publisherImageUrl: string | null;
   publisherName: string | null;
-  region: string | null;
   sourceId: string | null;
   subjectCategories: string[] | null;
   type: string | null;

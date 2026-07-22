@@ -41,6 +41,8 @@ describe('Article graph OpenAPI contract', () => {
     expect(get?.responses?.['404']).toBeDefined();
     expect(get?.responses?.['500']).toBeDefined();
     expect(JSON.stringify(get)).toContain('RELATED_TO');
-    expect(JSON.stringify(get)).toContain('PUBLISHED_IN_YEAR');
+    expect(JSON.stringify(get)).not.toContain('PUBLISHED_IN_YEAR');
+    expect(JSON.stringify(get)).toContain('Machine Learning... (2024)');
+    expect(JSON.stringify(get)).toContain('citationCount');
   });
 });

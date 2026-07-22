@@ -151,7 +151,6 @@ export async function fetchSystemHealthSnapshot(): Promise<SystemHealthSnapshot>
         hour: "Now",
         openalex: journals.ok && articles.ok ? 100 : 40,
         crossref: 0,
-        semanticScholar: 0,
       },
     ],
     overallStatus,

@@ -9,7 +9,7 @@ export class AdminPageQueryDto {
 }
 
 export class AdminSyncLogQueryDto extends AdminPageQueryDto {
-  @ApiPropertyOptional({ enum: ['OPENALEX', 'SCIMAGO', 'SEMANTIC_SCHOLAR'] })
+  @ApiPropertyOptional({ enum: ['OPENALEX', 'SCIMAGO'] })
   source?: string;
 
   @ApiPropertyOptional({
@@ -23,7 +23,6 @@ export class AdminSyncLogQueryDto extends AdminPageQueryDto {
       'REFERENCE_HYDRATION',
       'INCOMING_CITATION_CRAWL',
       'CITATION_COUNT_REFRESH',
-      'SEMANTIC_SCHOLAR_JOURNAL_SUPPLEMENT',
     ],
   })
   dataType?: string;
@@ -44,7 +43,7 @@ export class AdminCrawledJournalQueryDto extends AdminPageQueryDto {
   @ApiPropertyOptional({ maxLength: 200 })
   q?: string;
 
-  @ApiPropertyOptional({ enum: ['OPENALEX', 'SCIMAGO', 'SEMANTIC_SCHOLAR'] })
+  @ApiPropertyOptional({ enum: ['OPENALEX', 'SCIMAGO'] })
   source?: string;
 
   @ApiPropertyOptional({ format: 'date-time' })

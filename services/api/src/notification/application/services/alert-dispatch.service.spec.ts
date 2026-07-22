@@ -20,8 +20,6 @@ function createGraphRepository(): jest.Mocked<AcademicGraphRepository> {
     ensureSchema: jest.fn(),
     upsertArticleGraph: jest.fn(),
     upsertArticleGraphs: jest.fn(),
-    upsertSemanticScholarArticleGraphs: jest.fn(),
-    findSemanticScholarDiscoveredPaperIds: jest.fn(),
     upsertJournal: jest.fn(),
     listArticles: jest.fn(),
     getArticleById: jest.fn(),

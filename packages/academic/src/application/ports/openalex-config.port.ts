@@ -16,6 +16,8 @@ export interface OpenAlexWorksQueryConfig extends OpenAlexConfig {
 
 export interface OpenAlexJournalSyncConfig extends OpenAlexConfig {
   journalBackfillFromYear: number;
+  journalBackfillToYear?: number;
+  journalCitationThreshold?: number;
   dailyPageBudget: number;
   priorityPercent: number;
   maxPagesPerPass: number;
@@ -28,15 +30,18 @@ export interface OpenAlexJournalSyncConfig extends OpenAlexConfig {
   relatedTargetBatchSize?: number;
   relatedTargetMaxBatches?: number;
   relatedTargetMaxAttempts?: number;
+  relatedWorkLimit?: number;
 }
 
 export interface OpenAlexRelatedWorkSyncConfig extends OpenAlexConfig {
+  journalCitationThreshold: number;
   relatedRefreshDays: number;
   relatedRootBatchSize: number;
   relatedRootMaxBatches: number;
   relatedTargetBatchSize: number;
   relatedTargetMaxBatches: number;
   relatedTargetMaxAttempts: number;
+  relatedWorkLimit: number;
 }
 
 export function getRelatedWorkSyncConfig(
@@ -46,12 +51,14 @@ export function getRelatedWorkSyncConfig(
 
   return {
     ...config,
+    journalCitationThreshold: config.journalCitationThreshold ?? 500,
     relatedRefreshDays: config.relatedRefreshDays ?? 30,
     relatedRootBatchSize: config.relatedRootBatchSize ?? 100,
     relatedRootMaxBatches: config.relatedRootMaxBatches ?? 10,
     relatedTargetBatchSize: config.relatedTargetBatchSize ?? 100,
     relatedTargetMaxBatches: config.relatedTargetMaxBatches ?? 10,
     relatedTargetMaxAttempts: config.relatedTargetMaxAttempts ?? 3,
+    relatedWorkLimit: config.relatedWorkLimit ?? 20,
   };
 }
 
@@ -61,7 +68,9 @@ export function getJournalSyncConfig(
   return (
     reader.getJournalSyncConfig?.() ?? {
       ...reader.getOpenAlexConfig(),
-      journalBackfillFromYear: 2020,
+      journalBackfillFromYear: 2023,
+      journalBackfillToYear: 2025,
+      journalCitationThreshold: 500,
       dailyPageBudget: 1000,
       priorityPercent: 80,
       maxPagesPerPass: 10,
@@ -74,6 +83,7 @@ export function getJournalSyncConfig(
       relatedTargetBatchSize: 100,
       relatedTargetMaxBatches: 10,
       relatedTargetMaxAttempts: 3,
+      relatedWorkLimit: 20,
     }
   );
 }

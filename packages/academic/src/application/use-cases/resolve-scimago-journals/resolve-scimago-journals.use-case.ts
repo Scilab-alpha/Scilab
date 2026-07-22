@@ -208,6 +208,9 @@ function resolvedState(input: {
     filterSignature: previousIsSameMatch
       ? (input.previous?.filterSignature ?? null)
       : null,
+    articleDiscoveryPolicySignature: previousIsSameMatch
+      ? (input.previous?.articleDiscoveryPolicySignature ?? null)
+      : null,
     incrementalWindowFrom: previousIsSameMatch
       ? (input.previous?.incrementalWindowFrom ?? null)
       : null,

@@ -7,7 +7,6 @@ export const ACADEMIC_PIPELINE_QUEUES = {
   scimagoReload: 'scimago-reload',
   journalSourceSync: 'journal-source-sync',
   journalArticleSync: 'journal-article-sync',
-  semanticScholarJournalSupplement: 'semantic-scholar-journal-supplement',
   relatedWorkSync: 'related-work-sync',
   relatedWorkHydration: 'related-work-hydration',
   outgoingReference: 'outgoing-reference',
@@ -31,7 +30,7 @@ export interface AcademicPipelineJobDefinition {
   cron: string;
   schedulerName: string;
   timeZone: string;
-  source: 'OPENALEX' | 'SCIMAGO' | 'SEMANTIC_SCHOLAR';
+  source: 'OPENALEX' | 'SCIMAGO';
   dataType: string;
 }
 
@@ -67,15 +66,6 @@ export const ACADEMIC_PIPELINE_JOB_DEFINITIONS: Record<
     timeZone: TIME_ZONE,
     source: 'OPENALEX',
     dataType: 'JOURNAL_ARTICLE_SYNC',
-  },
-  [ACADEMIC_PIPELINE_QUEUES.semanticScholarJournalSupplement]: {
-    id: ACADEMIC_PIPELINE_QUEUES.semanticScholarJournalSupplement,
-    displayName: 'Semantic Scholar journal supplementation',
-    cron: '0 30 4 * * *',
-    schedulerName: 'semantic-scholar-journal-supplement-producer',
-    timeZone: TIME_ZONE,
-    source: 'SEMANTIC_SCHOLAR',
-    dataType: 'SEMANTIC_SCHOLAR_JOURNAL_SUPPLEMENT',
   },
   [ACADEMIC_PIPELINE_QUEUES.relatedWorkSync]: {
     id: ACADEMIC_PIPELINE_QUEUES.relatedWorkSync,
@@ -187,8 +177,6 @@ export class AcademicPipelineQueueProducer {
     journalSourceSync: Queue,
     @InjectQueue(ACADEMIC_PIPELINE_QUEUES.journalArticleSync)
     journalArticleSync: Queue,
-    @InjectQueue(ACADEMIC_PIPELINE_QUEUES.semanticScholarJournalSupplement)
-    semanticScholarJournalSupplement: Queue,
     @InjectQueue(ACADEMIC_PIPELINE_QUEUES.relatedWorkSync)
     relatedWorkSync: Queue,
     @InjectQueue(ACADEMIC_PIPELINE_QUEUES.relatedWorkHydration)
@@ -206,8 +194,6 @@ export class AcademicPipelineQueueProducer {
       [ACADEMIC_PIPELINE_QUEUES.scimagoReload]: scimagoReload,
       [ACADEMIC_PIPELINE_QUEUES.journalSourceSync]: journalSourceSync,
       [ACADEMIC_PIPELINE_QUEUES.journalArticleSync]: journalArticleSync,
-      [ACADEMIC_PIPELINE_QUEUES.semanticScholarJournalSupplement]:
-        semanticScholarJournalSupplement,
       [ACADEMIC_PIPELINE_QUEUES.relatedWorkSync]: relatedWorkSync,
       [ACADEMIC_PIPELINE_QUEUES.relatedWorkHydration]: relatedWorkHydration,
       [ACADEMIC_PIPELINE_QUEUES.outgoingReference]: outgoingReference,

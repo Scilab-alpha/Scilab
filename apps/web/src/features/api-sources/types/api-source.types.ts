@@ -2,12 +2,7 @@ export type ApiSourceStatus = "active" | "disabled" | "error";
 
 export type ConnectionHealth = "healthy" | "degraded" | "down" | "unknown";
 
-export type ApiProviderId =
-  | "openalex"
-  | "semantic-scholar"
-  | "crossref"
-  | "scimago"
-  | "custom";
+export type ApiProviderId = "openalex" | "crossref" | "scimago" | "custom";
 
 export interface ApiSource {
   id: string;

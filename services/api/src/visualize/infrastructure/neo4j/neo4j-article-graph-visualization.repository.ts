@@ -41,6 +41,7 @@ export class Neo4jArticleGraphVisualizationRepository implements ArticleGraphVis
         AND coalesce(root.work_type, 'article') = 'article'
       RETURN root {
         .id,
+        citationCount: coalesce(root.citation_count, root.openalex_citation_count, 0),
         title: root.title,
         publicationYear: root.publication_year
       } AS article
@@ -60,17 +61,17 @@ export class Neo4jArticleGraphVisualizationRepository implements ArticleGraphVis
       MATCH (root:Article {id: $article_id})
       CALL {
         WITH root
-        MATCH (root)-[related:RELATED_TO {status: 'ACTIVE'}]->(neighbor:Article)
+        MATCH (root)-[related:RELATED_TO {source: 'OPENALEX', status: 'ACTIVE'}]->(neighbor:Article)
         WHERE neighbor.hydration_state = 'HYDRATED'
           AND neighbor.work_type = 'article'
         RETURN neighbor, 0 AS tier, coalesce(related.rank, 2147483647) AS rank
         UNION
         WITH root
-        MATCH (neighbor:Article)-[related:RELATED_TO {status: 'ACTIVE'}]->(root)
+        MATCH (neighbor:Article)-[related:RELATED_TO {source: 'OPENALEX', status: 'ACTIVE'}]->(root)
         WHERE neighbor.hydration_state = 'HYDRATED'
           AND neighbor.work_type = 'article'
           AND NOT EXISTS {
-            MATCH (root)-[:RELATED_TO {status: 'ACTIVE'}]->(neighbor)
+            MATCH (root)-[:RELATED_TO {source: 'OPENALEX', status: 'ACTIVE'}]->(neighbor)
           }
         RETURN neighbor, 1 AS tier, coalesce(related.rank, 2147483647) AS rank
       }
@@ -86,6 +87,7 @@ export class Neo4jArticleGraphVisualizationRepository implements ArticleGraphVis
         )
       RETURN neighbor {
         .id,
+        citationCount: coalesce(neighbor.citation_count, neighbor.openalex_citation_count, 0),
         title: neighbor.title,
         publicationYear: neighbor.publication_year
       } AS article,
@@ -120,7 +122,7 @@ export class Neo4jArticleGraphVisualizationRepository implements ArticleGraphVis
 
     const result = await this.neo4j.executeRead<StoredRelatedEdge>(
       `
-      MATCH (source:Article)-[:RELATED_TO {status: 'ACTIVE'}]->(target:Article)
+      MATCH (source:Article)-[:RELATED_TO {source: 'OPENALEX', status: 'ACTIVE'}]->(target:Article)
       WHERE source.id IN $article_ids
         AND target.id IN $article_ids
       RETURN source.id AS source_article_id, target.id AS target_article_id
@@ -141,6 +143,7 @@ function toArticle(value: unknown): VisualizedArticle {
   const article = value as Record<string, unknown>;
 
   return {
+    citationCount: nullableNumber(article.citationCount) ?? 0,
     id: String(article.id),
     publicationYear: nullableNumber(article.publicationYear),
     title: String(article.title),
