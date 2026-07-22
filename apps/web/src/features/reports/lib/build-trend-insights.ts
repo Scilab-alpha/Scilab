@@ -1,5 +1,5 @@
 import type { ArticleGraph } from "@/features/experiments/types/article.types";
-import type { CatalogSample } from "@/features/dashboard/api/fetch-catalog-sample";
+import type { CatalogSnapshot } from "@/features/dashboard/api/fetch-catalog-snapshot";
 
 export const TREND_SERIES_COLORS = [
   "#D3AB9E",
@@ -39,7 +39,6 @@ export type TopJournalShare = {
   name: string;
   publications: number;
   share: number;
-  trend: "up" | "down" | "stable";
 };
 
 export type TrendInsights = {
@@ -48,7 +47,7 @@ export type TrendInsights = {
     yearlyAverage: number;
     emergingCount: number;
     topKeyword: { label: string; count: number } | null;
-    sampleHint: string;
+    coverageHint: string;
   };
   keywords: TrendKeywordSeries[];
   multiTrend: Array<Record<string, string | number>>;
@@ -98,14 +97,14 @@ function labelOf(item: ArticleGraph) {
 }
 
 export function buildTrendInsights(
-  sample: CatalogSample,
+  snapshot: CatalogSnapshot,
   filters?: {
     journalId?: string;
     subject?: string;
     yearWindow?: number | "all";
   },
 ): TrendInsights {
-  let articles = sample.articles;
+  let articles = snapshot.articles;
 
   if (filters?.journalId) {
     articles = articles.filter(
@@ -252,6 +251,7 @@ export function buildTrendInsights(
         momentum,
       };
     })
+    .filter((topic) => topic.growth > 0)
     .sort((a, b) => b.growth - a.growth);
 
   const journalCounts = new Map<
@@ -281,12 +281,11 @@ export function buildTrendInsights(
     name: row.name,
     publications: row.count,
     share: Math.round((row.count / journalTotal) * 1000) / 10,
-    trend: "stable",
   }));
 
   const subjectOptions = [
     ...new Set(
-      sample.journals.flatMap((journal) => journal.subjectCategories ?? []),
+      snapshot.journals.flatMap((journal) => journal.subjectCategories ?? []),
     ),
   ]
     .map((subject) => subject.trim())
@@ -306,9 +305,9 @@ export function buildTrendInsights(
         (topic) => topic.momentum !== "growing",
       ).length,
       topKeyword,
-      sampleHint: sample.articlesHasMore
-        ? `Based on ${sample.articles.length}+ catalog articles`
-        : `Based on ${sample.articles.length} catalog articles`,
+      coverageHint: snapshot.articlesHasMore
+        ? `Based on ${snapshot.articles.length}+ backend catalog articles`
+        : `Based on ${snapshot.articles.length} backend catalog articles`,
     },
     keywords,
     multiTrend,

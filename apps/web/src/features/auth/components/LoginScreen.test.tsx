@@ -82,16 +82,15 @@ describe("LoginScreen", () => {
     expect(password).toHaveAttribute("type", "password");
   });
 
-  it("explains that password recovery is not available yet", async () => {
+  it("hides authentication actions that have no backend API", () => {
     render(<LoginScreen />);
-
-    await userEvent.click(
-      screen.getByRole("button", { name: "Forgot password?" }),
-    );
-
-    expect(toast.info).toHaveBeenCalledWith(
-      "Password recovery is coming soon.",
-    );
+    expect(
+      screen.queryByRole("button", { name: "Forgot password?" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Continue with Google" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("50M+ research papers")).not.toBeInTheDocument();
   });
 
   it("passes the remember-me preference to the BFF login", async () => {
@@ -132,19 +131,6 @@ describe("LoginScreen", () => {
       expect(toast.error).toHaveBeenCalledWith("Authentication failed"),
     );
     expect(push).not.toHaveBeenCalled();
-  });
-
-  it("does not create a demo session for Google sign-in", async () => {
-    render(<LoginScreen />);
-
-    await userEvent.click(
-      screen.getByRole("button", { name: "Continue with Google" }),
-    );
-
-    expect(login).not.toHaveBeenCalled();
-    expect(toast.info).toHaveBeenCalledWith(
-      "Google sign-in is not available yet.",
-    );
   });
 
   it("renders the admin portal without registration or guest access", async () => {

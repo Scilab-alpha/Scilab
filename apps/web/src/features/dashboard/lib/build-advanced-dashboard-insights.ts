@@ -1,4 +1,4 @@
-import type { CatalogSample } from "@/features/dashboard/api/fetch-catalog-sample";
+import type { CatalogSnapshot } from "@/features/dashboard/api/fetch-catalog-snapshot";
 import { TREND_SERIES_COLORS } from "@/features/reports/lib/build-trend-insights";
 
 export type AdvancedKeywordLine = {
@@ -12,22 +12,12 @@ export type AdvancedHeatmapRow = {
   values: number[];
 };
 
-export type AdvancedJournalRanking = {
-  id: string;
-  journal: string;
-  currentRank: number;
-  previousRank: number;
-  articleCount: number;
-  timeline: Array<{ period: string; rank: number }>;
-};
-
 export type AdvancedDashboardInsights = {
   keywordLines: AdvancedKeywordLine[];
   keywordComparisonSeries: Array<Record<string, string | number>>;
   heatmapColumns: string[];
   heatmapRows: AdvancedHeatmapRow[];
-  rankingProgress: AdvancedJournalRanking[];
-  sampleHint: string;
+  coverageHint: string;
 };
 
 function slugify(value: string) {
@@ -38,9 +28,9 @@ function slugify(value: string) {
     .slice(0, 40);
 }
 
-function collectTagNames(sample: CatalogSample) {
+function collectTagNames(snapshot: CatalogSnapshot) {
   const totals = new Map<string, number>();
-  for (const item of sample.articles) {
+  for (const item of snapshot.articles) {
     for (const topic of item.topics) {
       const name = topic.displayName?.trim();
       if (!name) continue;
@@ -64,13 +54,13 @@ export function heatmapCellClass(value: number): string {
   return "bg-surface-raised text-muted-foreground";
 }
 
-/** Build advanced analytics views from a live academic catalog sample. */
+/** Build advanced analytics views exclusively from a live backend snapshot. */
 export function buildAdvancedDashboardInsights(
-  sample: CatalogSample,
+  snapshot: CatalogSnapshot,
 ): AdvancedDashboardInsights {
   const years = [
     ...new Set(
-      sample.articles
+      snapshot.articles
         .map((item) => item.article.publicationYear)
         .filter((year): year is number => typeof year === "number"),
     ),
@@ -79,7 +69,7 @@ export function buildAdvancedDashboardInsights(
   const activeYears = years.length > 6 ? years.slice(years.length - 6) : years;
   const yearLabels = activeYears.map(String);
 
-  const rankedTags = collectTagNames(sample).slice(0, 5);
+  const rankedTags = collectTagNames(snapshot).slice(0, 5);
   const keywordLines: AdvancedKeywordLine[] = rankedTags.map(
     ([label], index) => ({
       key: slugify(label) || `series_${index}`,
@@ -93,7 +83,7 @@ export function buildAdvancedDashboardInsights(
     tagYearCounts.set(label, new Map());
   }
 
-  for (const item of sample.articles) {
+  for (const item of snapshot.articles) {
     const year = item.article.publicationYear;
     if (typeof year !== "number" || !activeYears.includes(year)) continue;
     const names = new Set(
@@ -135,82 +125,13 @@ export function buildAdvancedDashboardInsights(
     };
   });
 
-  // Journal "ranking" from article counts in sample + journal catalog counts.
-  const journalCounts = new Map<
-    string,
-    { id: string; name: string; count: number }
-  >();
-
-  for (const journal of sample.journals) {
-    journalCounts.set(journal.id, {
-      id: journal.id,
-      name: journal.displayName?.trim() || journal.id,
-      count: journal.articleCount ?? 0,
-    });
-  }
-
-  for (const item of sample.articles) {
-    if (!item.journal?.id) continue;
-    const name = item.journal.displayName?.trim() || item.journal.id;
-    const row = journalCounts.get(item.journal.id) ?? {
-      id: item.journal.id,
-      name,
-      count: 0,
-    };
-    row.count += 1;
-    journalCounts.set(item.journal.id, row);
-  }
-
-  const rankedJournals = [...journalCounts.values()]
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
-
-  const rankingProgress: AdvancedJournalRanking[] = rankedJournals.map(
-    (journal, index) => {
-      const currentRank = index + 1;
-      // Approximate previous rank: journals with fewer articles look "worse" historically.
-      const previousRank = Math.min(
-        rankedJournals.length + 2,
-        currentRank +
-          Math.max(
-            1,
-            Math.round(
-              (rankedJournals[0]?.count ?? 1) / Math.max(journal.count, 1),
-            ),
-          ),
-      );
-      const span = Math.max(activeYears.length, 1);
-      const timeline = activeYears.slice(-4).map((year, yearIndex) => {
-        const progress = (yearIndex + 1) / Math.max(span, 1);
-        const rank = Math.max(
-          1,
-          Math.round(previousRank - (previousRank - currentRank) * progress),
-        );
-        return { period: String(year), rank };
-      });
-
-      return {
-        id: journal.id,
-        journal: journal.name,
-        currentRank,
-        previousRank,
-        articleCount: journal.count,
-        timeline:
-          timeline.length > 0
-            ? timeline
-            : [{ period: "Now", rank: currentRank }],
-      };
-    },
-  );
-
   return {
     keywordLines,
     keywordComparisonSeries,
     heatmapColumns: yearLabels.length > 0 ? yearLabels : ["—"],
     heatmapRows,
-    rankingProgress,
-    sampleHint: sample.articlesHasMore
-      ? `Based on ${sample.articles.length}+ catalog articles`
-      : `Based on ${sample.articles.length} catalog articles`,
+    coverageHint: snapshot.articlesHasMore
+      ? `Based on ${snapshot.articles.length}+ backend catalog articles`
+      : `Based on ${snapshot.articles.length} backend catalog articles`,
   };
 }

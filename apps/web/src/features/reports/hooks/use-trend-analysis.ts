@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getUserFriendlyApiErrorMessage } from "@/core/api";
 import { listQueryStaleTimeMs } from "@/core/api/query-config";
-import { fetchCatalogSample } from "@/features/dashboard/api/fetch-catalog-sample";
+import { fetchCatalogSnapshot } from "@/features/dashboard/api/fetch-catalog-snapshot";
 import { buildTrendInsights } from "@/features/reports/lib/build-trend-insights";
 
 export type TrendFilters = {
@@ -28,9 +28,9 @@ function yearWindowFromRange(dateRange: TrendFilters["dateRange"]) {
 
 export function useTrendAnalysis(filters: TrendFilters) {
   const query = useQuery({
-    queryKey: ["trends", "catalog-sample"] as const,
+    queryKey: ["trends", "catalog-snapshot"] as const,
     staleTime: listQueryStaleTimeMs,
-    queryFn: fetchCatalogSample,
+    queryFn: fetchCatalogSnapshot,
   });
 
   const data = useMemo(() => {

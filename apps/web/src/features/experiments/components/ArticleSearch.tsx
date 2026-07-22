@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Filter,
-  ChevronDown,
   Calendar,
   Quote,
   ExternalLink,
@@ -26,7 +25,10 @@ import Can from "@/shared/components/auth/Can";
 import { Label } from "@/shared/components/ui/label";
 import { useArticles } from "@/features/experiments/hooks/use-articles";
 import { useBookmarks } from "@/features/submissions/hooks/use-bookmarks";
-import type { ArticleGraph } from "@/features/experiments/types/article.types";
+import type {
+  ArticleGraph,
+  ArticleListParams,
+} from "@/features/experiments/types/article.types";
 import {
   getArticleAbstract,
   getArticleAuthorNames,
@@ -36,105 +38,49 @@ import {
   getArticleYear,
   getTagNames,
 } from "@/features/experiments/utils/article-format";
-import { yearOptions } from "@/features/experiments/types/article.types";
 
 const itemsPerPage = 10;
-
-function matchesAdvancedFilters(
-  article: ArticleGraph,
-  filters: {
-    doiSearch: string;
-    authorSearch: string;
-    journalSearch: string;
-    selectedYear: string;
-  },
-) {
-  const doi = article.article.doi ?? "";
-  const authors = getArticleAuthorNames(article).join(" ").toLowerCase();
-  const journal = getArticleJournal(article).toLowerCase();
-  const year = article.article.publicationYear?.toString() ?? "";
-
-  if (
-    filters.doiSearch &&
-    !doi.toLowerCase().includes(filters.doiSearch.toLowerCase())
-  ) {
-    return false;
-  }
-
-  if (
-    filters.authorSearch &&
-    !authors.includes(filters.authorSearch.toLowerCase())
-  ) {
-    return false;
-  }
-
-  if (
-    filters.journalSearch &&
-    !journal.includes(filters.journalSearch.toLowerCase())
-  ) {
-    return false;
-  }
-
-  if (filters.selectedYear && year !== filters.selectedYear) {
-    return false;
-  }
-
-  return true;
-}
 
 export default function ArticleSearch() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [doiSearch, setDoiSearch] = useState("");
-  const [authorSearch, setAuthorSearch] = useState("");
-  const [journalSearch, setJournalSearch] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
+  const [publisher, setPublisher] = useState("");
+  const [country, setCountry] = useState("");
+  const [sort, setSort] = useState<ArticleListParams["sort"]>();
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [bookmarkPendingIds, setBookmarkPendingIds] = useState<Set<string>>(
     new Set(),
   );
+  const effectiveSort =
+    sort === "relevant" && !searchQuery.trim() ? undefined : sort;
 
+  const articleParams = useMemo<ArticleListParams>(() => {
+    const parsedYear = Number(selectedYear);
+    return {
+      q: searchQuery,
+      publicationYear:
+        Number.isInteger(parsedYear) && parsedYear >= 1000
+          ? parsedYear
+          : undefined,
+      publisher: publisher || undefined,
+      country: country || undefined,
+      sort: effectiveSort,
+    };
+  }, [country, effectiveSort, publisher, searchQuery, selectedYear]);
   const { items, isLoading, isLoadingMore, hasMore, error, reload, loadMore } =
-    useArticles(searchQuery);
+    useArticles(articleParams);
   const bookmarks = useBookmarks();
   const bookmarkedIds = useMemo(
     () => new Set(bookmarks.items.map((item) => item.articleId)),
     [bookmarks.items],
   );
 
-  const filteredArticles = useMemo(() => {
-    const titleQuery = searchQuery.trim().toLowerCase();
-    return items.filter((article) => {
-      if (
-        titleQuery &&
-        !getArticleTitle(article).toLowerCase().includes(titleQuery)
-      ) {
-        return false;
-      }
-      return matchesAdvancedFilters(article, {
-        doiSearch,
-        authorSearch,
-        journalSearch,
-        selectedYear,
-      });
-    });
-  }, [
-    items,
-    searchQuery,
-    doiSearch,
-    authorSearch,
-    journalSearch,
-    selectedYear,
-  ]);
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredArticles.length / itemsPerPage),
-  );
+  const totalPages = Math.max(1, Math.ceil(items.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentArticles = filteredArticles.slice(startIndex, endIndex);
+  const currentArticles = items.slice(startIndex, endIndex);
 
   const toggleBookmark = async (graph: ArticleGraph) => {
     const articleId = graph.article.id;
@@ -167,18 +113,18 @@ export default function ArticleSearch() {
   };
 
   const clearFilters = () => {
-    setDoiSearch("");
-    setAuthorSearch("");
-    setJournalSearch("");
     setSelectedYear("");
+    setPublisher("");
+    setCountry("");
+    setSort(undefined);
     setCurrentPage(1);
   };
 
   const activeFilterCount =
-    (doiSearch ? 1 : 0) +
-    (authorSearch ? 1 : 0) +
-    (journalSearch ? 1 : 0) +
-    (selectedYear ? 1 : 0);
+    (selectedYear ? 1 : 0) +
+    (publisher ? 1 : 0) +
+    (country ? 1 : 0) +
+    (effectiveSort ? 1 : 0);
 
   return (
     <>
@@ -264,85 +210,81 @@ export default function ArticleSearch() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="doi-search" className="text-sm font-medium">
-                    DOI
-                  </Label>
-                  <Input
-                    id="doi-search"
-                    type="text"
-                    placeholder="10.1038/..."
-                    className="h-9"
-                    value={doiSearch}
-                    onChange={(e) => {
-                      setDoiSearch(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="author-search"
-                    className="text-sm font-medium"
-                  >
-                    Author
-                  </Label>
-                  <Input
-                    id="author-search"
-                    type="text"
-                    placeholder="Author name"
-                    className="h-9"
-                    value={authorSearch}
-                    onChange={(e) => {
-                      setAuthorSearch(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="journal-search"
-                    className="text-sm font-medium"
-                  >
-                    Journal
-                  </Label>
-                  <Input
-                    id="journal-search"
-                    type="text"
-                    placeholder="Journal name"
-                    className="h-9"
-                    value={journalSearch}
-                    onChange={(e) => {
-                      setJournalSearch(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="year-filter" className="text-sm font-medium">
-                    Year
+                    Publication year
                   </Label>
-                  <div className="relative">
-                    <select
-                      id="year-filter"
-                      className="w-full h-9 px-3 pr-8 bg-card border border-border rounded-lg text-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
-                      value={selectedYear}
-                      onChange={(e) => {
-                        setSelectedYear(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      <option value="">All years</option>
-                      {yearOptions.map((year) => (
-                        <option key={year} value={year}>
-                          {year}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  </div>
+                  <Input
+                    id="year-filter"
+                    type="number"
+                    min={1000}
+                    placeholder="2026"
+                    className="h-9"
+                    value={selectedYear}
+                    onChange={(e) => {
+                      setSelectedYear(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="publisher" className="text-sm font-medium">
+                    Publisher
+                  </Label>
+                  <Input
+                    id="publisher"
+                    type="text"
+                    placeholder="Exact publisher name"
+                    className="h-9"
+                    value={publisher}
+                    onChange={(e) => {
+                      setPublisher(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="country" className="text-sm font-medium">
+                    Country code
+                  </Label>
+                  <Input
+                    id="country"
+                    type="text"
+                    maxLength={2}
+                    placeholder="US"
+                    className="h-9"
+                    value={country}
+                    onChange={(e) => {
+                      setCountry(e.target.value.toUpperCase());
+                      setCurrentPage(1);
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="sort" className="text-sm font-medium">
+                    Sort
+                  </Label>
+                  <select
+                    id="sort"
+                    className="h-9 w-full rounded-lg border border-border bg-card px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    value={effectiveSort ?? ""}
+                    onChange={(event) => {
+                      setSort(
+                        (event.target.value ||
+                          undefined) as ArticleListParams["sort"],
+                      );
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="">Backend default</option>
+                    <option value="relevant" disabled={!searchQuery.trim()}>
+                      Relevant
+                    </option>
+                    <option value="newest">Newest</option>
+                    <option value="most_cited">Most cited</option>
+                  </select>
                 </div>
               </div>
             </Card>
@@ -356,13 +298,13 @@ export default function ArticleSearch() {
                 <>
                   Showing{" "}
                   <span className="font-medium text-foreground">
-                    {filteredArticles.length === 0
+                    {items.length === 0
                       ? 0
-                      : `${startIndex + 1}-${Math.min(endIndex, filteredArticles.length)}`}
+                      : `${startIndex + 1}-${Math.min(endIndex, items.length)}`}
                   </span>{" "}
                   of{" "}
                   <span className="font-medium text-foreground">
-                    {filteredArticles.length}
+                    {items.length}
                     {hasMore ? "+" : ""}
                   </span>{" "}
                   articles
@@ -425,7 +367,7 @@ export default function ArticleSearch() {
                         <div className="flex items-center gap-1">
                           <Quote className="w-4 h-4" />
                           <span>
-                            {article.citedArticleIds.length} citations
+                            {article.article.citationCount ?? "—"} citations
                           </span>
                         </div>
                       </div>
@@ -494,7 +436,7 @@ export default function ArticleSearch() {
             })}
           </div>
 
-          {!isLoading && filteredArticles.length > 0 && (
+          {!isLoading && items.length > 0 && (
             <div className="flex items-center justify-between mt-8">
               <Button
                 variant="outline"

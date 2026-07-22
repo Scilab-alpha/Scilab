@@ -1,10 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  login,
-  toRegisterApiRequest,
-  getGoogleOAuthAvailability,
-  getUserProfile,
-} from "./auth.api";
+import { login, toRegisterApiRequest, getUserProfile } from "./auth.api";
 import { apiRequest } from "@/shared/api/http-client";
 
 vi.mock("@/shared/api/http-client", () => ({
@@ -66,13 +61,6 @@ describe("auth.api", () => {
       gender: "FEMALE",
       dataofbirth: "2001-04-12",
       password: "Strong123",
-    });
-  });
-
-  it("does not expose a fake Google OAuth success path", async () => {
-    await expect(getGoogleOAuthAvailability()).resolves.toEqual({
-      available: false,
-      message: "Google authentication is not available yet.",
     });
   });
 

@@ -8,7 +8,6 @@ import {
   AppSegmentedControl,
   AppTextField,
 } from "@/components/ui";
-import { AuthFooter } from "@/features/auth/components/auth-footer";
 import { AuthScreen } from "@/features/auth/components/auth-screen";
 import { useRegister } from "@/features/auth/hooks/use-register";
 import { createZodResolver, registerSchema } from "@/features/auth/schemas";
@@ -68,8 +67,8 @@ export function RegisterScreen() {
 
   return (
     <AuthScreen
-      description="Create your research profile and start following credible academic signals."
-      footer={<AuthFooter />}
+      description="Create your research profile and follow academic signals."
+      scrollEnabled={false}
       title="Create Scholar Profile"
     >
       <View style={{ gap: theme.spacing.lg }}>
@@ -206,8 +205,8 @@ export function RegisterScreen() {
           style={[
             styles.fieldRow,
             {
-              flexDirection: "column",
-              gap: theme.spacing.md,
+              flexDirection: "row",
+              gap: theme.spacing.sm,
             },
           ]}
         >

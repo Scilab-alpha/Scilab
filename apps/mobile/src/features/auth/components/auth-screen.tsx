@@ -15,6 +15,7 @@ import { useAppTheme } from "@/theme";
 type AuthScreenProps = PropsWithChildren<{
   description: string;
   footer?: ReactNode;
+  scrollEnabled?: boolean;
   title: string;
 }>;
 
@@ -22,6 +23,7 @@ export function AuthScreen({
   children,
   description,
   footer,
+  scrollEnabled = true,
   title,
 }: AuthScreenProps) {
   const theme = useAppTheme();
@@ -44,6 +46,7 @@ export function AuthScreen({
           contentInsetAdjustmentBehavior="automatic"
           keyboardDismissMode="interactive"
           keyboardShouldPersistTaps="handled"
+          scrollEnabled={scrollEnabled}
           showsVerticalScrollIndicator={false}
           style={styles.flex}
         >

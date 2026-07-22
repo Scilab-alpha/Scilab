@@ -81,16 +81,10 @@ describe("RegisterScreen", () => {
     expect(confirmPassword).toHaveAttribute("type", "password");
   });
 
-  it("does not create a fixture session for Google registration", async () => {
+  it("hides Google registration while no backend API exists", () => {
     render(<RegisterScreen />);
-
-    await userEvent.click(
-      screen.getByRole("button", { name: "Continue with Google" }),
-    );
-
-    expect(register).not.toHaveBeenCalled();
-    expect(toast.info).toHaveBeenCalledWith(
-      "Google registration is not available yet.",
-    );
+    expect(
+      screen.queryByRole("button", { name: "Continue with Google" }),
+    ).not.toBeInTheDocument();
   });
 });

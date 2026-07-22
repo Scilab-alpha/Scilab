@@ -76,8 +76,17 @@ function formatTimeAgo(timestamp: string) {
 
 export default function NotificationCenter() {
   const [selectedCategory, setSelectedCategory] = useState<UiCategory>("all");
-  const { items, isLoading, error, reload, markRead, markAllRead } =
-    useNotifications();
+  const [page, setPage] = useState(1);
+  const {
+    items,
+    hasMore,
+    unreadCount,
+    isLoading,
+    error,
+    reload,
+    markRead,
+    markAllRead,
+  } = useNotifications(page, 20);
 
   const categories = [
     { id: "all" as const, label: "All", icon: Bell },
@@ -98,8 +107,6 @@ export default function NotificationCenter() {
     );
   }, [items, selectedCategory]);
 
-  const unreadCount = items.filter((item) => !item.isRead).length;
-
   return (
     <>
       <header className="h-16 bg-card border-b border-border px-8 flex items-center justify-between">
@@ -113,7 +120,9 @@ export default function NotificationCenter() {
             </h1>
             <p className="text-xs text-muted-foreground">
               Alerts for followed authors, journals, topics, and keywords
-              {unreadCount > 0 ? ` · ${unreadCount} unread` : ""}
+              {unreadCount !== null && unreadCount > 0
+                ? ` · ${unreadCount} unread`
+                : ""}
             </p>
           </div>
         </div>
@@ -151,7 +160,7 @@ export default function NotificationCenter() {
               })}
             </div>
 
-            {unreadCount > 0 && (
+            {unreadCount !== null && unreadCount > 0 && (
               <Button
                 variant="outline"
                 size="sm"
@@ -180,8 +189,8 @@ export default function NotificationCenter() {
               <Bell className="w-8 h-8 text-muted-foreground mx-auto mb-4" />
               <h3 className="font-heading text-lg text-foreground mb-2">
                 {selectedCategory === "all"
-                  ? "No notifications yet"
-                  : "No notifications"}
+                  ? "No notifications on this page"
+                  : "No matching notifications on this page"}
               </h3>
               <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
                 Notifications alert you when new articles match journals,
@@ -245,6 +254,30 @@ export default function NotificationCenter() {
               );
             })}
           </div>
+
+          {!isLoading && !error && items.length > 0 ? (
+            <div className="flex items-center justify-between">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === 1}
+                onClick={() => setPage((value) => Math.max(1, value - 1))}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Backend page {page}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!hasMore}
+                onClick={() => setPage((value) => value + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          ) : null}
         </div>
       </main>
     </>

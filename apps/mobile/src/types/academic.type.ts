@@ -78,12 +78,16 @@ export type CursorPage<TItem> = {
 };
 
 export type ArticleListParams = {
+  authorId?: string | null;
+  country?: string | null;
   cursor?: string | null;
+  journalId?: string | null;
   keywordId?: string | null;
   limit?: number;
   publicationYear?: number | null;
   publicationYearFrom?: number | null;
   publicationYearTo?: number | null;
+  publisher?: string | null;
   q?: string | null;
   sort?: "relevant" | "newest" | "most_cited" | null;
   topicId?: string | null;

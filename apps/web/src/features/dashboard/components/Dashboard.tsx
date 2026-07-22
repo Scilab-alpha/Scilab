@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ArrowUp,
   ArrowDown,
+  Minus,
   Hash,
   Layers,
 } from "lucide-react";
@@ -102,9 +103,14 @@ export default function Dashboard() {
                                 className="w-4 h-4 text-destructive"
                                 strokeWidth={1.75}
                               />
-                            ) : (
+                            ) : stat.direction === "up" ? (
                               <ArrowUp
                                 className="w-4 h-4 text-teal"
+                                strokeWidth={1.75}
+                              />
+                            ) : (
+                              <Minus
+                                className="w-4 h-4 text-muted-foreground"
                                 strokeWidth={1.75}
                               />
                             )}
@@ -112,13 +118,15 @@ export default function Dashboard() {
                               className={`text-sm ${
                                 stat.direction === "down"
                                   ? "text-destructive"
-                                  : "text-teal"
+                                  : stat.direction === "up"
+                                    ? "text-teal"
+                                    : "text-muted-foreground"
                               }`}
                             >
                               {Math.abs(stat.changePercent)}%
                             </span>
                             <span className="text-sm text-muted-foreground">
-                              vs prior year in sample
+                              vs prior year in the backend snapshot
                             </span>
                           </>
                         ) : (
@@ -139,12 +147,12 @@ export default function Dashboard() {
                       Publication Growth
                     </h3>
                     <p className="text-sm text-muted-foreground mt-0.5">
-                      Articles by publication year in catalog sample
+                      Articles by publication year in the backend snapshot
                     </p>
                   </div>
                   {data.publicationGrowth.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-16 text-center">
-                      No year data in this sample yet.
+                      No year data in the backend snapshot yet.
                     </p>
                   ) : (
                     <ResponsiveContainer width="100%" height={280}>
@@ -191,7 +199,7 @@ export default function Dashboard() {
                       Year Distribution
                     </h3>
                     <p className="text-sm text-muted-foreground mt-0.5">
-                      How sampled articles spread across years
+                      How backend snapshot articles spread across years
                     </p>
                   </div>
                   {data.yearDistribution.length === 0 ? (
@@ -239,10 +247,10 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="font-heading text-lg text-foreground">
-                      Trending Research Topics
+                      Topic Frequency in Snapshot
                     </h3>
                     <p className="text-sm text-muted-foreground mt-0.5">
-                      Most frequent topics & keywords in the sample
+                      Most frequent topics and keywords in the backend snapshot
                     </p>
                   </div>
                   <Button
@@ -261,13 +269,13 @@ export default function Dashboard() {
                   </Button>
                 </div>
 
-                {data.trendingTopics.length === 0 ? (
+                {data.topicFrequencyChanges.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    No topics or keywords found on sampled articles.
+                    No topics or keywords found in backend snapshot articles.
                   </p>
                 ) : (
                   <div className="space-y-4">
-                    {data.trendingTopics.map((item) => (
+                    {data.topicFrequencyChanges.map((item) => (
                       <div key={item.topic} className="flex items-center gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
@@ -278,7 +286,9 @@ export default function Dashboard() {
                               className={`flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-button)] text-xs ${
                                 item.trend === "up"
                                   ? "bg-teal/10 text-teal"
-                                  : "bg-destructive/10 text-destructive"
+                                  : item.trend === "down"
+                                    ? "bg-destructive/10 text-destructive"
+                                    : "bg-surface-raised text-muted-foreground"
                               }`}
                             >
                               {item.trend === "up" ? (
@@ -286,11 +296,13 @@ export default function Dashboard() {
                                   className="w-3 h-3"
                                   strokeWidth={1.75}
                                 />
-                              ) : (
+                              ) : item.trend === "down" ? (
                                 <ArrowDown
                                   className="w-3 h-3"
                                   strokeWidth={1.75}
                                 />
+                              ) : (
+                                <Minus className="w-3 h-3" strokeWidth={1.75} />
                               )}
                               {Math.abs(item.change)}%
                             </div>
@@ -304,7 +316,8 @@ export default function Dashboard() {
                                     8,
                                     (item.count /
                                       Math.max(
-                                        data.trendingTopics[0]?.count ?? 1,
+                                        data.topicFrequencyChanges[0]?.count ??
+                                          1,
                                         1,
                                       )) *
                                       100,
@@ -327,7 +340,7 @@ export default function Dashboard() {
                 <Card className="p-6">
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="font-heading text-lg text-foreground">
-                      Top Journals
+                      Journals in Loaded Catalog Page
                     </h3>
                     <Button asChild variant="ghost" size="sm" className="h-8">
                       <Link href="/student/journals">Browse</Link>
@@ -335,7 +348,7 @@ export default function Dashboard() {
                   </div>
 
                   <div className="space-y-4">
-                    {data.recentJournals.map((journal) => (
+                    {data.catalogJournals.map((journal) => (
                       <Link
                         key={journal.id}
                         href={`/student/journals/${encodeURIComponent(journal.id)}`}
@@ -351,19 +364,9 @@ export default function Dashboard() {
                           <p className="text-sm text-foreground truncate">
                             {journal.name}
                           </p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs text-muted-foreground">
-                              {journal.articles} articles
-                            </span>
-                            <span className="text-xs text-border">•</span>
-                            <span className="text-xs text-muted-foreground">
-                              {journal.lastUpdate}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 text-teal">
-                          <ArrowUp className="w-3.5 h-3.5" strokeWidth={1.75} />
-                          <span className="text-sm">{journal.trend}</span>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {journal.articles} articles in graph
+                          </p>
                         </div>
                       </Link>
                     ))}
@@ -373,7 +376,7 @@ export default function Dashboard() {
                 <Card className="p-6">
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="font-heading text-lg text-foreground">
-                      Recent Publications
+                      Latest Loaded Publications
                     </h3>
                     <Button asChild variant="ghost" size="sm" className="h-8">
                       <Link href="/student/articles">Browse</Link>
@@ -397,7 +400,9 @@ export default function Dashboard() {
                           <span className="text-border">•</span>
                           <span>{publication.year ?? "—"}</span>
                           <span className="text-border">•</span>
-                          <span>{publication.citations} outgoing refs</span>
+                          <span>
+                            {publication.outgoingReferences} outgoing refs
+                          </span>
                         </div>
                       </Link>
                     ))}
@@ -406,11 +411,11 @@ export default function Dashboard() {
               </div>
 
               <p className="text-xs text-muted-foreground">
-                Sample: {data.sampleSize.articles} articles
-                {data.sampleSize.articlesHasMore ? "+" : ""} ·{" "}
-                {data.sampleSize.journals} journals
-                {data.sampleSize.journalsHasMore ? "+" : ""}. Metrics are
-                computed from the live catalog, not mock data.
+                Backend snapshot: {data.snapshotSize.articles} articles
+                {data.snapshotSize.articlesHasMore ? "+" : ""} ·{" "}
+                {data.snapshotSize.journals} journals
+                {data.snapshotSize.journalsHasMore ? "+" : ""}. Metrics cover
+                only the records retrieved from the backend.
               </p>
             </>
           )}

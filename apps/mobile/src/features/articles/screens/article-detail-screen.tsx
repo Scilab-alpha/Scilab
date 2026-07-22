@@ -13,6 +13,8 @@ import {
 import { ArticleErrorState } from "@/components/academic/article-error-state";
 import { DetailSection } from "@/components/academic/detail-section";
 import { useArticle } from "@/features/articles/hooks/use-article";
+import { useArticleRelatedGraph } from "@/features/articles/hooks/use-article-graph";
+import type { RelatedArticleGraphNode } from "@/features/articles/types/article-graph.type";
 import type {
   ArticleGraph,
   AuthorNode,
@@ -21,11 +23,12 @@ import type {
 } from "@/types/academic.type";
 import {
   getArticleAuthors,
+  getArticleCitationCount,
   getArticleJournal,
   getArticleTitle,
   getArticleYear,
-  getAuthorDisplayName,
 } from "@/features/articles/utils/article-format";
+import { getAuthorDisplayName } from "@/features/authors/utils/author-format";
 import { useToast } from "@/components/ui";
 import { useBookmarkStatus } from "@/features/bookmarks/hooks/use-bookmarks";
 import { useToggleBookmark } from "@/features/bookmarks/hooks/use-toggle-bookmark";
@@ -52,6 +55,7 @@ export function ArticleDetailScreen() {
     isLoading,
     refetch,
   } = useArticle(articleId ?? "");
+  const relatedGraphQuery = useArticleRelatedGraph(articleId ?? "", 5);
   const bookmarkStatusQuery = useBookmarkStatus(articleId ?? "");
   const toggleBookmark = useToggleBookmark();
   const serverBookmarked = bookmarkStatusQuery.data ?? false;
@@ -61,6 +65,16 @@ export function ArticleDetailScreen() {
       ? toggleBookmarkData.bookmarked
       : null;
   const isBookmarked = latestToggle ?? serverBookmarked;
+  const citationCount = article ? getArticleCitationCount(article) : 0;
+  const relatedNodes = useMemo(
+    () =>
+      getRelatedArticleNodes(relatedGraphQuery.data?.nodes ?? [], articleId),
+    [articleId, relatedGraphQuery.data?.nodes],
+  );
+  const shouldShowRelatedWorks =
+    relatedGraphQuery.isLoading ||
+    relatedGraphQuery.isError ||
+    relatedNodes.length > 0;
 
   const handleToggleBookmark = () => {
     if (!articleId || toggleBookmark.isPending) {
@@ -183,7 +197,7 @@ export function ArticleDetailScreen() {
                 <MetricCard
                   icon="git-branch-outline"
                   label="Cites"
-                  value={formatCount(article.citedArticleIds.length)}
+                  value={formatCount(citationCount)}
                 />
               </View>
             </View>
@@ -288,21 +302,25 @@ export function ArticleDetailScreen() {
                 />
                 <InfoRow
                   label="Citations"
-                  value={
-                    article.citedArticleIds.length > 0
-                      ? String(article.citedArticleIds.length)
-                      : null
-                  }
+                  value={citationCount > 0 ? String(citationCount) : null}
                 />
               </View>
             </DetailSection>
 
-            <DetailSection
-              icon="git-network-outline"
-              title="Related scholarly works"
-            >
-              <CitationLinks article={article} />
-            </DetailSection>
+            {shouldShowRelatedWorks ? (
+              <DetailSection
+                icon="git-network-outline"
+                title="Related scholarly works"
+              >
+                <RelatedWorks
+                  error={relatedGraphQuery.error}
+                  isError={relatedGraphQuery.isError}
+                  isLoading={relatedGraphQuery.isLoading}
+                  nodes={relatedNodes}
+                  truncated={relatedGraphQuery.data?.truncated ?? false}
+                />
+              </DetailSection>
+            ) : null}
           </View>
         ) : null}
       </ScrollView>
@@ -584,42 +602,12 @@ function AuthorRow({ author }: { author: AuthorNode }) {
           >
             {name}
           </Text>
+          <Ionicons
+            color={theme.colors.textMuted}
+            name="chevron-forward"
+            size={15}
+          />
         </View>
-        {author.orcid ? (
-          <View style={styles.orcidRow}>
-            <View
-              style={[
-                styles.orcidBadge,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.outlineSoft,
-                  borderRadius: theme.radii.pill,
-                },
-              ]}
-            >
-              <Text
-                numberOfLines={1}
-                selectable
-                style={[
-                  theme.typography.caption,
-                  { color: theme.colors.textMuted },
-                ]}
-              >
-                ORCID
-              </Text>
-            </View>
-            <Text
-              numberOfLines={1}
-              selectable
-              style={[
-                theme.typography.caption,
-                { color: theme.colors.textMuted, flex: 1 },
-              ]}
-            >
-              {author.orcid}
-            </Text>
-          </View>
-        ) : null}
       </Pressable>
     </Link>
   );
@@ -689,61 +677,141 @@ function JournalSummaryCard({ article }: { article: ArticleGraph }) {
   );
 }
 
-function CitationLinks({ article }: { article: ArticleGraph }) {
+function RelatedWorks({
+  error,
+  isError,
+  isLoading,
+  nodes,
+  truncated,
+}: {
+  error: unknown;
+  isError: boolean;
+  isLoading: boolean;
+  nodes: RelatedArticleGraphNode[];
+  truncated: boolean;
+}) {
   const theme = useAppTheme();
-  const citedIds = article.citedArticleIds.slice(0, 5);
 
-  if (citedIds.length === 0) {
+  if (isLoading) {
     return (
-      <MutedText text="No citation graph links are available for this article." />
+      <View style={styles.relatedLoading}>
+        <ActivityIndicator color={theme.colors.primary} size="small" />
+      </View>
     );
+  }
+
+  if (isError) {
+    return <MutedText text={getUserFriendlyApiErrorMessage(error)} />;
+  }
+
+  if (nodes.length === 0) {
+    return null;
   }
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
-      {citedIds.map((citedId, index) => (
-        <View
-          key={citedId}
-          style={[
-            styles.relatedCard,
-            {
-              backgroundColor: theme.colors.surfaceMuted,
-              borderColor: theme.colors.outlineSoft,
-              borderRadius: theme.radii.md,
-            },
-          ]}
-        >
+      {nodes.map((node) => (
+        <RelatedWorkCard key={node.id} node={node} />
+      ))}
+      {truncated ? (
+        <MutedText text="More related works are available in the graph." />
+      ) : null}
+    </View>
+  );
+}
+
+function RelatedWorkCard({ node }: { node: RelatedArticleGraphNode }) {
+  const theme = useAppTheme();
+  const articleId = fromArticleGraphNodeId(node.id);
+  const href = `/articles/${encodeURIComponent(articleId)}` as Href;
+  const title = getRelatedWorkTitle(node.label);
+  const year = getRelatedWorkYear(node.label);
+
+  return (
+    <Link asChild href={href}>
+      <Pressable
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          styles.relatedCard,
+          {
+            backgroundColor: pressed
+              ? theme.colors.surface
+              : theme.colors.surfaceMuted,
+            borderColor: theme.colors.outlineSoft,
+            borderRadius: theme.radii.md,
+            opacity: pressed ? 0.82 : 1,
+          },
+        ]}
+      >
+        <View style={styles.relatedCardContent}>
           <Text
+            numberOfLines={3}
             selectable
-            numberOfLines={1}
-            style={[theme.typography.caption, { color: theme.colors.primary }]}
-          >
-            CITES NODE {index + 1}
-          </Text>
-          <Text
-            selectable
-            numberOfLines={2}
             style={[theme.typography.label, { color: theme.colors.text }]}
           >
-            {citedId}
+            {title}
           </Text>
           <Text
+            selectable
             style={[
               theme.typography.caption,
               { color: theme.colors.textMuted },
             ]}
           >
-            Linked through the article citation graph.
+            {[year, `${formatCount(node.citationCount ?? 0)} citations`]
+              .filter(Boolean)
+              .join(" - ")}
           </Text>
         </View>
-      ))}
-      {article.citedArticleIds.length > citedIds.length ? (
-        <MutedText
-          text={`+${article.citedArticleIds.length - citedIds.length} more citation links in the graph.`}
+        <Ionicons
+          color={theme.colors.textMuted}
+          name="chevron-forward"
+          size={16}
         />
-      ) : null}
-    </View>
+      </Pressable>
+    </Link>
   );
+}
+
+function uniqueRelatedNodes(nodes: RelatedArticleGraphNode[]) {
+  const byId = new Map<string, RelatedArticleGraphNode>();
+
+  for (const node of nodes) {
+    if (!byId.has(node.id)) {
+      byId.set(node.id, node);
+    }
+  }
+
+  return Array.from(byId.values());
+}
+
+function getRelatedArticleNodes(
+  nodes: RelatedArticleGraphNode[],
+  articleId: string | null | undefined,
+) {
+  const rootNodeId = articleId ? toArticleGraphNodeId(articleId) : null;
+
+  return uniqueRelatedNodes(
+    nodes.filter((node) => node.type === "article" && node.id !== rootNodeId),
+  );
+}
+
+function toArticleGraphNodeId(articleId: string) {
+  return `article:${articleId}`;
+}
+
+function fromArticleGraphNodeId(nodeId: string) {
+  return nodeId.startsWith("article:")
+    ? nodeId.slice("article:".length)
+    : nodeId;
+}
+
+function getRelatedWorkTitle(label: string) {
+  return label.replace(/\s+\(\d{4}\)$/u, "").trim() || "Untitled article";
+}
+
+function getRelatedWorkYear(label: string) {
+  return label.match(/\((\d{4})\)$/u)?.[1] ?? null;
 }
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
@@ -812,7 +880,6 @@ const styles = StyleSheet.create({
   authorRow: {
     borderCurve: "continuous",
     borderWidth: 1,
-    gap: 6,
     padding: 10,
   },
   authorRowHeader: {
@@ -883,16 +950,6 @@ const styles = StyleSheet.create({
     minWidth: 0,
     padding: 10,
   },
-  orcidBadge: {
-    borderWidth: 1,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-  },
-  orcidRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 8,
-  },
   metricValue: {
     fontSize: 17,
     fontVariant: ["tabular-nums"],
@@ -911,10 +968,22 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   relatedCard: {
+    alignItems: "center",
     borderCurve: "continuous",
     borderWidth: 1,
+    flexDirection: "row",
     gap: 5,
     padding: 12,
+  },
+  relatedCardContent: {
+    flex: 1,
+    gap: 5,
+    minWidth: 0,
+  },
+  relatedLoading: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 72,
   },
   tag: {
     borderWidth: 1,
