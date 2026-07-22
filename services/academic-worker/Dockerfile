@@ -22,7 +22,7 @@ COPY services/academic-worker/package.json services/academic-worker/package.json
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm --filter @repo/database prisma:generate && pnpm turbo run build --filter=academic-worker...
-RUN pnpm --filter academic-worker --prod deploy --legacy /runtime
+RUN pnpm --config.inject-workspace-packages=true --filter academic-worker --prod deploy /runtime
 RUN mkdir -p /runtime/docs/scimagojr && \
     cp -R docs/scimagojr/normalized /runtime/docs/scimagojr/normalized
 
