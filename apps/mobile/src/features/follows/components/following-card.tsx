@@ -11,7 +11,7 @@ import {
   getFollowIcon,
   getFollowTitle,
 } from "@/features/follows/utils/follow-format";
-import { SurfaceCard } from "@/features/navigation/components/screen-shell";
+import { SurfaceCard } from "@/components/layout/screen-shell";
 import { getUserFriendlyApiErrorMessage } from "@/services/api";
 import { useAppTheme } from "@/theme";
 

@@ -3,10 +3,7 @@ import { useRouter } from "expo-router";
 
 import { AppButton, AppMessage } from "@/components/ui";
 import { useLogout } from "@/features/auth/hooks/use-logout";
-import {
-  ScreenShell,
-  SurfaceCard,
-} from "@/features/navigation/components/screen-shell";
+import { ScreenShell, SurfaceCard } from "@/components/layout/screen-shell";
 import { ProfileHeroCard } from "@/features/profile/components/profile-hero-card";
 import { ProfileSettingsList } from "@/features/profile/components/profile-settings-list";
 import { useProfile } from "@/features/profile/hooks/use-profile";
@@ -84,12 +81,32 @@ export function ProfileScreen() {
       title="Profile"
     >
       <ProfileHeroCard profile={profileQuery.data} />
-      <ProfileSettingsList
-        isLoggingOut={logoutMutation.isPending}
-        onEditProfilePress={() => router.push("/profile/edit")}
-        onLogoutPress={handleLogoutPress}
-        profile={profileQuery.data}
-      />
+      <View style={{ gap: theme.spacing.md, paddingTop: theme.spacing.lg }}>
+        <View
+          style={{
+            backgroundColor: theme.colors.outlineSoft,
+            height: 1,
+          }}
+        />
+        <Text
+          selectable
+          style={[
+            theme.typography.label,
+            {
+              color: theme.colors.primary,
+              fontSize: 15,
+              fontWeight: "800",
+            },
+          ]}
+        >
+          Settings
+        </Text>
+        <ProfileSettingsList
+          isLoggingOut={logoutMutation.isPending}
+          onEditProfilePress={() => router.push("/profile/edit")}
+          onLogoutPress={handleLogoutPress}
+        />
+      </View>
     </ScreenShell>
   );
 }

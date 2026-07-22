@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Text, View } from "react-native";
 
 import type { FollowObjectType } from "@/features/follows/types/follow.type";
-import { SurfaceCard } from "@/features/navigation/components/screen-shell";
+import { SurfaceCard } from "@/components/layout/screen-shell";
 import { useAppTheme } from "@/theme";
 
 type FollowingFilter = "ALL" | FollowObjectType;

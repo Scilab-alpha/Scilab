@@ -1,3 +1,3 @@
-import { TrendsScreen } from "@/features/navigation/screens/trends-screen";
+import { TrendsScreen } from "@/features/trends/screens/trends-screen";
 
 export default TrendsScreen;

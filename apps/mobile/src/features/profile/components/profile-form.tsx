@@ -1,11 +1,10 @@
 import { Controller, useForm } from "react-hook-form";
 import { useEffect, useMemo } from "react";
 import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
-import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { AppButton, AppSegmentedControl, AppTextField } from "@/components/ui";
 import { createZodResolver } from "@/features/auth/schemas";
-import { SurfaceCard } from "@/features/navigation/components/screen-shell";
+import { SurfaceCard } from "@/components/layout/screen-shell";
 import { createProfileSchema } from "@/features/profile/schemas/profile.schema";
 import type {
   ProfileFormValues,
@@ -70,34 +69,6 @@ export function ProfileForm({
   return (
     <SurfaceCard>
       <View style={{ gap: theme.spacing.lg }}>
-        <View
-          style={[
-            styles.profilePhotoRow,
-            { borderBottomColor: theme.colors.outlineSoft },
-          ]}
-        >
-          <View
-            style={[
-              styles.photoIcon,
-              { backgroundColor: theme.colors.primarySoft },
-            ]}
-          >
-            <Ionicons
-              color={theme.colors.primary}
-              name="camera-outline"
-              size={18}
-            />
-          </View>
-          <Text style={[styles.photoTitle, { color: theme.colors.text }]}>
-            Profile photo
-          </Text>
-          <Text
-            style={[theme.typography.caption, { color: theme.colors.outline }]}
-          >
-            Waiting API
-          </Text>
-        </View>
-
         <View
           style={[
             styles.fieldRow,
@@ -243,27 +214,6 @@ function toFormValues(profile: UserProfile): ProfileFormValues {
 const styles = StyleSheet.create({
   field: { flex: 1 },
   fieldRow: { width: "100%" },
-  photoIcon: {
-    alignItems: "center",
-    borderRadius: 18,
-    height: 36,
-    justifyContent: "center",
-    width: 36,
-  },
-  photoTitle: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: "700",
-    lineHeight: 20,
-  },
-  profilePhotoRow: {
-    alignItems: "center",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    gap: 12,
-    minHeight: 48,
-    paddingBottom: 12,
-  },
   readOnlyField: {
     alignItems: "center",
     borderBottomWidth: 1,

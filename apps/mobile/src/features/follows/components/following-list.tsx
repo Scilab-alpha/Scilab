@@ -2,13 +2,13 @@ import { useMemo, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 import { AppSegmentedControl } from "@/components/ui";
-import { AcademicLoadMoreButton } from "@/features/academic/components/academic-load-more-button";
-import { ArticleErrorState } from "@/features/academic/components/article-error-state";
+import { AcademicLoadMoreButton } from "@/components/academic/academic-load-more-button";
+import { ArticleErrorState } from "@/components/academic/article-error-state";
 import { FollowingCard } from "@/features/follows/components/following-card";
 import { FollowingEmptyState } from "@/features/follows/components/following-empty-state";
 import { useFollows } from "@/features/follows/hooks/use-follows";
 import type { FollowObjectType } from "@/features/follows/types/follow.type";
-import { SurfaceCard } from "@/features/navigation/components/screen-shell";
+import { SurfaceCard } from "@/components/layout/screen-shell";
 import { getUserFriendlyApiErrorMessage } from "@/services/api";
 import { useAppTheme } from "@/theme";
 

@@ -1,4 +1,50 @@
 import { useColorScheme } from "react-native";
+import { create } from "zustand";
+
+import { getSecureItem, setSecureItem } from "@/lib/secure-store";
+
+export type ThemeMode = "dark" | "light" | "system";
+
+type ThemeModeState = {
+  hydrate: () => Promise<void>;
+  isHydrated: boolean;
+  mode: ThemeMode;
+  setMode: (mode: ThemeMode) => Promise<void>;
+};
+
+const themeModeStorageKey = "scilab.theme.mode";
+
+const useThemeModeStore = create<ThemeModeState>((set) => ({
+  hydrate: async () => {
+    try {
+      const storedMode = await getSecureItem(themeModeStorageKey);
+
+      set({
+        isHydrated: true,
+        mode: isThemeMode(storedMode) ? storedMode : "system",
+      });
+    } catch {
+      set({ isHydrated: true });
+    }
+  },
+  isHydrated: false,
+  mode: "system",
+  setMode: async (mode) => {
+    set({ mode });
+
+    try {
+      await setSecureItem(themeModeStorageKey, mode);
+    } catch {
+      // Keep the in-memory preference even if local persistence is unavailable.
+    }
+  },
+}));
+
+export { useThemeModeStore };
+
+function isThemeMode(value: string | null): value is ThemeMode {
+  return value === "system" || value === "light" || value === "dark";
+}
 
 const lightColors = {
   background: "#FBF8F6",
@@ -93,12 +139,17 @@ export const typography = {
 
 export function useAppTheme() {
   const colorScheme = useColorScheme();
+  const themeMode = useThemeModeStore((state) => state.mode);
+  const setThemeMode = useThemeModeStore((state) => state.setMode);
+  const resolvedColorScheme = themeMode === "system" ? colorScheme : themeMode;
 
   return {
-    colors: colorScheme === "dark" ? darkColors : lightColors,
-    isDark: colorScheme === "dark",
+    colors: resolvedColorScheme === "dark" ? darkColors : lightColors,
+    isDark: resolvedColorScheme === "dark",
     radii,
     spacing,
+    setThemeMode,
+    themeMode,
     typography,
   };
 }

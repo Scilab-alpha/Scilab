@@ -5,18 +5,38 @@ import {
   getCurrentUser,
   refreshTokens,
 } from "@/features/auth/api/auth.service";
+import { useUserEventsSubscription } from "@/features/notifications/hooks/use-user-events-subscription";
 import { QueryProvider } from "@/lib/query-provider";
 import { ApiError, setApiAuthRecoveryHandler } from "@/services/api";
 import { useAuthStore } from "@/store/auth.store";
+import { useThemeModeStore } from "@/theme";
 
 export function AppProviders({ children }: PropsWithChildren) {
   return (
-    <QueryProvider>
-      <ToastProvider>
-        <AuthBootstrap>{children}</AuthBootstrap>
-      </ToastProvider>
-    </QueryProvider>
+    <ThemeBootstrap>
+      <QueryProvider>
+        <ToastProvider>
+          <AuthBootstrap>
+            <RealtimeBootstrap>{children}</RealtimeBootstrap>
+          </AuthBootstrap>
+        </ToastProvider>
+      </QueryProvider>
+    </ThemeBootstrap>
   );
+}
+
+function ThemeBootstrap({ children }: PropsWithChildren) {
+  useEffect(() => {
+    void useThemeModeStore.getState().hydrate();
+  }, []);
+
+  return children;
+}
+
+function RealtimeBootstrap({ children }: PropsWithChildren) {
+  useUserEventsSubscription();
+
+  return children;
 }
 
 function AuthBootstrap({ children }: PropsWithChildren) {
