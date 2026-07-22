@@ -24,7 +24,7 @@ import type {
   UserRole,
   UserStatus,
 } from "@/features/users/types/user.types";
-import AdminShell from "@/shared/components/layout/AdminShell";
+import AdminPageFrame from "@/shared/components/layout/AdminPageFrame";
 import {
   Alert,
   AlertDescription,
@@ -422,7 +422,7 @@ export default function AdminOverview() {
   );
 
   return (
-    <AdminShell
+    <AdminPageFrame
       title="Overview"
       subtitle="User access and account health at a glance"
       icon={<LayoutDashboard className="size-5" strokeWidth={1.75} />}
@@ -586,6 +586,6 @@ export default function AdminOverview() {
           )}
         </div>
       )}
-    </AdminShell>
+    </AdminPageFrame>
   );
 }

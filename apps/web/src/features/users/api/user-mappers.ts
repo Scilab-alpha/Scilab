@@ -27,7 +27,7 @@ export function mapApiUserProfile(user: ApiUserProfile): UserProfile {
   const displayName =
     [firstName, lastName].filter(Boolean).join(" ") ||
     user.email.split("@")[0] ||
-    "ScholarTrend User";
+    "SciLab User";
 
   return {
     id: user.id,

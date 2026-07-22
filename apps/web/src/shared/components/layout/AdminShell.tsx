@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Menu, Shield, UserRound } from "lucide-react";
 import { useAuth } from "@/providers/auth-provider";
-import PageContainer from "@/shared/components/layout/PageContainer";
 import { Button } from "@/shared/components/ui/button";
 import {
   Sheet,
@@ -21,10 +20,6 @@ import { routes } from "@/shared/constants/routes";
 
 interface AdminShellProps {
   children: React.ReactNode;
-  title?: string;
-  subtitle?: string;
-  icon?: React.ReactNode;
-  headerAction?: React.ReactNode;
 }
 
 interface AdminNavigationProps {
@@ -46,9 +41,7 @@ function AdminBrand() {
         <Shield className="size-5 text-primary-foreground" strokeWidth={1.75} />
       </div>
       <div className="min-w-0">
-        <span className="font-heading text-lg text-foreground">
-          ScholarTrend
-        </span>
+        <span className="font-heading text-lg text-foreground">SciLab</span>
         <p className="truncate text-xs text-muted-foreground">
           {user ? ROLE_LABELS[user.role] : "Admin Panel"}
         </p>
@@ -134,13 +127,7 @@ function AdminAccountFooter({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-export default function AdminShell({
-  children,
-  title,
-  subtitle,
-  icon,
-  headerAction,
-}: AdminShellProps) {
+export default function AdminShell({ children }: AdminShellProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -153,57 +140,38 @@ export default function AdminShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-3 border-b border-border bg-card/95 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
-          <div className="flex min-w-0 items-center gap-3">
-            <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-              <SheetTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="motion-reduce:transform-none motion-reduce:transition-none lg:hidden"
-                  aria-label="Open admin navigation"
-                >
-                  <Menu className="size-5" strokeWidth={1.75} />
-                </Button>
-              </SheetTrigger>
-              <SheetContent
-                side="left"
-                className="w-[min(18rem,86vw)] gap-0 border-border bg-card p-0 motion-reduce:animate-none motion-reduce:transition-none"
+        <div className="sticky top-0 z-30 flex h-16 items-center border-b border-border bg-card/95 px-4 backdrop-blur lg:hidden">
+          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+            <SheetTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="motion-reduce:transform-none motion-reduce:transition-none"
+                aria-label="Open admin navigation"
               >
-                <SheetTitle className="sr-only">Admin navigation</SheetTitle>
-                <SheetDescription className="sr-only">
-                  Navigate between administration pages.
-                </SheetDescription>
-                <AdminBrand />
-                <AdminNavigation
-                  pathname={pathname}
-                  onNavigate={() => setIsMenuOpen(false)}
-                />
-                <AdminAccountFooter onNavigate={() => setIsMenuOpen(false)} />
-              </SheetContent>
-            </Sheet>
+                <Menu className="size-5" strokeWidth={1.75} />
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="left"
+              className="w-[min(18rem,86vw)] gap-0 border-border bg-card p-0 motion-reduce:animate-none motion-reduce:transition-none"
+            >
+              <SheetTitle className="sr-only">Admin navigation</SheetTitle>
+              <SheetDescription className="sr-only">
+                Navigate between administration pages.
+              </SheetDescription>
+              <AdminBrand />
+              <AdminNavigation
+                pathname={pathname}
+                onNavigate={() => setIsMenuOpen(false)}
+              />
+              <AdminAccountFooter onNavigate={() => setIsMenuOpen(false)} />
+            </SheetContent>
+          </Sheet>
+        </div>
 
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-card)] bg-primary/15 text-primary">
-              {icon}
-            </div>
-            <div className="min-w-0">
-              <h1 className="truncate font-heading text-lg text-foreground">
-                {title}
-              </h1>
-              {subtitle ? (
-                <p className="hidden truncate text-xs text-muted-foreground sm:block">
-                  {subtitle}
-                </p>
-              ) : null}
-            </div>
-          </div>
-          {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
-        </header>
-
-        <main className="flex-1 overflow-auto py-6 sm:py-8">
-          <PageContainer>{children}</PageContainer>
-        </main>
+        {children}
       </div>
     </div>
   );
