@@ -3,12 +3,15 @@ import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useNotificationStore } from "@/features/notifications/store/notification.store";
 import { useAppTheme } from "@/theme";
 
 export function AppHeader() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const theme = useAppTheme();
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const badgeLabel = unreadCount > 99 ? "99+" : String(unreadCount);
 
   return (
     <View
@@ -26,23 +29,31 @@ export function AppHeader() {
 
         <View>
           <HeaderButton
-            accessibilityLabel="Open notifications, 3 unread"
+            accessibilityLabel={
+              unreadCount > 0
+                ? `Open notifications, ${unreadCount} unread`
+                : "Open notifications"
+            }
             icon="notifications-outline"
             onPress={() => router.push("/notifications")}
           />
-          <View
-            style={[
-              styles.badge,
-              {
-                backgroundColor: theme.colors.primary,
-                borderColor: theme.colors.surface,
-              },
-            ]}
-          >
-            <Text style={[styles.badgeText, { color: theme.colors.onPrimary }]}>
-              3
-            </Text>
-          </View>
+          {unreadCount > 0 ? (
+            <View
+              style={[
+                styles.badge,
+                {
+                  backgroundColor: theme.colors.primary,
+                  borderColor: theme.colors.surface,
+                },
+              ]}
+            >
+              <Text
+                style={[styles.badgeText, { color: theme.colors.onPrimary }]}
+              >
+                {badgeLabel}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </View>
     </View>
