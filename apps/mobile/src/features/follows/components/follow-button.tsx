@@ -1,3 +1,4 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
 
 import { useToast } from "@/components/ui";
@@ -75,7 +76,13 @@ export function FollowButton({
     >
       {isPending ? (
         <ActivityIndicator color={theme.colors.onPrimary} size="small" />
-      ) : null}
+      ) : (
+        <Ionicons
+          color={theme.colors.onPrimary}
+          name={isFollowed ? "radio" : "radio-outline"}
+          size={17}
+        />
+      )}
       <Text style={[theme.typography.label, { color: theme.colors.onPrimary }]}>
         {isPending ? "Updating..." : isFollowed ? "Following" : label}
       </Text>

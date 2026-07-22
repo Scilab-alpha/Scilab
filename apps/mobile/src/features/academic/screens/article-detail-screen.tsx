@@ -258,17 +258,15 @@ export function ArticleDetailScreen() {
 
             <DetailSection icon="pricetags-outline" title="Keywords and topics">
               <View style={{ gap: theme.spacing.md }}>
-                <TermGroup
+                <KeywordGroup
                   emptyText="No keywords available."
                   items={article.keywords}
                   label="Keywords"
-                  objectType="KEYWORD"
                 />
-                <TermGroup
+                <TopicFollowGroup
                   emptyText="No topics available."
                   items={article.topics}
                   label="Topics"
-                  objectType="TOPIC"
                 />
               </View>
             </DetailSection>
@@ -340,19 +338,47 @@ function HeroPill({
   );
 }
 
-function TermGroup({
+function KeywordGroup({
   emptyText,
   items,
   label,
-  objectType,
 }: {
   emptyText: string;
-  items: (KeywordNode | TopicNode)[];
+  items: KeywordNode[];
   label: string;
-  objectType: FollowObjectType;
+}) {
+  const theme = useAppTheme();
+
+  return (
+    <View style={{ gap: theme.spacing.sm }}>
+      <Text style={[theme.typography.caption, { color: theme.colors.primary }]}>
+        {label.toUpperCase()}
+      </Text>
+      {items.length === 0 ? (
+        <MutedText text={emptyText} />
+      ) : (
+        <View style={styles.tags}>
+          {items.map((item) => (
+            <StaticTermChip item={item} key={item.id} />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+function TopicFollowGroup({
+  emptyText,
+  items,
+  label,
+}: {
+  emptyText: string;
+  items: TopicNode[];
+  label: string;
 }) {
   const theme = useAppTheme();
   const { showToast } = useToast();
+  const objectType: FollowObjectType = "TOPIC";
   const followsQuery = useFollows({ limit: 100, type: objectType });
   const toggleFollow = useToggleFollow();
   const followedTargetIds = useMemo(
@@ -361,7 +387,7 @@ function TermGroup({
   );
   const pendingObjectId = toggleFollow.variables?.objectId ?? null;
 
-  const handleToggleFollow = (item: KeywordNode | TopicNode) => {
+  const handleToggleFollow = (item: TopicNode) => {
     if (toggleFollow.isPending) {
       return;
     }
@@ -401,6 +427,11 @@ function TermGroup({
           ))}
         </View>
       )}
+      <Text
+        style={[theme.typography.caption, { color: theme.colors.outline }]}
+      >
+        Tap + to follow a topic.
+      </Text>
     </View>
   );
 }
@@ -413,7 +444,7 @@ function FollowTermChip({
 }: {
   isFollowed: boolean;
   isPending: boolean;
-  item: KeywordNode | TopicNode;
+  item: TopicNode;
   onPress: () => void;
 }) {
   const theme = useAppTheme();
@@ -441,7 +472,7 @@ function FollowTermChip({
       ) : (
         <Ionicons
           color={isFollowed ? theme.colors.primary : theme.colors.textMuted}
-          name={isFollowed ? "radio" : "radio-outline"}
+          name={isFollowed ? "checkmark" : "add"}
           size={13}
         />
       )}
@@ -457,6 +488,30 @@ function FollowTermChip({
         {formatTermLabel(item)}
       </Text>
     </Pressable>
+  );
+}
+
+function StaticTermChip({ item }: { item: KeywordNode }) {
+  const theme = useAppTheme();
+
+  return (
+    <View
+      style={[
+        styles.tag,
+        {
+          backgroundColor: theme.colors.surfaceMuted,
+          borderColor: theme.colors.outlineSoft,
+          borderRadius: theme.radii.pill,
+        },
+      ]}
+    >
+      <Text
+        numberOfLines={1}
+        style={[theme.typography.caption, { color: theme.colors.textMuted }]}
+      >
+        {formatTermLabel(item)}
+      </Text>
+    </View>
   );
 }
 

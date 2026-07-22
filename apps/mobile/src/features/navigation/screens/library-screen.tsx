@@ -12,6 +12,7 @@ export function LibraryScreen() {
 
   return (
     <ScreenShell
+      showHeader={false}
       subtitle="Your saved works and followed research signals."
       title="Library"
     >
