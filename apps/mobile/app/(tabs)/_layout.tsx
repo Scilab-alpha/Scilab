@@ -4,7 +4,7 @@ import type { ComponentProps } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppHeader } from "@/features/navigation/components/app-header";
+import { AppHeader } from "@/components/navigation/app-header";
 import { useAuthStore } from "@/store/auth.store";
 import { useAppTheme } from "@/theme";
 

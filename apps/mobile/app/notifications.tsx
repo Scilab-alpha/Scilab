@@ -1,6 +1,6 @@
 import { Redirect } from "expo-router";
 
-import { NotificationsScreen } from "@/features/navigation/screens/notifications-screen";
+import { NotificationsScreen } from "@/features/notifications/screens/notifications-screen";
 import { useAuthStore } from "@/store/auth.store";
 
 export default function NotificationsRoute() {
