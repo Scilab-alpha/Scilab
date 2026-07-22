@@ -1,13 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Link, type Href } from "expo-router";
 import { useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 
 import { AppSegmentedControl, useToast } from "@/components/ui";
 import { AcademicLoadMoreButton } from "@/features/academic/components/academic-load-more-button";
@@ -45,6 +39,7 @@ export function FollowingList() {
         onChange={setFilter}
         options={[
           { label: "All", value: "ALL" },
+          { label: "Authors", value: "AUTHOR" },
           { label: "Journals", value: "JOURNAL" },
           { label: "Topics", value: "TOPIC" },
         ]}
@@ -112,6 +107,10 @@ function FollowingEmptyState({ filter }: { filter: FollowingFilter }) {
 }
 
 function getEmptyTitle(filter: FollowingFilter) {
+  if (filter === "AUTHOR") {
+    return "No followed authors yet";
+  }
+
   if (filter === "JOURNAL") {
     return "No followed journals yet";
   }
@@ -124,6 +123,10 @@ function getEmptyTitle(filter: FollowingFilter) {
 }
 
 function getEmptyMessage(filter: FollowingFilter) {
+  if (filter === "AUTHOR") {
+    return "Follow authors from author profile pages.";
+  }
+
   if (filter === "JOURNAL") {
     return "Follow journals from journal profile pages.";
   }
@@ -132,7 +135,7 @@ function getEmptyMessage(filter: FollowingFilter) {
     return "Follow topic chips from article details.";
   }
 
-  return "Follow journals and topics to build your research signal.";
+  return "Follow authors, journals and topics to build your research signal.";
 }
 
 function FollowingCard({ follow }: { follow: FollowListItem }) {
@@ -169,7 +172,22 @@ function FollowingCard({ follow }: { follow: FollowListItem }) {
     </View>
   );
   const linkedTarget =
-    follow.objectType === "JOURNAL" ? (
+    follow.objectType === "AUTHOR" ? (
+      <Link
+        asChild
+        href={`/authors/${encodeURIComponent(follow.objectId)}` as Href}
+      >
+        <Pressable
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            { flex: 1, minWidth: 0 },
+            pressed ? { opacity: 0.78 } : null,
+          ]}
+        >
+          {target}
+        </Pressable>
+      </Link>
+    ) : follow.objectType === "JOURNAL" ? (
       <Link
         asChild
         href={`/journals/${encodeURIComponent(follow.objectId)}` as Href}
@@ -206,18 +224,14 @@ function FollowingCard({ follow }: { follow: FollowListItem }) {
     );
   };
   const handleUnfollowPress = () => {
-    Alert.alert(
-      "Unfollow",
-      `Stop following ${getFollowTitle(follow)}?`,
-      [
-        { style: "cancel", text: "Cancel" },
-        {
-          onPress: unfollow,
-          style: "destructive",
-          text: "Unfollow",
-        },
-      ],
-    );
+    Alert.alert("Unfollow", `Stop following ${getFollowTitle(follow)}?`, [
+      { style: "cancel", text: "Cancel" },
+      {
+        onPress: unfollow,
+        style: "destructive",
+        text: "Unfollow",
+      },
+    ]);
   };
 
   return (
@@ -278,6 +292,10 @@ function getFollowTitle(follow: FollowListItem) {
 }
 
 function getFollowIcon(follow: FollowListItem) {
+  if (follow.objectType === "AUTHOR") {
+    return "person-outline" as const;
+  }
+
   if (follow.objectType === "JOURNAL") {
     return "book-outline" as const;
   }
