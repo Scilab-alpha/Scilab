@@ -36,8 +36,7 @@ import {
 } from "recharts";
 import { useAuth } from "@/providers/auth-provider";
 import { useTrendAnalysis } from "@/features/reports/hooks/use-trend-analysis";
-import { toggleFollow } from "@/features/follows/api/follows.api";
-import { isLocallyFollowing } from "@/features/follows/api/local-follows";
+import { useFollows } from "@/features/follows/hooks/use-follows";
 import type { FollowObjectType } from "@/features/follows/types/follow.types";
 
 function MomentumBadge({
@@ -74,8 +73,7 @@ export default function TrendAnalysis() {
   const [selectedJournal, setSelectedJournal] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
-  const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
-  const [followPendingId, setFollowPendingId] = useState<string | null>(null);
+  const follows = useFollows({ page: 1, limit: 100 });
 
   const { data, isLoading, error, reload } = useTrendAnalysis({
     journalId: selectedJournal,
@@ -121,36 +119,24 @@ export default function TrendAnalysis() {
 
   const handleFollow = async (input: {
     id: string;
-    topic: string;
     objectType: FollowObjectType;
   }) => {
-    if (followPendingId) return;
-    setFollowPendingId(input.id);
+    if (follows.togglePending || follows.isLoading || follows.error) return;
     try {
-      const result = await toggleFollow({
+      await follows.toggle({
         objectType: input.objectType,
         objectId: input.id,
-        displayName: input.topic,
         notifyMode: "IN_APP",
-      });
-      setFollowedIds((previous) => {
-        const next = new Set(previous);
-        if (result.followed) {
-          next.add(input.id);
-        } else {
-          next.delete(input.id);
-        }
-        return next;
       });
     } catch {
       // Keep prior follow state on failure.
-    } finally {
-      setFollowPendingId(null);
     }
   };
 
   const isFollowing = (id: string, objectType: FollowObjectType) =>
-    followedIds.has(id) || isLocallyFollowing(objectType, id);
+    follows.items.some(
+      (item) => item.objectType === objectType && item.objectId === id,
+    );
 
   const resetFilters = () => {
     setDateRange("all");
@@ -640,11 +626,17 @@ export default function TrendAnalysis() {
                               variant={following ? "default" : "outline"}
                               size="sm"
                               className="h-8 px-3"
-                              disabled={followPendingId === topic.id}
+                              disabled={
+                                follows.isLoading ||
+                                Boolean(follows.error) ||
+                                (follows.togglePending &&
+                                  follows.toggleVariables?.objectType ===
+                                    topic.objectType &&
+                                  follows.toggleVariables.objectId === topic.id)
+                              }
                               onClick={() =>
                                 void handleFollow({
                                   id: topic.id,
-                                  topic: topic.topic,
                                   objectType: topic.objectType,
                                 })
                               }
