@@ -8,15 +8,26 @@ import {
 import { QueryProvider } from "@/lib/query-provider";
 import { ApiError, setApiAuthRecoveryHandler } from "@/services/api";
 import { useAuthStore } from "@/store/auth.store";
+import { useThemeModeStore } from "@/theme";
 
 export function AppProviders({ children }: PropsWithChildren) {
   return (
-    <QueryProvider>
-      <ToastProvider>
-        <AuthBootstrap>{children}</AuthBootstrap>
-      </ToastProvider>
-    </QueryProvider>
+    <ThemeBootstrap>
+      <QueryProvider>
+        <ToastProvider>
+          <AuthBootstrap>{children}</AuthBootstrap>
+        </ToastProvider>
+      </QueryProvider>
+    </ThemeBootstrap>
   );
+}
+
+function ThemeBootstrap({ children }: PropsWithChildren) {
+  useEffect(() => {
+    void useThemeModeStore.getState().hydrate();
+  }, []);
+
+  return children;
 }
 
 function AuthBootstrap({ children }: PropsWithChildren) {

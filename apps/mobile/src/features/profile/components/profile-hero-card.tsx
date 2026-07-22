@@ -4,7 +4,6 @@ import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { getRoleLabel } from "@/features/auth/utils/roles";
-import { SurfaceCard } from "@/features/navigation/components/screen-shell";
 import type { UserProfile } from "@/features/profile/types/profile.type";
 import { useAppTheme } from "@/theme";
 
@@ -24,10 +23,16 @@ export function ProfileHeroCard({ profile }: { profile: UserProfile }) {
     Boolean(profile.imageUrl) && failedImageUrl !== profile.imageUrl;
 
   return (
-    <SurfaceCard>
-      <View style={styles.header}>
+    <View style={[styles.profile, { gap: theme.spacing.lg }]}>
+      <View style={styles.summary}>
         <View
-          style={[styles.avatar, { backgroundColor: theme.colors.primarySoft }]}
+          style={[
+            styles.avatar,
+            {
+              backgroundColor: theme.colors.primarySoft,
+              borderColor: theme.colors.outlineSoft,
+            },
+          ]}
         >
           {showImage ? (
             <Image
@@ -71,7 +76,40 @@ export function ProfileHeroCard({ profile }: { profile: UserProfile }) {
           </View>
         </View>
       </View>
-    </SurfaceCard>
+
+      <View
+        style={[
+          styles.details,
+          {
+            borderTopColor: theme.colors.outlineSoft,
+            gap: theme.spacing.md,
+            paddingTop: theme.spacing.md,
+          },
+        ]}
+      >
+        <View style={styles.infoRow}>
+          <ProfileInfoItem label="First name" value={profile.firstName} />
+          <ProfileInfoItem label="Last name" value={profile.lastName} />
+        </View>
+        <View style={styles.infoRow}>
+          <ProfileInfoItem
+            label="Gender"
+            value={formatGender(profile.gender)}
+          />
+          <ProfileInfoItem
+            label="Date of birth"
+            value={formatDateOfBirth(profile.dateOfBirth)}
+          />
+        </View>
+        <View style={styles.infoRow}>
+          <ProfileInfoItem label="Role" value={getRoleLabel(profile.role)} />
+          <ProfileInfoItem
+            label="Status"
+            value={formatStatus(profile.status)}
+          />
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -94,6 +132,54 @@ function ProfileBadge({
   );
 }
 
+function ProfileInfoItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | null;
+}) {
+  const theme = useAppTheme();
+  const displayValue = value?.trim() ? value : "Not set";
+
+  return (
+    <View style={styles.infoItem}>
+      <Text style={[theme.typography.caption, { color: theme.colors.outline }]}>
+        {label}
+      </Text>
+      <Text selectable style={[styles.infoValue, { color: theme.colors.text }]}>
+        {displayValue}
+      </Text>
+    </View>
+  );
+}
+
+function formatGender(gender: UserProfile["gender"]) {
+  if (!gender) {
+    return null;
+  }
+
+  return gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase();
+}
+
+function formatDateOfBirth(dateOfBirth: string | null) {
+  if (!dateOfBirth) {
+    return null;
+  }
+
+  const parsedDate = new Date(dateOfBirth);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return dateOfBirth;
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(parsedDate);
+}
+
 function formatStatus(status: string) {
   return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
 }
@@ -101,23 +187,48 @@ function formatStatus(status: string) {
 const styles = StyleSheet.create({
   avatar: {
     alignItems: "center",
-    borderRadius: 36,
-    height: 72,
+    borderRadius: 44,
+    borderWidth: 1,
+    height: 88,
     justifyContent: "center",
     overflow: "hidden",
-    width: 72,
+    width: 88,
   },
   avatarImage: { height: "100%", width: "100%" },
   displayName: {
-    fontSize: 18,
-    fontWeight: "700",
-    lineHeight: 24,
+    fontSize: 22,
+    fontWeight: "800",
+    lineHeight: 28,
   },
   email: { fontSize: 13, lineHeight: 19 },
-  header: { alignItems: "center", flexDirection: "row", gap: 16 },
-  identity: { flex: 1, gap: 3 },
+  identity: { flex: 1, gap: 4 },
   initials: { fontSize: 23, fontWeight: "800" },
-  badges: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingTop: 5 },
+  details: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  infoItem: { flex: 1, gap: 3, minWidth: 0 },
+  infoRow: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  infoValue: {
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 18,
+  },
+  profile: {},
+  summary: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 14,
+  },
+  badges: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    justifyContent: "center",
+    paddingTop: 6,
+  },
   badge: {
     alignItems: "center",
     borderRadius: 12,

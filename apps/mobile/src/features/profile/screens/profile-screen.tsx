@@ -84,12 +84,32 @@ export function ProfileScreen() {
       title="Profile"
     >
       <ProfileHeroCard profile={profileQuery.data} />
-      <ProfileSettingsList
-        isLoggingOut={logoutMutation.isPending}
-        onAboutPress={() => router.push("/about")}
-        onEditProfilePress={() => router.push("/profile/edit")}
-        onLogoutPress={handleLogoutPress}
-      />
+      <View style={{ gap: theme.spacing.md, paddingTop: theme.spacing.lg }}>
+        <View
+          style={{
+            backgroundColor: theme.colors.outlineSoft,
+            height: 1,
+          }}
+        />
+        <Text
+          selectable
+          style={[
+            theme.typography.label,
+            {
+              color: theme.colors.primary,
+              fontSize: 15,
+              fontWeight: "800",
+            },
+          ]}
+        >
+          Settings
+        </Text>
+        <ProfileSettingsList
+          isLoggingOut={logoutMutation.isPending}
+          onEditProfilePress={() => router.push("/profile/edit")}
+          onLogoutPress={handleLogoutPress}
+        />
+      </View>
     </ScreenShell>
   );
 }

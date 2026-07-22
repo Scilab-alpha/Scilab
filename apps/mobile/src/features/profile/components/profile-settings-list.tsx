@@ -7,25 +7,39 @@ import {
   View,
 } from "react-native";
 
-import { SurfaceCard } from "@/features/navigation/components/screen-shell";
-import { useAppTheme } from "@/theme";
+import { type ThemeMode, useAppTheme } from "@/theme";
+
+const themeModeOptions: { label: string; value: ThemeMode }[] = [
+  { label: "System", value: "system" },
+  { label: "Light", value: "light" },
+  { label: "Dark", value: "dark" },
+];
 
 export function ProfileSettingsList({
   isLoggingOut,
-  onAboutPress,
   onEditProfilePress,
   onLogoutPress,
 }: {
   isLoggingOut: boolean;
-  onAboutPress: () => void;
   onEditProfilePress: () => void;
   onLogoutPress: () => void;
 }) {
+  const theme = useAppTheme();
+
   return (
-    <SurfaceCard>
+    <View
+      style={[
+        styles.settingsList,
+        {
+          borderBottomColor: theme.colors.outlineSoft,
+          borderTopColor: theme.colors.outlineSoft,
+        },
+      ]}
+    >
       <SettingRow
         icon="person-outline"
         onPress={onEditProfilePress}
+        showDivider={false}
         title="Edit profile"
       />
       <SettingRow
@@ -33,22 +47,84 @@ export function ProfileSettingsList({
         meta="Waiting API"
         title="Change password"
       />
-      <SettingRow
-        icon="notifications-outline"
-        meta="Waiting API"
-        title="Notifications"
-      />
-      <SettingRow
-        icon="shield-checkmark-outline"
-        meta="Waiting API"
-        title="Privacy"
-      />
-      <SettingRow icon="language-outline" meta="Coming soon" title="Language" />
-      <SettingRow
-        icon="information-circle-outline"
-        onPress={onAboutPress}
-        title="About ScholarTrend"
-      />
+      <View
+        style={[
+          styles.themeRow,
+          {
+            borderTopColor: theme.colors.outlineSoft,
+            paddingVertical: theme.spacing.sm,
+          },
+        ]}
+      >
+        <View style={styles.themeLabel}>
+          <View
+            style={[
+              styles.iconSlot,
+              { backgroundColor: theme.colors.primarySoft },
+            ]}
+          >
+            <Ionicons
+              color={theme.colors.primary}
+              name={theme.isDark ? "moon-outline" : "sunny-outline"}
+              size={18}
+            />
+          </View>
+          <View style={styles.settingCopy}>
+            <Text style={[styles.settingTitle, { color: theme.colors.text }]}>
+              Appearance
+            </Text>
+          </View>
+        </View>
+        <View
+          accessibilityRole="radiogroup"
+          style={[
+            styles.themeOptions,
+            {
+              borderColor: theme.colors.outlineSoft,
+              borderRadius: theme.radii.sm,
+            },
+          ]}
+        >
+          {themeModeOptions.map((option) => {
+            const selected = option.value === theme.themeMode;
+
+            return (
+              <Pressable
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                key={option.value}
+                onPress={() => {
+                  void theme.setThemeMode(option.value);
+                }}
+                style={({ pressed }) => [
+                  styles.themeOption,
+                  {
+                    backgroundColor: selected
+                      ? theme.colors.primary
+                      : pressed
+                        ? theme.colors.surfaceMuted
+                        : "transparent",
+                  },
+                ]}
+              >
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    theme.typography.caption,
+                    {
+                      color: selected
+                        ? theme.colors.onPrimary
+                        : theme.colors.textMuted,
+                    },
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
       <SettingRow
         icon="log-out-outline"
         isLoading={isLoggingOut}
@@ -56,7 +132,7 @@ export function ProfileSettingsList({
         title="Log out"
         tone="danger"
       />
-    </SurfaceCard>
+    </View>
   );
 }
 
@@ -65,6 +141,7 @@ function SettingRow({
   isLoading = false,
   meta,
   onPress,
+  showDivider = true,
   title,
   tone = "default",
 }: {
@@ -72,6 +149,7 @@ function SettingRow({
   isLoading?: boolean;
   meta?: string;
   onPress?: () => void;
+  showDivider?: boolean;
   title: string;
   tone?: "danger" | "default";
 }) {
@@ -90,7 +168,11 @@ function SettingRow({
       onPress={onPress}
       style={({ pressed }) => [
         styles.settingRow,
-        { opacity: pressed || isLoading ? 0.65 : 1 },
+        {
+          borderTopColor: theme.colors.outlineSoft,
+          borderTopWidth: showDivider ? StyleSheet.hairlineWidth : 0,
+          opacity: pressed || isLoading ? 0.65 : 1,
+        },
       ]}
     >
       <View style={[styles.iconSlot, { backgroundColor: iconBackground }]}>
@@ -140,9 +222,40 @@ const styles = StyleSheet.create({
     gap: 12,
     minHeight: 48,
   },
+  settingsList: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
   settingTitle: {
     fontSize: 14,
     fontWeight: "700",
     lineHeight: 19,
+  },
+  themeLabel: {
+    alignItems: "center",
+    flexDirection: "row",
+    flex: 1,
+    gap: 12,
+    minWidth: 0,
+  },
+  themeOption: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+    minWidth: 0,
+    paddingHorizontal: 4,
+  },
+  themeOptions: {
+    borderWidth: 1,
+    flexDirection: "row",
+    height: 34,
+    overflow: "hidden",
+    width: 172,
+  },
+  themeRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+    minHeight: 48,
   },
 });
