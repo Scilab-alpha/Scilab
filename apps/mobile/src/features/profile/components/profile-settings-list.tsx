@@ -8,102 +8,55 @@ import {
 } from "react-native";
 
 import { SurfaceCard } from "@/features/navigation/components/screen-shell";
-import type { UserProfile } from "@/features/profile/types/profile.type";
 import { useAppTheme } from "@/theme";
 
 export function ProfileSettingsList({
   isLoggingOut,
+  onAboutPress,
   onEditProfilePress,
   onLogoutPress,
-  profile,
 }: {
   isLoggingOut: boolean;
+  onAboutPress: () => void;
   onEditProfilePress: () => void;
   onLogoutPress: () => void;
-  profile: UserProfile;
 }) {
   return (
-    <View style={styles.sections}>
-      <SettingSection title="Account">
-        <SettingRow
-          icon="person-outline"
-          onPress={onEditProfilePress}
-          title="Edit profile"
-        />
-        <SettingRow
-          icon="lock-closed-outline"
-          meta="Waiting API"
-          title="Account security"
-        />
-      </SettingSection>
-
-      <SettingSection title="Notifications">
-        <SettingRow
-          icon="options-outline"
-          meta="Waiting API"
-          title="Notification preferences"
-        />
-        <SettingRow
-          icon="radio-outline"
-          meta="Waiting API"
-          title="Follow alert mode"
-        />
-      </SettingSection>
-
-      <SettingSection title="Preferences">
-        <SettingRow
-          icon="grid-outline"
-          meta="Waiting API"
-          title="Dashboard widgets"
-        />
-        <SettingRow
-          icon="language-outline"
-          meta="Coming soon"
-          title="Language"
-        />
-        <SettingRow
-          icon="color-palette-outline"
-          meta="System"
-          title="Appearance"
-        />
-      </SettingSection>
-
-      {profile.role === "RESEARCHER" ? (
-        <SettingSection title="Researcher">
-          <SettingRow
-            icon="document-text-outline"
-            meta="Coming soon"
-            title="Report exports"
-          />
-        </SettingSection>
-      ) : null}
-
-      <SettingSection title="Session">
-        <SettingRow
-          icon="log-out-outline"
-          isLoading={isLoggingOut}
-          onPress={onLogoutPress}
-          title="Log out"
-          tone="danger"
-        />
-      </SettingSection>
-    </View>
-  );
-}
-
-function SettingSection({
-  children,
-  title,
-}: React.PropsWithChildren<{ title: string }>) {
-  const theme = useAppTheme();
-
-  return (
-    <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.outline }]}>
-        {title}
-      </Text>
-      <SurfaceCard>{children}</SurfaceCard>
-    </View>
+    <SurfaceCard>
+      <SettingRow
+        icon="person-outline"
+        onPress={onEditProfilePress}
+        title="Edit profile"
+      />
+      <SettingRow
+        icon="lock-closed-outline"
+        meta="Waiting API"
+        title="Change password"
+      />
+      <SettingRow
+        icon="notifications-outline"
+        meta="Waiting API"
+        title="Notifications"
+      />
+      <SettingRow
+        icon="shield-checkmark-outline"
+        meta="Waiting API"
+        title="Privacy"
+      />
+      <SettingRow icon="language-outline" meta="Coming soon" title="Language" />
+      <SettingRow
+        icon="information-circle-outline"
+        onPress={onAboutPress}
+        title="About ScholarTrend"
+      />
+      <SettingRow
+        icon="log-out-outline"
+        isLoading={isLoggingOut}
+        onPress={onLogoutPress}
+        title="Log out"
+        tone="danger"
+      />
+    </SurfaceCard>
   );
 }
 
@@ -179,15 +132,6 @@ const styles = StyleSheet.create({
   meta: {
     maxWidth: 136,
     textAlign: "right",
-  },
-  section: { gap: 8 },
-  sections: { gap: 16 },
-  sectionTitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 0.8,
-    paddingHorizontal: 4,
-    textTransform: "uppercase",
   },
   settingCopy: { flex: 1 },
   settingRow: {

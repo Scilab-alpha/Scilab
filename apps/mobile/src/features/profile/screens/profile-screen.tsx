@@ -86,9 +86,9 @@ export function ProfileScreen() {
       <ProfileHeroCard profile={profileQuery.data} />
       <ProfileSettingsList
         isLoggingOut={logoutMutation.isPending}
+        onAboutPress={() => router.push("/about")}
         onEditProfilePress={() => router.push("/profile/edit")}
         onLogoutPress={handleLogoutPress}
-        profile={profileQuery.data}
       />
     </ScreenShell>
   );

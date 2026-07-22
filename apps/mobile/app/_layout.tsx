@@ -30,6 +30,17 @@ export default function RootLayout() {
         <Stack.Screen name="authors/[authorId]" />
         <Stack.Screen name="journals/[journalId]" />
         <Stack.Screen
+          name="about"
+          options={{
+            headerBackVisible: false,
+            headerLeft: () => <AppBackButton />,
+            headerShown: true,
+            headerShadowVisible: false,
+            headerTitleAlign: "center",
+            title: "About",
+          }}
+        />
+        <Stack.Screen
           name="profile/edit"
           options={{
             headerBackVisible: false,
