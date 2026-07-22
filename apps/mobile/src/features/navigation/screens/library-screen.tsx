@@ -25,11 +25,7 @@ export function LibraryScreen() {
         ]}
         value={mode}
       />
-      {mode === "saved" ? (
-        <SavedBookmarksList />
-      ) : (
-        <FollowingList />
-      )}
+      {mode === "saved" ? <SavedBookmarksList /> : <FollowingList />}
     </ScreenShell>
   );
 }

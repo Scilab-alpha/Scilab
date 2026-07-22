@@ -427,9 +427,7 @@ function TopicFollowGroup({
           ))}
         </View>
       )}
-      <Text
-        style={[theme.typography.caption, { color: theme.colors.outline }]}
-      >
+      <Text style={[theme.typography.caption, { color: theme.colors.outline }]}>
         Tap + to follow a topic.
       </Text>
     </View>
