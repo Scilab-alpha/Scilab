@@ -37,7 +37,7 @@ const errorEnvelopeSchema = (message: string) =>
 
 const objectTypeSchema = {
   type: 'string',
-  enum: ['JOURNAL', 'KEYWORD', 'TOPIC'],
+  enum: ['AUTHOR', 'JOURNAL', 'KEYWORD', 'TOPIC'],
 };
 
 const notifyModeSchema = {
@@ -182,7 +182,9 @@ export function ApiListFollows() {
 export function ApiToggleFollow() {
   return applyDecorators(
     ApiFollowBearerAuth(),
-    ApiOperation({ summary: 'Toggle follow for a journal, keyword, or topic' }),
+    ApiOperation({
+      summary: 'Toggle follow for an author, journal, keyword, or topic',
+    }),
     ApiBody({
       schema: {
         type: 'object',

@@ -11,7 +11,12 @@ import {
   parseOptionalEnum,
 } from '@/shared/validation/request-input';
 
-export const FOLLOW_OBJECT_TYPES = ['JOURNAL', 'KEYWORD', 'TOPIC'] as const;
+export const FOLLOW_OBJECT_TYPES = [
+  'AUTHOR',
+  'JOURNAL',
+  'KEYWORD',
+  'TOPIC',
+] as const;
 export const FOLLOW_NOTIFY_MODES = [
   'IN_APP',
   'DAILY_EMAIL',

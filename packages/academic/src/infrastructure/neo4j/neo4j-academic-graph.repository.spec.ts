@@ -295,6 +295,7 @@ describe('Neo4jAcademicGraphRepository', () => {
 
     await repository.findArticlesMatchingFollowedTargets(
       {
+        authors: [],
         journals: ['journal-1'],
         keywords: [],
         topics: [],
@@ -306,6 +307,43 @@ describe('Neo4jAcademicGraphRepository', () => {
     expect(cypher).toContain('datetime(toString(article.created_at))');
     expect(parameters).toMatchObject({
       journals: ['journal-1'],
+      authors: [],
+      since: since.toISOString(),
+    });
+  });
+
+  it('matches followed authors through article authorship', async () => {
+    const executeRead = jest.fn().mockResolvedValue({
+      records: [],
+      summary: {},
+    });
+    const repository = new Neo4jAcademicGraphRepository({
+      executeRead,
+    } as never);
+    const since = new Date('2026-06-01T00:00:00.000Z');
+
+    await repository.findArticlesMatchingFollowedTargets(
+      {
+        authors: ['author-1'],
+        journals: [],
+        keywords: [],
+        topics: [],
+      },
+      since,
+    );
+
+    const { cypher, parameters } = firstExecuteReadCall(executeRead);
+    expect(cypher).toContain(
+      'OPTIONAL MATCH (matched_author:Author)-[:WROTE]->(article)',
+    );
+    expect(cypher).toContain(
+      "collect(DISTINCT {type: 'AUTHOR', id: matched_author.id}) AS author_matches",
+    );
+    expect(cypher).toContain(
+      'journal_matches + keyword_matches + topic_matches + author_matches',
+    );
+    expect(parameters).toMatchObject({
+      authors: ['author-1'],
       since: since.toISOString(),
     });
   });

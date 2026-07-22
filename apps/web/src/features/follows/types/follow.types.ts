@@ -1,6 +1,6 @@
 import type { PageParams, PageResult } from "@/core/api/pagination";
 
-export type FollowObjectType = "JOURNAL" | "KEYWORD" | "TOPIC";
+export type FollowObjectType = "AUTHOR" | "JOURNAL" | "KEYWORD" | "TOPIC";
 
 export type NotifyMode = "IN_APP" | "DAILY_EMAIL" | "WEEKLY_EMAIL" | "OFF";
 

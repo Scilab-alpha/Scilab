@@ -9,6 +9,7 @@ import {
   Sparkles,
   FileCheck,
   Settings,
+  UserRound,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
@@ -19,12 +20,20 @@ import type {
   NotificationObjectType,
 } from "@/features/notifications/types/notification.types";
 
-type UiCategory = "all" | "journal" | "topic" | "publication" | "system";
+type UiCategory =
+  | "all"
+  | "author"
+  | "journal"
+  | "topic"
+  | "publication"
+  | "system";
 
 function toUiCategory(
   type: NotificationObjectType | null,
 ): Exclude<UiCategory, "all"> {
   switch (type) {
+    case "AUTHOR":
+      return "author";
     case "JOURNAL":
       return "journal";
     case "TOPIC":
@@ -72,6 +81,7 @@ export default function NotificationCenter() {
 
   const categories = [
     { id: "all" as const, label: "All", icon: Bell },
+    { id: "author" as const, label: "Authors", icon: UserRound },
     { id: "journal" as const, label: "Journals", icon: BookOpenCheck },
     { id: "topic" as const, label: "Topics", icon: Sparkles },
     { id: "publication" as const, label: "Articles", icon: FileCheck },
@@ -102,7 +112,7 @@ export default function NotificationCenter() {
               Notifications
             </h1>
             <p className="text-xs text-muted-foreground">
-              Alerts for followed journals, topics, and keywords
+              Alerts for followed authors, journals, topics, and keywords
               {unreadCount > 0 ? ` · ${unreadCount} unread` : ""}
             </p>
           </div>

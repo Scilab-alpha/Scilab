@@ -142,6 +142,7 @@ function isEmailMode(mode: FollowNotifyMode): boolean {
 
 function groupReferences(refs: FollowTargetReference[]) {
   return {
+    authors: refs.filter((ref) => ref.type === 'AUTHOR').map((ref) => ref.id),
     journals: refs.filter((ref) => ref.type === 'JOURNAL').map((ref) => ref.id),
     keywords: refs.filter((ref) => ref.type === 'KEYWORD').map((ref) => ref.id),
     topics: refs.filter((ref) => ref.type === 'TOPIC').map((ref) => ref.id),
