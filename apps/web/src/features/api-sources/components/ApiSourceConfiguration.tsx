@@ -50,7 +50,6 @@ import type {
 
 const providerIcons: Record<ApiProviderId, string> = {
   openalex: "OA",
-  "semantic-scholar": "SS",
   crossref: "CR",
   scimago: "SJ",
   custom: "API",

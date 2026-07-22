@@ -28,11 +28,18 @@ export class SyncRelatedWorksUseCase {
       throw new Error('OpenAlex client does not support related-work sync');
     }
 
-    await this.graph.backfillRelatedWorkSyncEligibility();
+    const policySignature = createRelatedWorkPolicySignature(
+      config.relatedWorkLimit,
+    );
+    await this.graph.backfillRelatedWorkSyncEligibility(
+      config.journalCitationThreshold,
+    );
 
     const ids = await this.graph.listRelatedWorkSyncRootIds({
       limit: config.relatedRootBatchSize * config.relatedRootMaxBatches,
       staleBefore: staleBefore(config.relatedRefreshDays),
+      citationThreshold: config.journalCitationThreshold,
+      policySignature,
     });
     const output: SyncRelatedWorksOutput = {
       batches: 0,
@@ -48,9 +55,11 @@ export class SyncRelatedWorksUseCase {
         config,
         ids: batch,
       });
-      const snapshots = page.results.flatMap(toRelatedWorkSnapshot);
+      const snapshots = page.results.flatMap((work) =>
+        toRelatedWorkSnapshot(work, config.relatedWorkLimit),
+      );
 
-      await this.graph.replaceRelatedWorkSnapshots(snapshots);
+      await this.graph.replaceRelatedWorkSnapshots(snapshots, policySignature);
       output.batches += 1;
       output.rootsSynced += snapshots.length;
       await control?.reportProgress?.({
@@ -63,11 +72,14 @@ export class SyncRelatedWorksUseCase {
   }
 }
 
-function toRelatedWorkSnapshot(work: {
-  id?: string | null;
-  related_works?: string[] | null;
-  type?: string | null;
-}): RelatedWorkSnapshot[] {
+export function toRelatedWorkSnapshot(
+  work: {
+    id?: string | null;
+    related_works?: string[] | null;
+    type?: string | null;
+  },
+  relatedWorkLimit: number,
+): RelatedWorkSnapshot[] {
   const sourceId = normalizeOpenAlexId(work.id);
 
   if (!sourceId || work.type !== 'article') {
@@ -86,7 +98,19 @@ function toRelatedWorkSnapshot(work: {
     return [{ id, rank: index + 1 }];
   });
 
-  return [{ sourceId, workType: work.type, references }];
+  return [
+    {
+      sourceId,
+      workType: work.type,
+      references: references.slice(0, relatedWorkLimit),
+    },
+  ];
+}
+
+export function createRelatedWorkPolicySignature(
+  relatedWorkLimit: number,
+): string {
+  return `openalex-related-work-limit:${relatedWorkLimit}`;
 }
 
 function normalizeOpenAlexId(value?: string | null): string | null {

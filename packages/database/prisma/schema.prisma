@@ -89,7 +89,6 @@ enum SyncFrequency {
 
 enum SyncSource {
   OPENALEX
-  SEMANTIC_SCHOLAR
   CROSSREF
   SCIMAGO
   NEO4J
@@ -113,7 +112,6 @@ enum SyncJobType {
   RELATED_WORK_SYNC
   RELATED_WORK_HYDRATION
   OUTGOING_REFERENCE_CRAWL
-  SEMANTIC_SCHOLAR_JOURNAL_SUPPLEMENT
 
   @@map("sync_job_type")
 }
@@ -132,16 +130,6 @@ enum AcademicJournalSyncMode {
   INCREMENTAL
 
   @@map("academic_journal_sync_mode")
-}
-
-enum SemanticScholarSupplementStatus {
-  PENDING
-  RUNNING
-  COMPLETED
-  COMPLETED_WITH_SHORTFALL
-  FAILED
-
-  @@map("semantic_scholar_supplement_status")
 }
 
 enum SyncStatus {
@@ -438,25 +426,17 @@ model AcademicJournalSyncState {
   syncMode                AcademicJournalSyncMode    @default(BACKFILL) @map("sync_mode")
   cursor                  String?                    @db.Text
   filterSignature         String?                    @map("filter_signature") @db.VarChar(128)
+  articleDiscoveryPolicySignature String?             @map("article_discovery_policy_signature") @db.VarChar(128)
   incrementalWindowFrom   DateTime?                  @map("incremental_window_from") @db.Timestamp(6)
   initialBackfillComplete Boolean                    @default(false) @map("initial_backfill_complete")
   lastResolvedAt          DateTime?                  @map("last_resolved_at") @db.Timestamp(6)
   lastSuccessfulAt        DateTime?                  @map("last_successful_at") @db.Timestamp(6)
   errorDetail             String?                    @map("error_detail") @db.Text
-  semanticScholarStatus   SemanticScholarSupplementStatus @default(PENDING) @map("semantic_scholar_status")
-  semanticScholarNewToken String?                    @map("semantic_scholar_new_token") @db.Text
-  semanticScholarNewAccepted Int                      @default(0) @map("semantic_scholar_new_accepted")
-  semanticScholarRelatedAccepted Int                  @default(0) @map("semantic_scholar_related_accepted")
-  semanticScholarProcessedSeedIds String[]            @default([]) @map("semantic_scholar_processed_seed_ids")
-  semanticScholarStartedAt DateTime?                  @map("semantic_scholar_started_at") @db.Timestamp(6)
-  semanticScholarCompletedAt DateTime?                @map("semantic_scholar_completed_at") @db.Timestamp(6)
-  semanticScholarErrorDetail String?                  @map("semantic_scholar_error_detail") @db.Text
   createdAt               DateTime                   @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt               DateTime                   @updatedAt @map("updated_at") @db.Timestamp(6)
 
   @@index([matchStatus, catalogYear])
   @@index([initialBackfillComplete, lastSuccessfulAt])
-  @@index([semanticScholarStatus, catalogYear])
   @@map("academic_journal_sync_state")
 }
 

@@ -9,7 +9,6 @@ export * from './application/ports/openalex-source.port';
 export * from './application/ports/openalex-work-source.port';
 export * from './application/ports/pipeline-execution-control.port';
 export * from './application/ports/scimago-dataset.port';
-export * from './application/ports/semantic-scholar.port';
 export * from './domain/academic-graph.model';
 export * from './domain/normalize-exact-name';
 export * from './domain/normalize-issn';

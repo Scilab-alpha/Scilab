@@ -43,14 +43,6 @@ export const mockSystemHealth: SystemHealthSnapshot = {
       durationMs: 12400,
     },
     {
-      id: "sync-2",
-      source: "Semantic Scholar",
-      lastSyncTime: "2026-06-08T17:58:00Z",
-      status: "success",
-      recordsUpdated: 3150,
-      durationMs: 9800,
-    },
-    {
       id: "sync-3",
       source: "Crossref",
       lastSyncTime: "2026-06-08T17:42:00Z",
@@ -96,13 +88,6 @@ export const mockSystemHealth: SystemHealthSnapshot = {
       service: "scheduler",
       message: "Nightly keyword index rebuild scheduled in 4h 48m",
     },
-    {
-      id: "err-5",
-      timestamp: "2026-06-08T16:58:41Z",
-      severity: "critical",
-      service: "semantic-scholar-adapter",
-      message: "HTTP 503 from provider — retry 3/5 exhausted",
-    },
   ],
   recentFailures: [
     {
@@ -111,13 +96,6 @@ export const mockSystemHealth: SystemHealthSnapshot = {
       severity: "critical",
       service: "SCImago Sync",
       message: "Job scimago-full-sync aborted — 0 records committed",
-    },
-    {
-      id: "fail-2",
-      timestamp: "2026-06-08T16:58:41Z",
-      severity: "critical",
-      service: "Semantic Scholar",
-      message: "Batch import failed for author enrichment batch #2841",
     },
     {
       id: "fail-3",
@@ -135,14 +113,6 @@ export const mockSystemHealth: SystemHealthSnapshot = {
       statusCode: 504,
       timestamp: "2026-06-08T18:01:58Z",
       message: "Gateway timeout",
-    },
-    {
-      id: "api-2",
-      provider: "Semantic Scholar",
-      endpoint: "GET /graph/v1/paper/search",
-      statusCode: 503,
-      timestamp: "2026-06-08T16:58:30Z",
-      message: "Service unavailable",
     },
     {
       id: "api-3",
@@ -179,12 +149,12 @@ export const mockSystemHealth: SystemHealthSnapshot = {
     { month: "Jun", journals: 1247, articles: 52384, authors: 18920 },
   ],
   apiAvailability: [
-    { hour: "00h", openalex: 100, crossref: 99.2, semanticScholar: 98.5 },
-    { hour: "04h", openalex: 100, crossref: 99.8, semanticScholar: 99.1 },
-    { hour: "08h", openalex: 99.9, crossref: 98.4, semanticScholar: 97.2 },
-    { hour: "12h", openalex: 100, crossref: 99.5, semanticScholar: 96.8 },
-    { hour: "16h", openalex: 99.7, crossref: 97.9, semanticScholar: 95.4 },
-    { hour: "20h", openalex: 100, crossref: 99.1, semanticScholar: 98.0 },
-    { hour: "Now", openalex: 100, crossref: 98.8, semanticScholar: 97.6 },
+    { hour: "00h", openalex: 100, crossref: 99.2 },
+    { hour: "04h", openalex: 100, crossref: 99.8 },
+    { hour: "08h", openalex: 99.9, crossref: 98.4 },
+    { hour: "12h", openalex: 100, crossref: 96.8 },
+    { hour: "16h", openalex: 99.7, crossref: 95.4 },
+    { hour: "20h", openalex: 100, crossref: 99.1 },
+    { hour: "Now", openalex: 100, crossref: 98.8 },
   ],
 };

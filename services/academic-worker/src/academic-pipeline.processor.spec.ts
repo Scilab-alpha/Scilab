@@ -42,11 +42,6 @@ describe('AcademicPipelineJobRunner', () => {
         getOpenAlexConfig: () => ({ baseUrl: 'https://api.openalex.org' }),
       } as never,
       {
-        getSemanticScholarSupplementConfig: () => ({
-          baseUrl: 'https://api.semanticscholar.org',
-        }),
-      } as never,
-      {
         academicJobRun: { upsert, update, findUnique: jest.fn() },
       } as never,
     );

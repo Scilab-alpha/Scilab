@@ -46,7 +46,6 @@ export class GetArticleGraphUseCase {
         .map((edge) =>
           toRelatedEdge(edge.sourceArticleId, edge.targetArticleId),
         ),
-      ...articles.flatMap(toPublicationYearEdge),
     ].sort((left, right) => left.id.localeCompare(right.id));
 
     return {
@@ -62,29 +61,18 @@ export class GetArticleGraphUseCase {
 }
 
 function toNodes(articles: VisualizedArticle[]) {
-  const years = new Set<number>();
-  const articleNodes = articles.map((article) => {
-    if (article.publicationYear !== null) {
-      years.add(article.publicationYear);
-    }
+  return articles.map((article) => ({
+    citationCount: article.citationCount,
+    id: articleNodeId(article.id),
+    type: 'article' as const,
+    label: articleLabel(article),
+  }));
+}
 
-    return {
-      id: articleNodeId(article.id),
-      type: 'article' as const,
-      label: article.title,
-    };
-  });
-
-  return [
-    ...articleNodes,
-    ...[...years]
-      .sort((left, right) => left - right)
-      .map((year) => ({
-        id: yearNodeId(year),
-        type: 'year' as const,
-        label: String(year),
-      })),
-  ];
+function articleLabel(article: VisualizedArticle): string {
+  return article.publicationYear === null
+    ? article.title
+    : `${article.title} (${article.publicationYear})`;
 }
 
 function toRelatedEdge(sourceArticleId: string, targetArticleId: string) {
@@ -99,30 +87,8 @@ function toRelatedEdge(sourceArticleId: string, targetArticleId: string) {
   };
 }
 
-function toPublicationYearEdge(article: VisualizedArticle) {
-  if (article.publicationYear === null) {
-    return [];
-  }
-
-  const sourceId = articleNodeId(article.id);
-  const targetId = yearNodeId(article.publicationYear);
-
-  return [
-    {
-      id: `${sourceId}->${targetId}`,
-      sourceId,
-      targetId,
-      type: 'PUBLISHED_IN_YEAR' as const,
-    },
-  ];
-}
-
 function articleNodeId(id: string): string {
   return `article:${id}`;
-}
-
-function yearNodeId(year: number): string {
-  return `year:${year}`;
 }
 
 type EncodedCursor = ArticleGraphCursor & {

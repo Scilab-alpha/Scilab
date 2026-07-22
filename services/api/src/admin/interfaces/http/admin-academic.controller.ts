@@ -39,9 +39,8 @@ const DATA_TYPES = new Set([
   'REFERENCE_HYDRATION',
   'INCOMING_CITATION_CRAWL',
   'CITATION_COUNT_REFRESH',
-  'SEMANTIC_SCHOLAR_JOURNAL_SUPPLEMENT',
 ]);
-const SOURCES = new Set(['OPENALEX', 'SCIMAGO', 'SEMANTIC_SCHOLAR']);
+const SOURCES = new Set(['OPENALEX', 'SCIMAGO']);
 const SYNC_STATUSES = new Set([
   'RUNNING',
   'SUCCESS',
@@ -53,7 +52,6 @@ const ACADEMIC_JOB_IDS = [
   'scimago-reload',
   'journal-source-sync',
   'journal-article-sync',
-  'semantic-scholar-journal-supplement',
   'related-work-sync',
   'related-work-hydration',
   'outgoing-reference',
@@ -64,7 +62,7 @@ const ACADEMIC_JOB_IDS = [
 const ACADEMIC_JOB_ID_PARAM = {
   name: 'id',
   enum: ACADEMIC_JOB_IDS,
-  example: 'semantic-scholar-journal-supplement',
+  example: 'journal-article-sync',
 };
 
 @ApiTags('Admin academic sync')

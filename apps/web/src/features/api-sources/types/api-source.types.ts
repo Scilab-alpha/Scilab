@@ -4,7 +4,6 @@ export type ConnectionHealth = "healthy" | "degraded" | "down" | "unknown";
 
 export type ApiProviderId =
   | "openalex"
-  | "semantic-scholar"
   | "crossref"
   | "scimago"
   | "custom";

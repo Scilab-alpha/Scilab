@@ -1,7 +1,7 @@
 import { Neo4jArticleGraphVisualizationRepository } from './neo4j-article-graph-visualization.repository';
 
 describe('Neo4jArticleGraphVisualizationRepository', () => {
-  it('uses only active RELATED_TO edges and never queries CITES', async () => {
+  it('uses only active OpenAlex RELATED_TO edges and never queries CITES', async () => {
     const cypher: string[] = [];
     const executeRead = jest
       .fn()
@@ -23,6 +23,7 @@ describe('Neo4jArticleGraphVisualizationRepository', () => {
                     id: 'W1',
                     title: 'Root',
                     publicationYear: 2024,
+                    citationCount: 885,
                   }),
                 }),
               ],
@@ -39,7 +40,9 @@ describe('Neo4jArticleGraphVisualizationRepository', () => {
       repository.getArticleGraph({ articleId: 'W1', cursor: null, limit: 20 }),
     ).resolves.toMatchObject({ root: { id: 'W1' }, neighbors: [], edges: [] });
 
-    expect(cypher.join('\n')).toContain("RELATED_TO {status: 'ACTIVE'}");
+    expect(cypher.join('\n')).toContain(
+      "RELATED_TO {source: 'OPENALEX', status: 'ACTIVE'}",
+    );
     expect(cypher.join('\n')).not.toContain('CITES');
   });
 });

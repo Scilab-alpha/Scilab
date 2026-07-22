@@ -14,18 +14,6 @@ export const mockApiSources: ApiSource[] = [
     apiKeyConfigured: false,
   },
   {
-    id: "src-semantic-scholar",
-    providerId: "semantic-scholar",
-    name: "Semantic Scholar",
-    description:
-      "AI-powered scientific literature graph and citation metadata.",
-    endpoint: "https://api.semanticscholar.org/graph/v1",
-    status: "active",
-    connectionHealth: "healthy",
-    lastSync: "2026-06-08T17:30:00Z",
-    apiKeyConfigured: true,
-  },
-  {
     id: "src-crossref",
     providerId: "crossref",
     name: "Crossref",
@@ -57,13 +45,6 @@ export const PROVIDER_PRESETS = [
     endpoint: "https://api.openalex.org",
     description:
       "Open catalog of scholarly papers, authors, institutions, and concepts.",
-  },
-  {
-    id: "semantic-scholar" as const,
-    name: "Semantic Scholar",
-    endpoint: "https://api.semanticscholar.org/graph/v1",
-    description:
-      "AI-powered scientific literature graph and citation metadata.",
   },
   {
     id: "crossref" as const,

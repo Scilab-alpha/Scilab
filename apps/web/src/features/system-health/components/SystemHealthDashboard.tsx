@@ -392,12 +392,6 @@ export default function SystemHealthDashboard() {
                     radius={[2, 2, 0, 0]}
                     name="Crossref"
                   />
-                  <Bar
-                    dataKey="semanticScholar"
-                    fill="#8AAFA8"
-                    radius={[2, 2, 0, 0]}
-                    name="Semantic Scholar"
-                  />
                 </BarChart>
               </ResponsiveContainer>
             </Card>

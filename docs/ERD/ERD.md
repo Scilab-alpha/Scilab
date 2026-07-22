@@ -360,7 +360,7 @@ Lưu cấu hình nguồn dữ liệu ngoại vi cho Admin Data Sources.
 | Field               | Type             | Constraint | Mô tả                                                     |
 | ------------------- | ---------------- | ---------- | --------------------------------------------------------- |
 | `config_id`         | `uuid`           | PK         | Định danh cấu hình.                                       |
-| `api_name`          | `varchar(100)`   | NN, UK     | Tên nguồn: OpenAlex, Semantic Scholar, Crossref, SCImago. |
+| `api_name`          | `varchar(100)`   | NN, UK     | Tên nguồn: OpenAlex, Crossref, SCImago. |
 | `api_endpoint`      | `varchar(2048)`  | NN         | URL endpoint.                                             |
 | `api_key_encrypted` | `text`           | nullable   | API key đã mã hóa at rest.                                |
 | `sync_frequency`    | `sync_frequency` | NN         | `DAILY`, `WEEKLY`, hoặc tùy lịch mở rộng.                 |
@@ -382,7 +382,7 @@ Ghi log cho scheduled sync, manual sync, trend aggregation và orphan cleanup.
 | ------------------ | --------------- | ---------------------------------- | ----------------------------------------------------------------------------------------- |
 | `sync_log_id`      | `uuid`          | PK                                 | Định danh log.                                                                            |
 | `config_id`        | `uuid`          | FK -> `SystemConfig.config_id`, NN | Cấu hình nguồn dữ liệu được job/log sử dụng.                                              |
-| `source`           | `sync_source`   | NN                                 | `OPENALEX`, `SEMANTIC_SCHOLAR`, `CROSSREF`, `SCIMAGO`, `NEO4J`, `SYSTEM`.                 |
+| `source`           | `sync_source`   | NN                                 | `OPENALEX`, `CROSSREF`, `SCIMAGO`, `NEO4J`, `SYSTEM`.                                     |
 | `job_type`         | `sync_job_type` | NN                                 | `SCHEDULED_SYNC`, `MANUAL_SYNC`, `ORPHAN_CLEANUP`, `TREND_AGGREGATION`, `ALERT_DISPATCH`. |
 | `started_at`       | `timestamp`     | NN                                 | Thời điểm bắt đầu.                                                                        |
 | `finished_at`      | `timestamp`     | nullable                           | Thời điểm kết thúc.                                                                       |
@@ -678,7 +678,7 @@ Relationship tự tham chiếu dùng cho:
 | `notify_mode`              | `IN_APP`, `DAILY_EMAIL`, `WEEKLY_EMAIL`, `OFF`                                           | Cấu hình thông báo trong `UserFollow.notify_mode`.                    |
 | `notification_object_type` | `ARTICLE`, `JOURNAL`, `KEYWORD`, `TOPIC`                                                 | Loại node liên quan cho `Notification.related_object_type`.           |
 | `sync_frequency`           | `DAILY`, `WEEKLY`                                                                        | Có thể mở rộng `MANUAL`, `CRON`.                                      |
-| `sync_source`              | `OPENALEX`, `SEMANTIC_SCHOLAR`, `CROSSREF`, `SCIMAGO`, `NEO4J`, `SYSTEM`                 | Nguồn job/log.                                                        |
+| `sync_source`              | `OPENALEX`, `CROSSREF`, `SCIMAGO`, `NEO4J`, `SYSTEM`                                     | Nguồn job/log.                                                        |
 | `sync_job_type`            | `SCHEDULED_SYNC`, `MANUAL_SYNC`, `ORPHAN_CLEANUP`, `TREND_AGGREGATION`, `ALERT_DISPATCH` | Loại job nền.                                                         |
 | `sync_status`              | `RUNNING`, `SUCCESS`, `FAILED`, `PARTIAL`                                                | Trạng thái job.                                                       |
 | `ranking_source`           | `SCIMAGO`, `SCOPUS`, `WOS`, `DOAJ`, `OTHER`                                              | Nguồn ranking.                                                        |

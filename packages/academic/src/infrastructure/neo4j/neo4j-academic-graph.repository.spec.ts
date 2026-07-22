@@ -1,8 +1,81 @@
 import neo4j from 'neo4j-driver';
 import { InvalidArticleListCursorError } from '@repo/academic/domain/academic-graph.model';
+import { ACADEMIC_GRAPH_SCHEMA_CYPHER } from './academic-graph-schema.cypher';
 import { Neo4jAcademicGraphRepository } from './neo4j-academic-graph.repository';
 
 describe('Neo4jAcademicGraphRepository', () => {
+  it('defines composite indexes for the admin article and journal listings', () => {
+    expect(ACADEMIC_GRAPH_SCHEMA_CYPHER).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('article_admin_listing_index'),
+        expect.stringContaining('article_admin_source_listing_index'),
+        expect.stringContaining('journal_admin_listing_index'),
+        expect.stringContaining('journal_admin_source_listing_index'),
+      ]),
+    );
+  });
+
+  it('backfills legacy data in bounded batches', async () => {
+    const articleBatches = [['article-1'], []] as string[][];
+    const executeRead = jest.fn().mockImplementation((cypher: string) => {
+      if (cypher.includes('WHERE article.first_crawled_at IS NULL')) {
+        return Promise.resolve({ records: articleBatches.shift() ?? [] });
+      }
+      return Promise.resolve({ records: [] });
+    });
+    const executeWrite = jest.fn().mockImplementation((cypher: string) => {
+      if (cypher.includes('RETURN count(related) AS updated')) {
+        return Promise.resolve({ records: [0] });
+      }
+      return Promise.resolve({ records: [] });
+    });
+    const repository = new Neo4jAcademicGraphRepository({
+      executeRead,
+      executeWrite,
+    } as never);
+
+    await repository.ensureSchema();
+
+    const articleUpdate = executeWrite.mock.calls.find(([cypher]) =>
+      String(cypher).includes(
+        'UNWIND $ids AS id\n      MATCH (article:Article {id: id})',
+      ),
+    );
+    expect(articleUpdate?.[1]).toMatchObject({ ids: ['article-1'] });
+    expect(executeRead).toHaveBeenCalledWith(
+      expect.stringContaining('WHERE article.first_crawled_at IS NULL'),
+      expect.objectContaining({ limit: expect.anything() }),
+      expect.any(Function),
+    );
+  });
+
+  it('chunks journal-state timestamp backfills at 500 records', async () => {
+    const executeWrite = jest.fn().mockResolvedValue({ records: [] });
+    const repository = new Neo4jAcademicGraphRepository({
+      executeWrite,
+    } as never);
+    const states = Array.from({ length: 501 }, (_, index) => ({
+      openAlexJournalId: `S${index}`,
+      firstCrawledAt: new Date('2026-07-22T00:00:00.000Z'),
+      lastSyncedAt: null,
+    }));
+
+    await repository.backfillJournalCrawlTimestamps(states);
+
+    expect(executeWrite).toHaveBeenCalledTimes(2);
+    expect(executeWrite.mock.calls[0]?.[1]).toMatchObject({
+      states: expect.arrayContaining([
+        expect.objectContaining({ openalex_journal_id: 'S0' }),
+      ]),
+    });
+    expect(
+      (executeWrite.mock.calls[0]?.[1] as { states: unknown[] }).states,
+    ).toHaveLength(500);
+    expect(
+      (executeWrite.mock.calls[1]?.[1] as { states: unknown[] }).states,
+    ).toHaveLength(1);
+  });
+
   it.each([
     ['listAuthors', 'author-1'],
     ['listJournals', 'journal-1'],
@@ -212,13 +285,16 @@ describe('Neo4jAcademicGraphRepository', () => {
       executeWrite,
     } as never);
 
-    await repository.replaceRelatedWorkSnapshots([
-      {
-        sourceId: 'article-1',
-        workType: 'article',
-        references: [{ id: 'article-2', rank: 1 }],
-      },
-    ]);
+    await repository.replaceRelatedWorkSnapshots(
+      [
+        {
+          sourceId: 'article-1',
+          workType: 'article',
+          references: [{ id: 'article-2', rank: 1 }],
+        },
+      ],
+      'openalex-related-work-limit:20',
+    );
 
     const [cypher, parameters] = executeWrite.mock.calls[0] as [
       string,
@@ -228,7 +304,7 @@ describe('Neo4jAcademicGraphRepository', () => {
       "(source)-[stale:RELATED_TO {source: 'OPENALEX'}]->(stale_target:Article)",
     );
     expect(cypher).toContain(
-      'FOREACH (stale IN stale_relationships | DELETE stale)',
+      "SET stale.status = 'INACTIVE', stale.deactivated_at = datetime()",
     );
     expect(cypher).toContain(
       "MERGE (source)-[related:RELATED_TO {source: 'OPENALEX'}]->(target)",
@@ -237,50 +313,33 @@ describe('Neo4jAcademicGraphRepository', () => {
     expect(parameters.snapshots[0]?.target_ids).toEqual(['article-2']);
   });
 
-  it('resolves Semantic Scholar articles by source ID then unique DOI and retains both citation sources', async () => {
-    const executeWrite = jest.fn().mockResolvedValue({
-      records: [],
-      summary: {},
-    });
+  it('selects only high-citation related-work roots and refreshes a changed policy', async () => {
+    const executeRead = jest.fn().mockResolvedValue({ records: [] });
     const repository = new Neo4jAcademicGraphRepository({
-      executeWrite,
+      executeRead,
     } as never);
 
-    await repository.upsertSemanticScholarArticleGraphs([
-      {
-        article: {
-          id: 'S2:paper-1',
-          semanticScholarId: 'paper-1',
-          title: 'Semantic paper',
-          doi: '10.1/example',
-          semanticScholarCitationCount: 15,
-        },
-        scimagoSourceId: '28773',
-        originJournalId: 'S1',
-        lane: 'RELATED',
-        attachOriginJournal: true,
-      },
-    ]);
+    await repository.listRelatedWorkSyncRootIds({
+      limit: 20,
+      staleBefore: new Date('2026-07-20T00:00:00.000Z'),
+      citationThreshold: 500,
+      policySignature: 'openalex-related-work-limit:20',
+    });
 
-    const [cypher] = executeWrite.mock.calls[0] as [string];
+    const [cypher, parameters] = executeRead.mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+    ];
     expect(cypher).toContain(
-      'semantic_scholar_id: graph.article.semantic_scholar_id',
-    );
-    expect(cypher).toContain('doi_normalized: graph.article.doi_normalized');
-    expect(cypher).toContain('WHERE size(matches) <= 1');
-    expect(cypher).toContain(
-      'UNION\n        WITH graph, matches\n        WITH graph, matches WHERE size(matches) = 0',
+      'coalesce(article.citation_count, 0) > $citation_threshold',
     );
     expect(cypher).toContain(
-      'END\n      WITH graph, article, created\n      MATCH (origin:Journal',
+      'article.related_work_policy_signature <> $policy_signature',
     );
-    expect(cypher).toContain(
-      'MERGE (article)-[:PUBLISHED_IN]->(origin)\n      )\n      WITH graph, article, created\n      OPTIONAL MATCH',
-    );
-    expect(cypher).toContain('article.semantic_scholar_citation_count');
-    expect(cypher).toContain(
-      'article.openalex_citation_count >= graph.article.semantic_scholar_citation_count',
-    );
+    expect(parameters).toMatchObject({
+      citation_threshold: expect.anything(),
+      policy_signature: 'openalex-related-work-limit:20',
+    });
   });
 
   it('uses legacy string-safe datetime conversion for alert article matching', async () => {
