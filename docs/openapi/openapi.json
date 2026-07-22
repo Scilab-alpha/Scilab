@@ -989,7 +989,7 @@
     },
     "/follows/toggle": {
       "post": {
-        "summary": "Toggle follow for a journal, keyword, or topic",
+        "summary": "Toggle follow for an author, journal, keyword, or topic",
         "operationId": "toggleFollow",
         "tags": ["Follows"],
         "security": [
@@ -1576,7 +1576,8 @@
         "required": true,
         "schema": {
           "type": "string",
-          "format": "uuid"
+          "maxLength": 128,
+          "example": "S123456789"
         }
       },
       "NotificationReadQuery": {
@@ -3748,7 +3749,7 @@
       },
       "FollowObjectType": {
         "type": "string",
-        "enum": ["JOURNAL", "KEYWORD", "TOPIC"]
+        "enum": ["AUTHOR", "JOURNAL", "KEYWORD", "TOPIC"]
       },
       "FollowNotifyMode": {
         "type": "string",
@@ -3764,7 +3765,8 @@
           },
           "id": {
             "type": "string",
-            "format": "uuid"
+            "maxLength": 128,
+            "example": "S123456789"
           },
           "displayName": {
             "type": "string",
@@ -3813,7 +3815,8 @@
           },
           "objectId": {
             "type": "string",
-            "format": "uuid"
+            "maxLength": 128,
+            "example": "S123456789"
           },
           "notifyMode": {
             "$ref": "#/components/schemas/FollowNotifyMode"
@@ -3886,7 +3889,8 @@
           },
           "objectId": {
             "type": "string",
-            "format": "uuid"
+            "maxLength": 128,
+            "example": "S123456789"
           },
           "notifyMode": {
             "$ref": "#/components/schemas/FollowNotifyMode"
@@ -3903,7 +3907,8 @@
           },
           "objectId": {
             "type": "string",
-            "format": "uuid"
+            "maxLength": 128,
+            "example": "S123456789"
           },
           "followed": {
             "type": "boolean"

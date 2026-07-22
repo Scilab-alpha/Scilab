@@ -1,6 +1,7 @@
 import { AcademicGraphRepository } from '@repo/academic/domain';
 import { FollowRepository } from '@/follow/application/ports/follow.ports';
 import {
+  parseFollowObjectId,
   parseFollowObjectType,
   parseOptionalFollowNotifyMode,
 } from '@/follow/application/use-cases/follow-input';
@@ -21,7 +22,7 @@ export class ToggleFollowUseCase {
 
   async execute(input: ToggleFollowInput): Promise<ToggleFollowOutput> {
     const objectType = parseFollowObjectType(input.objectType);
-    const objectId = input.objectId as string;
+    const objectId = parseFollowObjectId(input.objectId);
     const notifyMode = parseOptionalFollowNotifyMode(input.notifyMode);
     const existing = await this.follows.findByUserAndTarget({
       userId: input.userId,

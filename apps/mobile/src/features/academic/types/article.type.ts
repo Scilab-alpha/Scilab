@@ -7,6 +7,7 @@ export type AcademicNodeType =
 
 export type ArticleNode = {
   abstract: string | null;
+  citationCount: number | null;
   createdAt: string | null;
   doi: string | null;
   id: string;
@@ -40,7 +41,6 @@ export type JournalNode = {
   issnList: string[] | null;
   publisherImageUrl: string | null;
   publisherName: string | null;
-  region: string | null;
   sourceId: string | null;
   subjectCategories: string[] | null;
   type: string | null;

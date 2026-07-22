@@ -597,7 +597,7 @@ paths:
           $ref: "#/components/responses/Unauthorized"
   /follows/toggle:
     post:
-      summary: Toggle follow for a journal, keyword, or topic
+      summary: Toggle follow for an author, journal, keyword, or topic
       operationId: toggleFollow
       tags:
         - Follows
@@ -870,7 +870,8 @@ components:
       required: true
       schema:
         type: string
-        format: uuid
+        maxLength: 128
+        example: S123456789
     NotificationReadQuery:
       name: isRead
       in: query
@@ -2052,6 +2053,7 @@ components:
     FollowObjectType:
       type: string
       enum:
+        - AUTHOR
         - JOURNAL
         - KEYWORD
         - TOPIC
@@ -2074,7 +2076,8 @@ components:
           $ref: "#/components/schemas/FollowObjectType"
         id:
           type: string
-          format: uuid
+          maxLength: 128
+          example: S123456789
         displayName:
           type: string
           nullable: true
@@ -2111,7 +2114,8 @@ components:
           $ref: "#/components/schemas/FollowObjectType"
         objectId:
           type: string
-          format: uuid
+          maxLength: 128
+          example: S123456789
         notifyMode:
           $ref: "#/components/schemas/FollowNotifyMode"
         followedAt:
@@ -2170,7 +2174,8 @@ components:
           $ref: "#/components/schemas/FollowObjectType"
         objectId:
           type: string
-          format: uuid
+          maxLength: 128
+          example: S123456789
         notifyMode:
           $ref: "#/components/schemas/FollowNotifyMode"
     ToggleFollowData:
@@ -2185,7 +2190,8 @@ components:
           $ref: "#/components/schemas/FollowObjectType"
         objectId:
           type: string
-          format: uuid
+          maxLength: 128
+          example: S123456789
         followed:
           type: boolean
         notifyMode:

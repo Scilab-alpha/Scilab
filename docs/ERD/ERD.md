@@ -85,8 +85,8 @@ erDiagram
     USER_FOLLOW {
         uuid user_follow_id PK
         uuid user_id FK
-        follow_object_type object_type "JOURNAL | KEYWORD | TOPIC"
-        uuid object_id "Reference ID to Neo4j Journal/Keyword/Topic"
+        follow_object_type object_type "AUTHOR | JOURNAL | KEYWORD | TOPIC"
+        varchar object_id "Reference ID to Neo4j Author/Journal/Keyword/Topic"
         notify_mode notify_mode "IN_APP | DAILY_EMAIL | WEEKLY_EMAIL | OFF"
         timestamp created_at
     }
@@ -174,7 +174,7 @@ erDiagram
 | ------------------------------------ | ----------: | --------------------------------------------------------------------------------------------------- |
 | `User_Account` - `AuthSession`       |       1 - N | Một người dùng có nhiều phiên đăng nhập. Xóa user thì xóa session.                                  |
 | `User_Account` - `UserBookmark`      |       1 - N | Một user bookmark nhiều bài báo. `article_id` là Reference ID sang Neo4j, không phải FK PostgreSQL. |
-| `User_Account` - `UserFollow`        |       1 - N | Một user theo dõi nhiều Journal/Keyword/Topic. `object_id` là Reference ID sang Neo4j.              |
+| `User_Account` - `UserFollow`        |       1 - N | Một user theo dõi nhiều Author/Journal/Keyword/Topic. `object_id` là Reference ID sang Neo4j.       |
 | `User_Account` - `Notification`      |       1 - N | Một user nhận nhiều thông báo.                                                                      |
 | `SystemConfig` - `SyncLog`           |       1 - N | Một cấu hình nguồn dữ liệu có thể được nhiều job đồng bộ/log sử dụng.                               |
 | `SubjectArea` - `SubjectCategory`    |       1 - N | Lĩnh vực lớn chứa nhiều danh mục nhỏ.                                                               |
@@ -316,7 +316,7 @@ Lưu đối tượng mà người dùng theo dõi: journal, keyword hoặc topic
 | ---------------- | -------------------- | -------------------------------- | ----------------------------------------------- |
 | `user_follow_id` | `uuid`               | PK                               | Định danh follow.                               |
 | `user_id`        | `uuid`               | FK -> `User_Account.user_id`, NN | Người theo dõi.                                 |
-| `object_type`    | `follow_object_type` | NN                               | `JOURNAL`, `KEYWORD`, `TOPIC`.                  |
+| `object_type`    | `follow_object_type` | NN                               | `AUTHOR`, `JOURNAL`, `KEYWORD`, `TOPIC`.        |
 | `object_id`      | `uuid`               | NN, Reference ID                 | Trỏ tới node Neo4j tương ứng với `object_type`. |
 | `notify_mode`    | `notify_mode`        | NN                               | `IN_APP`, `DAILY_EMAIL`, `WEEKLY_EMAIL`, `OFF`. |
 | `created_at`     | `timestamp`          | NN                               | Thời điểm bắt đầu follow.                       |
@@ -674,7 +674,7 @@ Relationship tự tham chiếu dùng cho:
 | `account_status`           | `ACTIVE`, `INACTIVE`, `BANNED`                                                           | Trạng thái tài khoản.                                                 |
 | `account_role`             | `STUDENT`, `LECTURER`, `RESEARCHER`, `ADMIN`                                             | Theo SRS. Nếu giữ schema hiện tại, `USER` cần được tách chi tiết hơn. |
 | `gender`                   | `MALE`, `FEMALE`, `OTHER`                                                                | Giới tính trong `User_Account.gender`.                                |
-| `follow_object_type`       | `JOURNAL`, `KEYWORD`, `TOPIC`                                                            | Enum riêng của `UserFollow.object_type`.                              |
+| `follow_object_type`       | `AUTHOR`, `JOURNAL`, `KEYWORD`, `TOPIC`                                                  | Enum riêng của `UserFollow.object_type`.                              |
 | `notify_mode`              | `IN_APP`, `DAILY_EMAIL`, `WEEKLY_EMAIL`, `OFF`                                           | Cấu hình thông báo trong `UserFollow.notify_mode`.                    |
 | `notification_object_type` | `ARTICLE`, `JOURNAL`, `KEYWORD`, `TOPIC`                                                 | Loại node liên quan cho `Notification.related_object_type`.           |
 | `sync_frequency`           | `DAILY`, `WEEKLY`                                                                        | Có thể mở rộng `MANUAL`, `CRON`.                                      |
@@ -716,7 +716,7 @@ sequenceDiagram
 
     Job->>PG: SELECT DISTINCT object_type, object_id FROM user_follow WHERE notify_mode != OFF
     PG-->>Job: grouped object_ids
-    Job->>G: MATCH new Article linked to followed Journal/Keyword/Topic with id IN $ids
+    Job->>G: MATCH new Article linked to followed Author/Journal/Keyword/Topic with id IN $ids
     G-->>Job: matched articles
     Job->>PG: SELECT user_id, notify_mode FROM user_follow WHERE object_id IN matched ids
     PG-->>Job: recipients

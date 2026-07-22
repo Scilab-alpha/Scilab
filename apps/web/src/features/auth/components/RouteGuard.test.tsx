@@ -30,6 +30,7 @@ describe("RouteGuard", () => {
       isAuthenticated: false,
       login: vi.fn(),
       register: vi.fn(),
+      refreshCurrentUser: vi.fn(),
       logout: vi.fn(),
       can: vi.fn(),
     });
@@ -52,6 +53,7 @@ describe("RouteGuard", () => {
       isAuthenticated: false,
       login: vi.fn(),
       register: vi.fn(),
+      refreshCurrentUser: vi.fn(),
       logout: vi.fn(),
       can: vi.fn(),
     });
@@ -63,5 +65,28 @@ describe("RouteGuard", () => {
     );
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/auth/login"));
+  });
+
+  it("redirects unauthenticated admin routes to the admin login portal", async () => {
+    pathname = "/admin/users";
+    vi.mocked(useAuth).mockReturnValue({
+      user: null,
+      status: "anonymous",
+      isLoading: false,
+      isAuthenticated: false,
+      login: vi.fn(),
+      register: vi.fn(),
+      refreshCurrentUser: vi.fn(),
+      logout: vi.fn(),
+      can: vi.fn(),
+    });
+
+    render(
+      <RouteGuard>
+        <div>Protected</div>
+      </RouteGuard>,
+    );
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/admin/login"));
   });
 });
