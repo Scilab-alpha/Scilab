@@ -1,7 +1,8 @@
-export type ArticleGraphNodeType = 'article' | 'year';
-export type ArticleGraphEdgeType = 'RELATED_TO' | 'PUBLISHED_IN_YEAR';
+export type ArticleGraphNodeType = 'article';
+export type ArticleGraphEdgeType = 'RELATED_TO';
 
 export interface ArticleGraphNode {
+  citationCount: number;
   id: string;
   type: ArticleGraphNodeType;
   label: string;
@@ -34,6 +35,7 @@ export interface ArticleGraphQueryInput {
 }
 
 export interface VisualizedArticle {
+  citationCount: number;
   id: string;
   publicationYear: number | null;
   title: string;

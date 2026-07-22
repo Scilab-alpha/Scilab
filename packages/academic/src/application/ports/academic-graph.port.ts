@@ -8,7 +8,6 @@ import {
   JournalListItem,
   JournalNode,
   RelatedWorkSnapshot,
-  SemanticScholarArticleGraph,
 } from '@repo/academic/domain/academic-graph.model';
 
 export const ACADEMIC_GRAPH_REPOSITORY = Symbol('ACADEMIC_GRAPH_REPOSITORY');
@@ -53,12 +52,6 @@ export interface AcademicGraphRepository {
   upsertArticleGraphs(
     graphs: ArticleGraph[],
   ): Promise<{ inserted: number; updated: number }>;
-  upsertSemanticScholarArticleGraphs(
-    graphs: SemanticScholarArticleGraph[],
-  ): Promise<{ inserted: number; updated: number }>;
-  findSemanticScholarDiscoveredPaperIds(
-    scimagoSourceId: string,
-  ): Promise<Set<string>>;
   upsertJournal(journal: JournalNode): Promise<void>;
   listArticles(input: ArticleListInput): Promise<CursorPage<ArticleGraph>>;
   getArticleById(id: string): Promise<ArticleGraph | null>;
@@ -109,10 +102,12 @@ export interface AcademicGraphRepository {
   updateArticleCitationCounts(
     updates: Array<{ id: string; citationCount: number }>,
   ): Promise<void>;
-  backfillRelatedWorkSyncEligibility(): Promise<void>;
+  backfillRelatedWorkSyncEligibility(citationThreshold: number): Promise<void>;
   listRelatedWorkSyncRootIds(input: {
     limit: number;
     staleBefore: Date;
+    citationThreshold: number;
+    policySignature: string;
   }): Promise<string[]>;
   listPendingRelatedWorkTargetIds(limit: number): Promise<string[]>;
   activatePendingRelatedWorkTargets(ids: string[]): Promise<void>;
@@ -121,5 +116,8 @@ export interface AcademicGraphRepository {
     ids: string[],
     maxAttempts: number,
   ): Promise<void>;
-  replaceRelatedWorkSnapshots(snapshots: RelatedWorkSnapshot[]): Promise<void>;
+  replaceRelatedWorkSnapshots(
+    snapshots: RelatedWorkSnapshot[],
+    policySignature: string,
+  ): Promise<void>;
 }

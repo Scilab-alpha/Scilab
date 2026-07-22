@@ -53,7 +53,6 @@ export type ApiAvailabilityPoint = {
   hour: string;
   openalex: number;
   crossref: number;
-  semanticScholar: number;
 };
 
 export interface SystemHealthSnapshot {

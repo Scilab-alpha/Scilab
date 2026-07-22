@@ -25,20 +25,17 @@ import {
   ReloadScimagoDatasetUseCase,
   ResolveScimagoJournalsUseCase,
   RunJournalArticleSyncPipelineUseCase,
-  SupplementJournalsWithSemanticScholarUseCase,
   SyncRelatedWorksUseCase,
 } from '@repo/academic/sync';
 import {
   AxiosOpenAlexSourcesClient,
   AxiosOpenAlexWorksClient,
-  AxiosSemanticScholarPaperClient,
   BullMqOpenAlexPageBudget,
   CachedScimagoDatasetReader,
   defaultScimagoDatasetDirectory,
   FileSystemScimagoDatasetReader,
   Neo4jAcademicGraphRepository,
   OpenAlexEnvConfigReader,
-  SemanticScholarEnvConfigReader,
   PrismaAcademicJournalSyncStateRepository,
   PrismaAcademicSyncLogRepository,
   PrismaJournalRankingRepository,
@@ -67,10 +64,8 @@ import { ACADEMIC_PIPELINE_PROCESSORS } from './academic-pipeline.processor';
   ],
   providers: [
     AxiosOpenAlexWorksClient,
-    AxiosSemanticScholarPaperClient,
     AxiosOpenAlexSourcesClient,
     OpenAlexEnvConfigReader,
-    SemanticScholarEnvConfigReader,
     BullMqOpenAlexPageBudget,
     PrismaAcademicSyncLogRepository,
     PrismaAcademicJournalSyncStateRepository,
@@ -160,30 +155,6 @@ import { ACADEMIC_PIPELINE_PROCESSORS } from './academic-pipeline.processor';
         AxiosOpenAlexWorksClient,
         ACADEMIC_GRAPH_REPOSITORY,
         OPENALEX_PAGE_BUDGET,
-      ],
-    },
-    {
-      provide: SupplementJournalsWithSemanticScholarUseCase,
-      useFactory: (
-        configReader: SemanticScholarEnvConfigReader,
-        datasets: ScimagoDatasetReader,
-        states: AcademicJournalSyncStateRepository,
-        papers: AxiosSemanticScholarPaperClient,
-        graph: AcademicGraphRepository,
-      ) =>
-        new SupplementJournalsWithSemanticScholarUseCase(
-          configReader,
-          datasets,
-          states,
-          papers,
-          graph,
-        ),
-      inject: [
-        SemanticScholarEnvConfigReader,
-        SCIMAGO_DATASET_READER,
-        ACADEMIC_JOURNAL_SYNC_STATE_REPOSITORY,
-        AxiosSemanticScholarPaperClient,
-        ACADEMIC_GRAPH_REPOSITORY,
       ],
     },
     {

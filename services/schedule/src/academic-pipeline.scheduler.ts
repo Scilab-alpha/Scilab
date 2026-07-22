@@ -73,25 +73,6 @@ export class AcademicPipelineScheduler {
   }
 
   @Cron(
-    ACADEMIC_PIPELINE_JOB_DEFINITIONS[
-      ACADEMIC_PIPELINE_QUEUES.semanticScholarJournalSupplement
-    ].cron,
-    {
-      name: ACADEMIC_PIPELINE_JOB_DEFINITIONS[
-        ACADEMIC_PIPELINE_QUEUES.semanticScholarJournalSupplement
-      ].schedulerName,
-      timeZone:
-        ACADEMIC_PIPELINE_JOB_DEFINITIONS[
-          ACADEMIC_PIPELINE_QUEUES.semanticScholarJournalSupplement
-        ].timeZone,
-      waitForCompletion: true,
-    },
-  )
-  async enqueueSemanticScholarJournalSupplement(): Promise<void> {
-    await this.enqueue(ACADEMIC_PIPELINE_QUEUES.semanticScholarJournalSupplement);
-  }
-
-  @Cron(
     ACADEMIC_PIPELINE_JOB_DEFINITIONS[ACADEMIC_PIPELINE_QUEUES.relatedWorkSync]
       .cron,
     {

@@ -99,9 +99,7 @@ describe('Admin academic OpenAPI contract', () => {
       const parameter = (operation?.parameters ?? []).find(
         (item) => 'name' in item && item.name === 'id',
       );
-      expect(JSON.stringify(parameter)).toContain(
-        'semantic-scholar-journal-supplement',
-      );
+      expect(JSON.stringify(parameter)).toContain('journal-article-sync');
     }
 
     const syncLogParameters = (
