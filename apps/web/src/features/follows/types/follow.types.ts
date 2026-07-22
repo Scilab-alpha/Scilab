@@ -10,6 +10,9 @@ export type FollowTarget = {
   displayName: string | null;
   sourceId?: string | null;
   journalType?: string | null;
+  country?: string | null;
+  region?: string | null;
+  score?: number | null;
 };
 
 /** Item from GET /follows */
@@ -23,7 +26,7 @@ export type FollowItem = {
 };
 
 export type FollowListParams = PageParams & {
-  objectType?: FollowObjectType;
+  type?: FollowObjectType;
 };
 
 export type FollowListResponse = PageResult<FollowItem>;

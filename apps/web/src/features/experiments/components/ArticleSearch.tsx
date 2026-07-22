@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Filter,
@@ -25,8 +25,7 @@ import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import Can from "@/shared/components/auth/Can";
 import { Label } from "@/shared/components/ui/label";
 import { useArticles } from "@/features/experiments/hooks/use-articles";
-import { toggleBookmark as toggleBookmarkApi } from "@/features/submissions/api/bookmarks.api";
-import { isLocallyBookmarked } from "@/features/submissions/api/local-bookmarks";
+import { useBookmarks } from "@/features/submissions/hooks/use-bookmarks";
 import type { ArticleGraph } from "@/features/experiments/types/article.types";
 import {
   getArticleAbstract,
@@ -92,13 +91,17 @@ export default function ArticleSearch() {
   const [selectedYear, setSelectedYear] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [bookmarkPendingIds, setBookmarkPendingIds] = useState<Set<string>>(
     new Set(),
   );
 
   const { items, isLoading, isLoadingMore, hasMore, error, reload, loadMore } =
     useArticles(searchQuery);
+  const bookmarks = useBookmarks();
+  const bookmarkedIds = useMemo(
+    () => new Set(bookmarks.items.map((item) => item.articleId)),
+    [bookmarks.items],
+  );
 
   const filteredArticles = useMemo(() => {
     const titleQuery = searchQuery.trim().toLowerCase();
@@ -133,18 +136,6 @@ export default function ArticleSearch() {
   const endIndex = startIndex + itemsPerPage;
   const currentArticles = filteredArticles.slice(startIndex, endIndex);
 
-  useEffect(() => {
-    setBookmarkedIds((previous) => {
-      const next = new Set(previous);
-      for (const graph of items) {
-        if (isLocallyBookmarked(graph.article.id)) {
-          next.add(graph.article.id);
-        }
-      }
-      return next;
-    });
-  }, [items]);
-
   const toggleBookmark = async (graph: ArticleGraph) => {
     const articleId = graph.article.id;
     if (bookmarkPendingIds.has(articleId)) {
@@ -154,7 +145,7 @@ export default function ArticleSearch() {
     setBookmarkPendingIds((previous) => new Set(previous).add(articleId));
 
     try {
-      const result = await toggleBookmarkApi({
+      await bookmarks.toggle({
         articleId,
         article: {
           id: articleId,
@@ -163,15 +154,6 @@ export default function ArticleSearch() {
           doi: graph.article.doi,
           publicationYear: graph.article.publicationYear,
         },
-      });
-      setBookmarkedIds((previous) => {
-        const next = new Set(previous);
-        if (result.bookmarked) {
-          next.add(articleId);
-        } else {
-          next.delete(articleId);
-        }
-        return next;
       });
     } catch {
       // Keep previous bookmark state if the API call fails.
@@ -484,7 +466,11 @@ export default function ArticleSearch() {
                         <Button
                           variant={isBookmarked ? "default" : "outline"}
                           size="sm"
-                          disabled={bookmarkPendingIds.has(articleId)}
+                          disabled={
+                            bookmarks.isLoading ||
+                            Boolean(bookmarks.error) ||
+                            bookmarkPendingIds.has(articleId)
+                          }
                           onClick={() => void toggleBookmark(article)}
                           className="h-9 px-4"
                         >

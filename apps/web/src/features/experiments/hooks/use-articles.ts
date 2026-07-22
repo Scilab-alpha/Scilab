@@ -8,7 +8,6 @@ import {
   listQueryStaleTimeMs,
 } from "@/core/api/query-config";
 import { listArticles } from "@/features/experiments/api/articles.api";
-import { syncLocalFollowNotifications } from "@/features/notifications/api/local-notifications";
 
 const searchDebounceMs = 350;
 
@@ -30,15 +29,12 @@ export function useArticles(searchText: string) {
     queryKey,
     initialPageParam: undefined as string | undefined,
     staleTime: listQueryStaleTimeMs,
-    queryFn: async ({ pageParam }) => {
-      const page = await listArticles({
+    queryFn: ({ pageParam }) =>
+      listArticles({
         q: trimmedQuery || undefined,
         limit: academicListPageSize,
         cursor: pageParam,
-      });
-      syncLocalFollowNotifications(page.items);
-      return page;
-    },
+      }),
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
 
