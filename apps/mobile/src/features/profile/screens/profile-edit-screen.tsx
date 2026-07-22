@@ -1,10 +1,7 @@
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 import { AppButton, AppMessage } from "@/components/ui";
-import {
-  ScreenShell,
-  SurfaceCard,
-} from "@/features/navigation/components/screen-shell";
+import { ScreenShell, SurfaceCard } from "@/components/layout/screen-shell";
 import { ProfileForm } from "@/features/profile/components/profile-form";
 import { useProfile } from "@/features/profile/hooks/use-profile";
 import { useUpdateProfile } from "@/features/profile/hooks/use-update-profile";

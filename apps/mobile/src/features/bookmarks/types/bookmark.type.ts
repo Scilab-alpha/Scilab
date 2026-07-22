@@ -5,7 +5,7 @@ import type {
   JournalNode,
   KeywordNode,
   TopicNode,
-} from "@/features/academic/types/article.type";
+} from "@/types/academic.type";
 
 export type BookmarkListParams = {
   limit?: number;

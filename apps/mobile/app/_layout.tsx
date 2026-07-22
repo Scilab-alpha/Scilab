@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
 import "react-native-reanimated";
 
-import { AppBackButton } from "@/features/navigation/components/app-back-button";
+import { AppBackButton } from "@/components/navigation/app-back-button";
 import { AppProviders } from "@/lib/app-providers";
 import { useAppTheme } from "@/theme";
 

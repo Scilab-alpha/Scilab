@@ -4,7 +4,7 @@ import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { AppButton, AppSegmentedControl, AppTextField } from "@/components/ui";
 import { createZodResolver } from "@/features/auth/schemas";
-import { SurfaceCard } from "@/features/navigation/components/screen-shell";
+import { SurfaceCard } from "@/components/layout/screen-shell";
 import { createProfileSchema } from "@/features/profile/schemas/profile.schema";
 import type {
   ProfileFormValues,

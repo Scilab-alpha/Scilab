@@ -3,16 +3,16 @@ import { Link, type Href } from "expo-router";
 import { useMemo } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 
-import { AcademicLoadMoreButton } from "@/features/academic/components/academic-load-more-button";
-import { ArticleErrorState } from "@/features/academic/components/article-error-state";
-import type { ArticleGraph } from "@/features/academic/types/article.type";
+import { AcademicLoadMoreButton } from "@/components/academic/academic-load-more-button";
+import { ArticleErrorState } from "@/components/academic/article-error-state";
+import type { ArticleGraph } from "@/types/academic.type";
 import {
   getArticleJournal,
   getArticleTitle,
   getArticleYear,
-} from "@/features/academic/utils/article-format";
+} from "@/features/articles/utils/article-format";
 import { useBookmarks } from "@/features/bookmarks/hooks/use-bookmarks";
-import { SurfaceCard } from "@/features/navigation/components/screen-shell";
+import { SurfaceCard } from "@/components/layout/screen-shell";
 import { getUserFriendlyApiErrorMessage } from "@/services/api";
 import { useAppTheme } from "@/theme";
 
