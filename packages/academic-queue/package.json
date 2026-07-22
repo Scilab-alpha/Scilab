@@ -1,0 +1,33 @@
+{
+  "name": "@repo/academic-queue",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "format:check": "prettier --check \"src/**/*.ts\" \"*.json\"",
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "check-types": "tsc --noEmit -p tsconfig.json",
+    "test": "jest --config jest.config.js --passWithNoTests"
+  },
+  "dependencies": {
+    "@nestjs/bullmq": "^11.0.4",
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.4",
+    "bullmq": "^5.80.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.13.1",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.9.2"
+  }
+}

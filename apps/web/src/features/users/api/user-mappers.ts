@@ -1,67 +1,98 @@
 import type {
-  AdminUserRole,
-  AdminUserStatus,
+  ApiUpdateUserProfileInput,
   ApiUserProfile,
+  ApiUserRole,
   ApiUserStatus,
-  PatchableApiRole,
-  User,
+  UpdateUserProfileInput,
+  UserProfile,
+  UserRole,
+  UserStatus,
 } from "@/features/users/types/user.types";
 
-export function mapApiRoleToUi(role: ApiUserProfile["role"]): AdminUserRole {
-  switch (role) {
-    case "ADMIN":
-      return "admin";
-    case "RESEARCHER":
-      return "researcher";
-    default:
-      return "reader";
-  }
-}
+const ROLE_MAP: Record<ApiUserRole, UserRole> = {
+  STUDENT: "student",
+  RESEARCHER: "researcher",
+  ADMIN: "admin",
+};
 
-export function mapUiRoleToApi(role: AdminUserRole): PatchableApiRole | null {
-  if (role === "researcher") return "RESEARCHER";
-  if (role === "reader") return "STUDENT";
-  return null;
-}
+const STATUS_MAP: Record<ApiUserStatus, UserStatus> = {
+  ACTIVE: "active",
+  INACTIVE: "inactive",
+  BANNED: "banned",
+};
 
-export function mapApiStatusToUi(
-  status: ApiUserProfile["status"],
-): AdminUserStatus {
-  switch (status) {
-    case "ACTIVE":
-      return "active";
-    case "INACTIVE":
-      return "inactive";
-    case "BANNED":
-      return "suspended";
-  }
-}
-
-export function mapUiStatusToApi(status: AdminUserStatus): ApiUserStatus {
-  switch (status) {
-    case "active":
-      return "ACTIVE";
-    case "inactive":
-      return "INACTIVE";
-    case "suspended":
-      return "BANNED";
-  }
-}
-
-export function mapApiUserToUi(user: ApiUserProfile): User {
-  const firstName = user.firstName?.trim() || "";
-  const lastName = user.lastName?.trim() || "";
+export function mapApiUserProfile(user: ApiUserProfile): UserProfile {
+  const firstName = normalizeNullableText(user.firstName);
+  const lastName = normalizeNullableText(user.lastName);
   const displayName =
-    [firstName, lastName].filter(Boolean).join(" ") || user.email;
+    [firstName, lastName].filter(Boolean).join(" ") ||
+    user.email.split("@")[0] ||
+    "SciLab User";
 
   return {
     id: user.id,
     email: user.email,
+    firstName,
+    lastName,
     displayName,
-    role: mapApiRoleToUi(user.role),
-    status: mapApiStatusToUi(user.status),
-    registrationDate: user.dateOfBirth ?? new Date().toISOString(),
-    firstName: user.firstName,
-    lastName: user.lastName,
+    initials: getInitials(displayName),
+    imageUrl: user.imageUrl,
+    gender: user.gender,
+    dateOfBirth: toDateOnly(user.dateOfBirth),
+    role: ROLE_MAP[user.role],
+    status: STATUS_MAP[user.status],
   };
+}
+
+export function toApiUserUpdate(
+  input: UpdateUserProfileInput,
+): ApiUpdateUserProfileInput {
+  const request: ApiUpdateUserProfileInput = {};
+
+  if (input.email !== undefined) {
+    request.email = input.email.trim().toLowerCase();
+  }
+  if (input.firstName !== undefined) {
+    request.firstname = input.firstName.trim();
+  }
+  if (input.lastName !== undefined) {
+    request.lastname = input.lastName.trim();
+  }
+  if (input.gender !== undefined) {
+    request.gender = input.gender;
+  }
+  if (input.dateOfBirth !== undefined) {
+    request.dateofbirth = input.dateOfBirth;
+  }
+
+  return request;
+}
+
+export function toApiUserRole(
+  role: Exclude<UserRole, "admin">,
+): Exclude<ApiUserRole, "ADMIN"> {
+  return role === "researcher" ? "RESEARCHER" : "STUDENT";
+}
+
+export function toApiUserStatus(status: UserStatus): ApiUserStatus {
+  return status.toUpperCase() as ApiUserStatus;
+}
+
+function normalizeNullableText(value: string | null) {
+  const normalized = value?.trim();
+  return normalized || null;
+}
+
+function toDateOnly(value: string | null) {
+  return value ? value.slice(0, 10) : null;
+}
+
+function getInitials(displayName: string) {
+  return displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 }

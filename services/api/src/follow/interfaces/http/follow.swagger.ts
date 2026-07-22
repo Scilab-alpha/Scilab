@@ -37,12 +37,18 @@ const errorEnvelopeSchema = (message: string) =>
 
 const objectTypeSchema = {
   type: 'string',
-  enum: ['JOURNAL', 'KEYWORD', 'TOPIC'],
+  enum: ['AUTHOR', 'JOURNAL', 'KEYWORD', 'TOPIC'],
 };
 
 const notifyModeSchema = {
   type: 'string',
   enum: ['IN_APP', 'DAILY_EMAIL', 'WEEKLY_EMAIL', 'OFF'],
+};
+
+const objectIdSchema = {
+  type: 'string',
+  maxLength: 128,
+  example: 'S123456789',
 };
 
 const targetSchema = {
@@ -51,7 +57,7 @@ const targetSchema = {
   additionalProperties: false,
   properties: {
     type: objectTypeSchema,
-    id: { type: 'string', format: 'uuid' },
+    id: objectIdSchema,
     displayName: { type: 'string', nullable: true },
     sourceId: { type: 'string', nullable: true },
     journalType: { type: 'string', nullable: true },
@@ -83,7 +89,7 @@ const listSchema = envelopeSchema(
           properties: {
             followId: { type: 'string', format: 'uuid' },
             objectType: objectTypeSchema,
-            objectId: { type: 'string', format: 'uuid' },
+            objectId: objectIdSchema,
             notifyMode: notifyModeSchema,
             followedAt: { type: 'string', format: 'date-time' },
             target: targetSchema,
@@ -105,7 +111,7 @@ const toggleSchema = envelopeSchema(
     additionalProperties: false,
     properties: {
       objectType: objectTypeSchema,
-      objectId: { type: 'string', format: 'uuid' },
+      objectId: objectIdSchema,
       followed: { type: 'boolean' },
       notifyMode: notifyModeSchema,
       followedAt: { type: 'string', format: 'date-time' },
@@ -128,7 +134,7 @@ const updateSchema = envelopeSchema(
     properties: {
       followId: { type: 'string', format: 'uuid' },
       objectType: objectTypeSchema,
-      objectId: { type: 'string', format: 'uuid' },
+      objectId: objectIdSchema,
       notifyMode: notifyModeSchema,
       followedAt: { type: 'string', format: 'date-time' },
     },
@@ -176,7 +182,9 @@ export function ApiListFollows() {
 export function ApiToggleFollow() {
   return applyDecorators(
     ApiFollowBearerAuth(),
-    ApiOperation({ summary: 'Toggle follow for a journal, keyword, or topic' }),
+    ApiOperation({
+      summary: 'Toggle follow for an author, journal, keyword, or topic',
+    }),
     ApiBody({
       schema: {
         type: 'object',
@@ -184,7 +192,7 @@ export function ApiToggleFollow() {
         additionalProperties: false,
         properties: {
           objectType: objectTypeSchema,
-          objectId: { type: 'string', format: 'uuid' },
+          objectId: objectIdSchema,
           notifyMode: notifyModeSchema,
         },
       },
@@ -206,7 +214,7 @@ export function ApiPatchFollowNotifyMode() {
     ApiFollowBearerAuth(),
     ApiOperation({ summary: 'Update notification mode for a followed target' }),
     ApiParam({ name: 'objectType', schema: objectTypeSchema }),
-    ApiParam({ name: 'objectId', schema: { type: 'string', format: 'uuid' } }),
+    ApiParam({ name: 'objectId', schema: objectIdSchema }),
     ApiBody({
       schema: {
         type: 'object',

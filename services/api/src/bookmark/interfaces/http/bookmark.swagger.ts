@@ -39,7 +39,7 @@ const articleSchema = {
   additionalProperties: true,
   required: ['id', 'title'],
   properties: {
-    id: { type: 'string', format: 'uuid' },
+    id: { type: 'string', example: 'W1234567890' },
     title: { type: 'string' },
     abstract: { type: 'string', nullable: true },
     doi: { type: 'string', nullable: true },
@@ -60,7 +60,7 @@ const listSchema = envelopeSchema(
           required: ['articleId', 'bookmarkedAt', 'article'],
           additionalProperties: false,
           properties: {
-            articleId: { type: 'string', format: 'uuid' },
+            articleId: { type: 'string', example: 'W1234567890' },
             bookmarkedAt: { type: 'string', format: 'date-time' },
             article: articleSchema,
           },
@@ -80,7 +80,7 @@ const toggleSchema = envelopeSchema(
     required: ['articleId', 'bookmarked'],
     additionalProperties: false,
     properties: {
-      articleId: { type: 'string', format: 'uuid' },
+      articleId: { type: 'string', example: 'W1234567890' },
       bookmarked: { type: 'boolean' },
       bookmarkedAt: { type: 'string', format: 'date-time' },
     },
@@ -133,7 +133,9 @@ export function ApiToggleBookmark() {
         type: 'object',
         required: ['articleId'],
         additionalProperties: false,
-        properties: { articleId: { type: 'string', format: 'uuid' } },
+        properties: {
+          articleId: { type: 'string', example: 'W1234567890' },
+        },
       },
     }),
     ApiOkResponse({ description: 'Bookmark toggled', schema: toggleSchema }),

@@ -5,6 +5,7 @@ import {
   getCurrentUser,
   refreshTokens,
 } from "@/features/auth/api/auth.service";
+import { useUserEventsSubscription } from "@/features/notifications/hooks/use-user-events-subscription";
 import { QueryProvider } from "@/lib/query-provider";
 import { ApiError, setApiAuthRecoveryHandler } from "@/services/api";
 import { useAuthStore } from "@/store/auth.store";
@@ -13,10 +14,18 @@ export function AppProviders({ children }: PropsWithChildren) {
   return (
     <QueryProvider>
       <ToastProvider>
-        <AuthBootstrap>{children}</AuthBootstrap>
+        <AuthBootstrap>
+          <RealtimeBootstrap>{children}</RealtimeBootstrap>
+        </AuthBootstrap>
       </ToastProvider>
     </QueryProvider>
   );
+}
+
+function RealtimeBootstrap({ children }: PropsWithChildren) {
+  useUserEventsSubscription();
+
+  return children;
 }
 
 function AuthBootstrap({ children }: PropsWithChildren) {

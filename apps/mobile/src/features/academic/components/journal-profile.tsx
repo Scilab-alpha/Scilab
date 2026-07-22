@@ -6,6 +6,7 @@ import {
   StatusBadge,
 } from "@/features/academic/components/detail-section";
 import type { JournalListItem } from "@/features/academic/types/article.type";
+import { FollowButton } from "@/features/follows/components/follow-button";
 import { useAppTheme } from "@/theme";
 
 export function JournalProfile({ journal }: { journal: JournalListItem }) {
@@ -44,6 +45,11 @@ export function JournalProfile({ journal }: { journal: JournalListItem }) {
             <StatusBadge label="Diamond OA" tone="primary" />
           ) : null}
         </View>
+        <FollowButton
+          label="Follow journal"
+          objectId={journal.id}
+          objectType="JOURNAL"
+        />
       </View>
 
       <DetailSection icon="information-circle-outline" title="Journal info">

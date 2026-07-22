@@ -11,7 +11,12 @@ import {
   parseOptionalEnum,
 } from '@/shared/validation/request-input';
 
-export const FOLLOW_OBJECT_TYPES = ['JOURNAL', 'KEYWORD', 'TOPIC'] as const;
+export const FOLLOW_OBJECT_TYPES = [
+  'AUTHOR',
+  'JOURNAL',
+  'KEYWORD',
+  'TOPIC',
+] as const;
 export const FOLLOW_NOTIFY_MODES = [
   'IN_APP',
   'DAILY_EMAIL',
@@ -25,6 +30,23 @@ export function parseFollowObjectType(value: unknown): FollowObjectType {
   } catch {
     throw invalidInput('objectType is invalid');
   }
+}
+
+export function parseFollowObjectId(value: unknown): string {
+  if (typeof value !== 'string') {
+    throw invalidInput('objectId is required');
+  }
+
+  const objectId = value.trim();
+  if (!objectId) {
+    throw invalidInput('objectId is required');
+  }
+
+  if (objectId.length > 128) {
+    throw invalidInput('objectId must not exceed 128 characters');
+  }
+
+  return objectId;
 }
 
 export function parseOptionalFollowObjectType(

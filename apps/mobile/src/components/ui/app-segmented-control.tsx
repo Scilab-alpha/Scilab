@@ -8,6 +8,7 @@ type AppSegmentedControlOption<T extends string> = {
 };
 
 type AppSegmentedControlProps<T extends string> = {
+  compact?: boolean;
   error?: string;
   label: string;
   onChange: (value: T) => void;
@@ -16,6 +17,7 @@ type AppSegmentedControlProps<T extends string> = {
 };
 
 export function AppSegmentedControl<T extends string>({
+  compact = false,
   error,
   label,
   onChange,
@@ -39,6 +41,7 @@ export function AppSegmentedControl<T extends string>({
         accessibilityRole="radiogroup"
         style={[
           styles.container,
+          compact ? styles.containerCompact : null,
           {
             borderColor: error ? theme.colors.error : theme.colors.outlineSoft,
             borderRadius: theme.radii.sm,
@@ -56,6 +59,7 @@ export function AppSegmentedControl<T extends string>({
               onPress={() => onChange(option.value)}
               style={({ pressed }) => [
                 styles.option,
+                compact ? styles.optionCompact : null,
                 {
                   backgroundColor: selected
                     ? theme.colors.primary
@@ -68,7 +72,7 @@ export function AppSegmentedControl<T extends string>({
               <Text
                 numberOfLines={1}
                 style={[
-                  theme.typography.label,
+                  compact ? theme.typography.caption : theme.typography.label,
                   {
                     color: selected
                       ? theme.colors.onPrimary
@@ -103,11 +107,17 @@ const styles = StyleSheet.create({
     minHeight: 40,
     overflow: "hidden",
   },
+  containerCompact: {
+    minHeight: 36,
+  },
   option: {
     alignItems: "center",
     flex: 1,
     justifyContent: "center",
     minWidth: 0,
     paddingHorizontal: 8,
+  },
+  optionCompact: {
+    paddingHorizontal: 4,
   },
 });

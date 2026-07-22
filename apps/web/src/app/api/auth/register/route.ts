@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     const login = await requestUpstream("auth/login", {
       method: "POST",
-      body: { email: body.email, password: body.password },
+      body: { email: body.email, password: body.password, portal: "user" },
     });
     if (!login.ok || !isTokenPair(login.envelope.data)) {
       return bffErrorResponse(

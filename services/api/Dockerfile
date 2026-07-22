@@ -1,46 +1,38 @@
-FROM node:22-alpine AS base
+FROM node:22-alpine AS build
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 
-RUN corepack enable
-RUN corepack prepare pnpm@11.7.0 --activate
-
-FROM base AS build
-
+RUN corepack enable && corepack prepare pnpm@11.7.0 --activate
 WORKDIR /app
 
+# Install only the API workspace and its backend dependency closure. This keeps
+# mobile and web dependencies out of the API build and its runtime image.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/mobile/package.json apps/mobile/package.json
-COPY apps/web/package.json apps/web/package.json
-COPY packages/eslint-config/package.json packages/eslint-config/package.json
-COPY packages/typescript-config/package.json packages/typescript-config/package.json
+COPY packages/academic/package.json packages/academic/package.json
+COPY packages/academic-queue/package.json packages/academic-queue/package.json
+COPY packages/database/package.json packages/database/package.json
+COPY packages/neo4j/package.json packages/neo4j/package.json
 COPY services/api/package.json services/api/package.json
-
-RUN pnpm install --frozen-lockfile
+RUN pnpm --filter api... install --frozen-lockfile
 
 COPY . .
+RUN pnpm --filter @repo/database prisma:generate && \
+    pnpm --filter api... -r run build
 
-RUN pnpm --filter api build
-
-FROM base AS runtime
-
-WORKDIR /app/services/api
+FROM node:22-alpine AS runtime
 
 ENV PORT="6003"
 ENV SCIMAGO_DATASET_DIR="/app/docs/scimagojr/normalized"
+WORKDIR /app
 
-COPY --from=build /app/package.json /app/package.json
-COPY --from=build /app/pnpm-lock.yaml /app/pnpm-lock.yaml
-COPY --from=build /app/pnpm-workspace.yaml /app/pnpm-workspace.yaml
-COPY --from=build /app/node_modules /app/node_modules
-COPY --from=build /app/services/api/node_modules ./node_modules
-COPY --from=build /app/services/api/package.json ./package.json
-COPY --from=build /app/services/api/prisma.config.ts ./prisma.config.ts
-COPY --from=build /app/services/api/dist ./dist
-COPY --from=build /app/services/api/prisma ./prisma
-COPY --from=build /app/docs/scimagojr/normalized /app/docs/scimagojr/normalized
-
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/packages/academic ./packages/academic
+COPY --from=build /app/packages/academic-queue ./packages/academic-queue
+COPY --from=build /app/packages/database ./packages/database
+COPY --from=build /app/packages/neo4j ./packages/neo4j
+COPY --from=build /app/services/api ./services/api
+COPY --from=build /app/docs/scimagojr/normalized ./docs/scimagojr/normalized
+WORKDIR /app/services/api
 EXPOSE 6003
-
-CMD ["sh", "-c", "pnpm run prisma:deploy && node dist/main.js"]
+CMD ["node", "dist/main.js"]

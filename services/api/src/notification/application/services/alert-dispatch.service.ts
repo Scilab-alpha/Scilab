@@ -1,11 +1,11 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { ACADEMIC_GRAPH_REPOSITORY } from '@/academic/application/ports/academic-graph.port';
+import { ACADEMIC_GRAPH_REPOSITORY } from '@repo/academic/domain';
 import type {
   AcademicGraphRepository,
   FollowTargetReference,
-} from '@/academic/application/ports/academic-graph.port';
-import { toArticleGraphOutput } from '@/academic/application/academic-graph.mapper';
+} from '@repo/academic/domain';
+import { toArticleGraphOutput } from '@repo/academic/domain';
 import type {
   FollowNotifyMode,
   FollowRecipient,
@@ -142,6 +142,7 @@ function isEmailMode(mode: FollowNotifyMode): boolean {
 
 function groupReferences(refs: FollowTargetReference[]) {
   return {
+    authors: refs.filter((ref) => ref.type === 'AUTHOR').map((ref) => ref.id),
     journals: refs.filter((ref) => ref.type === 'JOURNAL').map((ref) => ref.id),
     keywords: refs.filter((ref) => ref.type === 'KEYWORD').map((ref) => ref.id),
     topics: refs.filter((ref) => ref.type === 'TOPIC').map((ref) => ref.id),

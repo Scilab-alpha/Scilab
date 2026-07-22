@@ -1,5 +1,4 @@
 import type { NotificationItem } from "@/features/notifications/types/notification.types";
-import { listLocalFollows } from "@/features/follows/api/local-follows";
 import { publishNotificationPopup } from "@/features/notifications/lib/notification-popup";
 
 export const LOCAL_NOTIFICATIONS_STORAGE_KEY = "scilab_local_notifications";
@@ -76,9 +75,7 @@ export function upsertLocalNotification(
   };
   existing.unshift(created);
   writeAll(existing.slice(0, 200));
-  if (options.popup) {
-    publishNotificationPopup(created, "local");
-  }
+  if (options.popup) publishNotificationPopup(created, "local");
   return created;
 }
 
@@ -106,91 +103,6 @@ export function markAllLocalNotificationsRead() {
   return { updatedCount };
 }
 
-/** Create in-app alerts for articles matching locally followed journals/topics/keywords. */
-export function syncLocalFollowNotifications(
-  articles: Array<{
-    article: { id: string; title: string };
-    journal?: { id?: string; displayName?: string | null } | null;
-    topics?: Array<{ id: string; displayName?: string | null }>;
-    keywords?: Array<{ id: string; displayName?: string | null }>;
-  }>,
-) {
-  const follows = listLocalFollows();
-  if (follows.length === 0 || articles.length === 0) {
-    return 0;
-  }
-
-  const followedJournals = new Map(
-    follows
-      .filter((item) => item.objectType === "JOURNAL")
-      .map((item) => [item.objectId, item.target.displayName]),
-  );
-  const followedTopics = new Set(
-    follows
-      .filter((item) => item.objectType === "TOPIC")
-      .map((item) => item.objectId),
-  );
-  const followedKeywords = new Set(
-    follows
-      .filter((item) => item.objectType === "KEYWORD")
-      .map((item) => item.objectId),
-  );
-
-  let created = 0;
-  for (const graph of articles) {
-    const journalId = graph.journal?.id;
-    const matchedJournal =
-      journalId && followedJournals.has(journalId)
-        ? followedJournals.get(journalId)
-        : null;
-    const matchedTopic = graph.topics?.find((topic) =>
-      followedTopics.has(topic.id),
-    );
-    const matchedKeyword = graph.keywords?.find((keyword) =>
-      followedKeywords.has(keyword.id),
-    );
-
-    if (!matchedJournal && !matchedTopic && !matchedKeyword) {
-      continue;
-    }
-
-    const sourceLabel =
-      matchedJournal ||
-      matchedTopic?.displayName ||
-      matchedKeyword?.displayName ||
-      "your follows";
-
-    const inserted = upsertLocalNotification({
-      notificationId: `local-article-${graph.article.id}`,
-      title: "New article from your follows",
-      message: `${graph.article.title} · ${sourceLabel}`,
-      relatedObjectType: "ARTICLE",
-      relatedObjectId: graph.article.id,
-    });
-    if (inserted) created += 1;
-  }
-
-  return created;
-}
-
-export function notifyFollowStarted(input: {
-  objectType: "JOURNAL" | "KEYWORD" | "TOPIC";
-  objectId: string;
-  displayName: string;
-}) {
-  return upsertLocalNotification(
-    {
-      notificationId: `local-follow-${input.objectType}-${input.objectId}`,
-      title: `Following ${input.displayName}`,
-      message:
-        "We'll alert you here when matching new articles appear in your catalog.",
-      relatedObjectType: input.objectType,
-      relatedObjectId: input.objectId,
-    },
-    { popup: true },
-  );
-}
-
 export function notifyBookmarkSaved(input: {
   articleId: string;
   title: string;
@@ -203,7 +115,6 @@ export function notifyBookmarkSaved(input: {
     relatedObjectType: "ARTICLE" as const,
     relatedObjectId: input.articleId,
   };
-
   const inserted = upsertLocalNotification(payload, { popup: true });
 
   if (!inserted) {
@@ -217,6 +128,5 @@ export function notifyBookmarkSaved(input: {
       "local",
     );
   }
-
   return inserted;
 }

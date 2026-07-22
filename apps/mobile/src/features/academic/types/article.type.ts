@@ -7,6 +7,7 @@ export type AcademicNodeType =
 
 export type ArticleNode = {
   abstract: string | null;
+  citationCount: number | null;
   createdAt: string | null;
   doi: string | null;
   id: string;

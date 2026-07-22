@@ -1,5 +1,5 @@
-import { toFollowTargetOutput } from '@/academic/application/academic-graph.mapper';
-import { AcademicGraphRepository } from '@/academic/application/ports/academic-graph.port';
+import { toFollowTargetOutput } from '@repo/academic/domain';
+import { AcademicGraphRepository } from '@repo/academic/domain';
 import { FollowRepository } from '@/follow/application/ports/follow.ports';
 import { parseOptionalFollowObjectType } from '@/follow/application/use-cases/follow-input';
 import {

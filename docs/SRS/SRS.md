@@ -267,7 +267,7 @@ SciLab áp dụng kiến trúc **Polyglot Persistence**, lựa chọn công cụ
 | 06 | **Subject_Area** | Lĩnh vực chuyên môn rộng (VD: Computer Science). Là danh mục tra cứu; danh sách subject_categories trên Node Journal (Neo4j) tham chiếu tên hiển thị từ đây. — PK: `subject_area_id` (uuid) — Fields: `display_name`, `description`. |
 | 07 | **Subject_Category** | Danh mục chi tiết trong một lĩnh vực. — PK: `subject_category_id` (uuid) — FK: `subject_area_id` — Fields: `display_name`, `description`. |
 | 08 | **User_Bookmark** *(mới)* | Bookmark bài báo của người dùng — chỉ lưu Reference ID, **không** lưu metadata bài báo. — PK: `user_bookmark_id` (uuid) — FK: `user_id` (NN) — Fields: `article_id` (uuid, **Reference ID → Node Article tại Neo4j**), `created_at`. Unique: (`user_id`, `article_id`). |
-| 09 | **User_Follow** *(mới)* | Theo dõi Journal/Keyword/Topic của người dùng — chỉ lưu Reference ID. — PK: `user_follow_id` (uuid) — FK: `user_id` (NN) — Fields: `object_type` (enum: JOURNAL/KEYWORD/TOPIC, NN), `object_id` (uuid, **Reference ID → Node tương ứng tại Neo4j**), `notify_mode` (enum: in_app/daily/weekly/off), `created_at`. Unique: (`user_id`, `object_type`, `object_id`). |
+| 09 | **User_Follow** *(mới)* | Theo dõi Author/Journal/Keyword/Topic của người dùng — chỉ lưu Reference ID. — PK: `user_follow_id` (uuid) — FK: `user_id` (NN) — Fields: `object_type` (enum: AUTHOR/JOURNAL/KEYWORD/TOPIC, NN), `object_id` (varchar(128), **Reference ID → Node tương ứng tại Neo4j**), `notify_mode` (enum: in_app/daily/weekly/off), `created_at`. Unique: (`user_id`, `object_type`, `object_id`). |
 | 10 | **Notification** | Thông báo in-app/email cho người dùng. — PK: `notification_id` (uuid) — FK: `user_id` — Fields: `title`, `message`, `related_object_type`, `related_object_id` (Reference ID), `is_read` (bool), `created_at`. |
 | 11 | **Sync_Log** *(mới)* | Nhật ký mỗi lần chạy job đồng bộ. — PK: `sync_log_id` (uuid) — Fields: `source` (enum: openalex/semantic_scholar/crossref/scimago), `started_at`, `finished_at`, `total_fetched` (int), `total_inserted` (int), `total_updated` (int), `total_errors` (int), `status` (enum: success/failed/partial), `error_detail` (text), `created_at`. |
 
@@ -471,7 +471,7 @@ Function trigger: Người dùng đã đăng nhập nhấn nút Bookmark trên k
 Function trigger: Người dùng đã đăng nhập nhấn nút Follow trên trang chi tiết journal hoặc chọn keyword để theo dõi từ Trend Analysis.
 
 **Luồng ghi nhận (Write Flow):**
-- Backend ghi 1 record vào `User_Follow` (PostgreSQL): `user_id`, `object_type` (JOURNAL/KEYWORD/TOPIC), `object_id` (Reference ID trỏ Node tương ứng tại Neo4j), `notify_mode`, `created_at`.
+- Backend ghi 1 record vào `User_Follow` (PostgreSQL): `user_id`, `object_type` (AUTHOR/JOURNAL/KEYWORD/TOPIC), `object_id` (Reference ID trỏ Node tương ứng tại Neo4j), `notify_mode`, `created_at`.
 - Quản lý: bỏ follow bất kỳ lúc nào từ trang Profile hoặc từ chính journal/keyword đó (xóa record tương ứng).
 
 **Luồng hiển thị "Danh sách đang theo dõi" (Cross-Database Read Flow)** — áp dụng đúng mẫu 3 bước như UC-09 (lấy `object_id` phân trang từ Postgres → batch Cypher `IN [$ids]` tới Neo4j theo từng `object_type` → map kết quả).
@@ -480,7 +480,7 @@ Function trigger: Người dùng đã đăng nhập nhấn nút Follow trên tra
 
 | Bước | Hành động | Cơ sở dữ liệu |
 |---|---|---|
-| 1 | Lấy toàn bộ `object_id` đang được follow theo từng loại (JOURNAL/KEYWORD/TOPIC), loại bỏ trùng lặp. | PostgreSQL |
+| 1 | Lấy toàn bộ `object_id` đang được follow theo từng loại (AUTHOR/JOURNAL/KEYWORD/TOPIC), loại bỏ trùng lặp. | PostgreSQL |
 | 2 | Dùng danh sách `object_id` này trong **một** Cypher query để tìm các Node Article mới được đồng bộ trong khoảng thời gian gần nhất có Edge `PUBLISHED_IN`/`HAS_KEYWORD`/`BELONGS_TO` trỏ tới các đối tượng đó (`WHERE j.id IN [$ids]` …). | Neo4j |
 | 3 | Với từng Article khớp, Backend truy vấn ngược lại `User_Follow` (Postgres) theo `object_id` tương ứng để lấy danh sách `user_id` cần gửi thông báo, sau đó kích hoạt gửi in-app/email theo `notify_mode` đã cấu hình. | PostgreSQL → Notification Service |
 

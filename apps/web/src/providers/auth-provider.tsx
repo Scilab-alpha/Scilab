@@ -14,6 +14,7 @@ import type {
   Permission,
 } from "@/features/auth/types/auth.types";
 import type { RegisterRequest } from "@/features/auth/types/auth-api.types";
+import type { LoginPortal } from "@/features/auth/types/auth-api.types";
 import { clearLegacyAuthStorage } from "@/features/auth/api/legacy-auth-storage";
 import {
   getCurrentUser,
@@ -44,8 +45,10 @@ interface AuthContextValue {
     email: string,
     password: string,
     rememberMe: boolean,
+    portal?: LoginPortal,
   ) => Promise<LoginResult | LoginError>;
   register: (request: RegisterRequest) => Promise<AuthUser>;
+  refreshCurrentUser: () => Promise<AuthUser | null>;
   logout: () => Promise<void>;
   can: (permission: Permission) => boolean;
 }
@@ -82,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email: string,
       password: string,
       rememberMe: boolean,
+      portal: LoginPortal = "user",
     ): Promise<LoginResult | LoginError> => {
       setStatus("loading");
       try {
@@ -89,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email,
           password,
           rememberMe,
+          portal,
         });
         setUser(currentUser);
         setStatus("authenticated");
@@ -148,10 +153,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: Boolean(user),
       login,
       register,
+      refreshCurrentUser: loadCurrentUser,
       logout,
       can,
     }),
-    [user, status, login, register, logout, can],
+    [user, status, login, register, loadCurrentUser, logout, can],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

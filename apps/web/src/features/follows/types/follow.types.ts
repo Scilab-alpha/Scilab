@@ -1,6 +1,6 @@
 import type { PageParams, PageResult } from "@/core/api/pagination";
 
-export type FollowObjectType = "JOURNAL" | "KEYWORD" | "TOPIC";
+export type FollowObjectType = "AUTHOR" | "JOURNAL" | "KEYWORD" | "TOPIC";
 
 export type NotifyMode = "IN_APP" | "DAILY_EMAIL" | "WEEKLY_EMAIL" | "OFF";
 
@@ -10,6 +10,9 @@ export type FollowTarget = {
   displayName: string | null;
   sourceId?: string | null;
   journalType?: string | null;
+  country?: string | null;
+  region?: string | null;
+  score?: number | null;
 };
 
 /** Item from GET /follows */
@@ -23,7 +26,7 @@ export type FollowItem = {
 };
 
 export type FollowListParams = PageParams & {
-  objectType?: FollowObjectType;
+  type?: FollowObjectType;
 };
 
 export type FollowListResponse = PageResult<FollowItem>;

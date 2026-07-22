@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import {
   ACADEMIC_GRAPH_REPOSITORY,
   AcademicGraphRepository,
-} from '@/academic/application/ports/academic-graph.port';
-import { AcademicModule } from '@/academic/academic.module';
+} from '@repo/academic/domain';
+import { AcademicHttpModule } from '@/academic/academic-http.module';
 import { AuthModule } from '@/auth/auth.module';
 import { ListFollowsUseCase } from '@/follow/application/use-cases/list-follows/list-follows.use-case';
 import { ToggleFollowUseCase } from '@/follow/application/use-cases/toggle-follow/toggle-follow.use-case';
@@ -11,10 +11,10 @@ import { UpdateFollowNotifyModeUseCase } from '@/follow/application/use-cases/up
 import { PrismaFollowRepository } from '@/follow/infrastructure/persistence/prisma-follow.repository';
 import { FollowController } from '@/follow/interfaces/http/follow.controller';
 import { EventsModule } from '@/events/events.module';
-import { PrismaModule } from '@/prisma/prisma.module';
+import { PrismaModule } from '@repo/database';
 
 @Module({
-  imports: [PrismaModule, AcademicModule, AuthModule, EventsModule],
+  imports: [PrismaModule, AcademicHttpModule, AuthModule, EventsModule],
   controllers: [FollowController],
   providers: [
     PrismaFollowRepository,

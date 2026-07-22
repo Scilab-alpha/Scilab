@@ -4,7 +4,7 @@ import {
   BookmarkRecord,
   BookmarkRepository,
 } from '@/bookmark/application/ports/bookmark.ports';
-import { PrismaService } from '@/prisma/prisma.service';
+import { PrismaService } from '@repo/database';
 
 @Injectable()
 export class PrismaBookmarkRepository implements BookmarkRepository {
