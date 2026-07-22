@@ -1,5 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Link, Stack, type Href, useLocalSearchParams } from "expo-router";
+import { useMemo } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -28,6 +29,12 @@ import {
 import { useToast } from "@/components/ui";
 import { useBookmarkStatus } from "@/features/bookmarks/hooks/use-bookmarks";
 import { useToggleBookmark } from "@/features/bookmarks/hooks/use-toggle-bookmark";
+import {
+  getFollowedTargetIds,
+  useFollows,
+} from "@/features/follows/hooks/use-follows";
+import { useToggleFollow } from "@/features/follows/hooks/use-toggle-follow";
+import type { FollowObjectType } from "@/features/follows/types/follow.type";
 import { AppBackButton } from "@/features/navigation/components/app-back-button";
 import { getUserFriendlyApiErrorMessage } from "@/services/api";
 import { useAppTheme } from "@/theme";
@@ -251,12 +258,12 @@ export function ArticleDetailScreen() {
 
             <DetailSection icon="pricetags-outline" title="Keywords and topics">
               <View style={{ gap: theme.spacing.md }}>
-                <TermGroup
+                <KeywordGroup
                   emptyText="No keywords available."
                   items={article.keywords}
                   label="Keywords"
                 />
-                <TermGroup
+                <TopicFollowGroup
                   emptyText="No topics available."
                   items={article.topics}
                   label="Topics"
@@ -331,13 +338,13 @@ function HeroPill({
   );
 }
 
-function TermGroup({
+function KeywordGroup({
   emptyText,
   items,
   label,
 }: {
   emptyText: string;
-  items: (KeywordNode | TopicNode)[];
+  items: KeywordNode[];
   label: string;
 }) {
   const theme = useAppTheme();
@@ -352,38 +359,156 @@ function TermGroup({
       ) : (
         <View style={styles.tags}>
           {items.map((item) => (
-            <View
-              key={item.id}
-              style={[
-                styles.tag,
-                {
-                  backgroundColor:
-                    "isPrimary" in item && item.isPrimary
-                      ? theme.colors.primarySoft
-                      : theme.colors.surfaceMuted,
-                  borderColor: theme.colors.outlineSoft,
-                  borderRadius: theme.radii.pill,
-                },
-              ]}
-            >
-              <Text
-                numberOfLines={1}
-                style={[
-                  theme.typography.caption,
-                  {
-                    color:
-                      "isPrimary" in item && item.isPrimary
-                        ? theme.colors.primary
-                        : theme.colors.textMuted,
-                  },
-                ]}
-              >
-                {formatTermLabel(item)}
-              </Text>
-            </View>
+            <StaticTermChip item={item} key={item.id} />
           ))}
         </View>
       )}
+    </View>
+  );
+}
+
+function TopicFollowGroup({
+  emptyText,
+  items,
+  label,
+}: {
+  emptyText: string;
+  items: TopicNode[];
+  label: string;
+}) {
+  const theme = useAppTheme();
+  const { showToast } = useToast();
+  const objectType: FollowObjectType = "TOPIC";
+  const followsQuery = useFollows({ limit: 100, type: objectType });
+  const toggleFollow = useToggleFollow();
+  const followedTargetIds = useMemo(
+    () => getFollowedTargetIds(followsQuery.data),
+    [followsQuery.data],
+  );
+  const pendingObjectId = toggleFollow.variables?.objectId ?? null;
+
+  const handleToggleFollow = (item: TopicNode) => {
+    if (toggleFollow.isPending) {
+      return;
+    }
+
+    toggleFollow.mutate(
+      { objectId: item.id, objectType },
+      {
+        onError: (error) => {
+          showToast(getUserFriendlyApiErrorMessage(error), { tone: "error" });
+        },
+      },
+    );
+  };
+
+  return (
+    <View style={{ gap: theme.spacing.sm }}>
+      <Text style={[theme.typography.caption, { color: theme.colors.primary }]}>
+        {label.toUpperCase()}
+      </Text>
+      {items.length === 0 ? (
+        <MutedText text={emptyText} />
+      ) : (
+        <View style={styles.tags}>
+          {items.map((item) => (
+            <FollowTermChip
+              isFollowed={
+                toggleFollow.data?.objectId === item.id &&
+                toggleFollow.data.objectType === objectType
+                  ? toggleFollow.data.followed
+                  : followedTargetIds.has(item.id)
+              }
+              isPending={toggleFollow.isPending && pendingObjectId === item.id}
+              item={item}
+              key={item.id}
+              onPress={() => handleToggleFollow(item)}
+            />
+          ))}
+        </View>
+      )}
+      <Text style={[theme.typography.caption, { color: theme.colors.outline }]}>
+        Tap + to follow a topic.
+      </Text>
+    </View>
+  );
+}
+
+function FollowTermChip({
+  isFollowed,
+  isPending,
+  item,
+  onPress,
+}: {
+  isFollowed: boolean;
+  isPending: boolean;
+  item: TopicNode;
+  onPress: () => void;
+}) {
+  const theme = useAppTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      disabled={isPending}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.tag,
+        styles.followTag,
+        {
+          backgroundColor: isFollowed
+            ? theme.colors.primarySoft
+            : theme.colors.surfaceMuted,
+          borderColor: theme.colors.outlineSoft,
+          borderRadius: theme.radii.pill,
+          opacity: pressed || isPending ? 0.78 : 1,
+        },
+      ]}
+    >
+      {isPending ? (
+        <ActivityIndicator color={theme.colors.primary} size="small" />
+      ) : (
+        <Ionicons
+          color={isFollowed ? theme.colors.primary : theme.colors.textMuted}
+          name={isFollowed ? "checkmark" : "add"}
+          size={13}
+        />
+      )}
+      <Text
+        numberOfLines={1}
+        style={[
+          theme.typography.caption,
+          {
+            color: isFollowed ? theme.colors.primary : theme.colors.textMuted,
+          },
+        ]}
+      >
+        {formatTermLabel(item)}
+      </Text>
+    </Pressable>
+  );
+}
+
+function StaticTermChip({ item }: { item: KeywordNode }) {
+  const theme = useAppTheme();
+
+  return (
+    <View
+      style={[
+        styles.tag,
+        {
+          backgroundColor: theme.colors.surfaceMuted,
+          borderColor: theme.colors.outlineSoft,
+          borderRadius: theme.radii.pill,
+        },
+      ]}
+    >
+      <Text
+        numberOfLines={1}
+        style={[theme.typography.caption, { color: theme.colors.textMuted }]}
+      >
+        {formatTermLabel(item)}
+      </Text>
     </View>
   );
 }
@@ -796,6 +921,11 @@ const styles = StyleSheet.create({
     maxWidth: "100%",
     paddingHorizontal: 10,
     paddingVertical: 6,
+  },
+  followTag: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 5,
   },
   tags: {
     flexDirection: "row",
