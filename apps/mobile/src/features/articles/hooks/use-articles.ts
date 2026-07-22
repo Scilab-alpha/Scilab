@@ -38,10 +38,14 @@ function normalizeArticleQueryParams(
   params: ArticleQueryParams,
 ): ArticleQueryParams {
   return {
+    authorId: normalizeText(params.authorId),
+    country: normalizeText(params.country),
+    journalId: normalizeText(params.journalId),
     keywordId: normalizeText(params.keywordId),
     publicationYear: params.publicationYear ?? null,
     publicationYearFrom: params.publicationYearFrom ?? null,
     publicationYearTo: params.publicationYearTo ?? null,
+    publisher: normalizeText(params.publisher),
     q: normalizeText(params.q),
     sort: normalizeText(params.sort) as ArticleQueryParams["sort"],
     topicId: normalizeText(params.topicId),

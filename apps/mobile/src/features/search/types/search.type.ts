@@ -1,6 +1,4 @@
-export type ArticleSearchField = "title" | "author" | "journal";
-
-export type AuthorSearchField = "name" | "orcid";
+export type ArticleSort = "relevant" | "newest" | "most_cited";
 
 export type FilterOption = {
   label: string;
@@ -15,32 +13,33 @@ export type PickerConfig =
       title: string;
     }
   | {
-      mode: "article-years";
+      minYear?: number;
+      maxYear?: number;
+      mode: "article-year-from";
       options: FilterOption[];
       selectedValues: string[];
+      supportsCustomYear: true;
       title: string;
     }
   | {
-      mode: "author-publications";
+      maxYear?: number;
+      minYear?: number;
+      mode: "article-year-to";
       options: FilterOption[];
       selectedValues: string[];
+      supportsCustomYear: true;
       title: string;
     }
   | {
-      mode: "author-sort";
+      mode: "article-sort";
       options: FilterOption[];
       selectedValues: string[];
       title: string;
     };
 
 export type ArticleFilters = {
-  fields: ArticleSearchField[];
   keywords: string[];
-  years: string[];
-};
-
-export type AuthorFilters = {
-  fields: AuthorSearchField[];
-  minimumArticles: "all" | "10" | "50";
-  sort: "relevance" | "name" | "articles";
+  sort: ArticleSort;
+  yearFrom: string | null;
+  yearTo: string | null;
 };

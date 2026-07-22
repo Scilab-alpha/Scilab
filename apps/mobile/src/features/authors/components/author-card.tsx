@@ -2,7 +2,7 @@ import { Link, type Href } from "expo-router";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { AuthorListItem } from "@/types/academic.type";
-import { getAuthorDisplayName } from "@/features/articles/utils/article-format";
+import { getAuthorDisplayName } from "@/features/authors/utils/author-format";
 import { useAppTheme } from "@/theme";
 
 type AuthorCardProps = {
@@ -38,16 +38,6 @@ export function AuthorCard({ author }: AuthorCardProps) {
               ]}
             >
               {name}
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={[
-                theme.typography.caption,
-                styles.meta,
-                { color: theme.colors.textMuted },
-              ]}
-            >
-              {formatAuthorMeta(author)}
             </Text>
           </View>
         </View>
@@ -96,14 +86,6 @@ export function AuthorAvatar({
   );
 }
 
-export function formatArticleCount(count: number) {
-  return `${count} article${count === 1 ? "" : "s"}`;
-}
-
-function formatAuthorMeta(author: AuthorListItem) {
-  return formatArticleCount(author.articleCount);
-}
-
 function getInitials(name: string) {
   const parts = name
     .split(/\s+/)
@@ -144,9 +126,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     minWidth: 0,
-  },
-  meta: {
-    lineHeight: 15,
   },
   name: {
     fontSize: 14,

@@ -1,70 +1,64 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Animated,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Pressable,
   StyleSheet,
-  TextInput,
   View,
 } from "react-native";
 
 import { ArticleResults } from "@/features/articles/components/article-results";
 import { AuthorResults } from "@/features/authors/components/author-results";
-import {
-  FilterDropdown,
-  SearchFilters,
-} from "@/features/search/components/search-filters";
+import { FilterDropdown } from "@/features/search/components/filter-dropdown";
 import {
   SearchModeTabs,
   type SearchMode,
 } from "@/features/search/components/search-mode-tabs";
-import {
-  defaultArticleFilters,
-  defaultAuthorFilters,
-} from "@/features/search/constants/search-filters";
+import { SearchBox } from "@/features/search/components/search-box";
+import { SearchFilters } from "@/features/search/components/search-filters";
+import { defaultArticleFilters } from "@/features/search/constants/search-filters";
 import { useArticles } from "@/features/articles/hooks/use-articles";
 import { useAuthors } from "@/features/authors/hooks/use-authors";
 import { useDebouncedValue } from "@/features/search/hooks/use-debounced-value";
-import type { ArticleListParams } from "@/types/academic.type";
 import type {
   ArticleFilters,
-  AuthorFilters,
-  FilterOption,
   PickerConfig,
 } from "@/features/search/types/search.type";
 import {
-  createArticleTermFilterValue,
-  filterArticles,
-  filterAuthors,
-  formatArticlePlaceholder,
-  formatAuthorPlaceholder,
-  parseArticleTermFilterValue,
-  uniqueFilterOptions,
-  uniqueSorted,
-} from "@/features/search/utils/search-filtering";
+  filterAuthorsByKeyword,
+  getArticleKeywordOptions,
+  getArticleYearFromOptions,
+  getArticleYearOptions,
+  getArticleYearToOptions,
+} from "@/features/search/utils/search-options";
+import {
+  getArticleQueryParams,
+  getNextYearFrom,
+  getNextYearFromForTo,
+  getNextYearTo,
+  getNextYearToForFrom,
+} from "@/features/search/utils/search-query";
 import { useAppTheme } from "@/theme";
 
 export function SearchScreen() {
   const theme = useAppTheme();
-  const [keyword, setKeyword] = useState("");
+  const [articleKeyword, setArticleKeyword] = useState("");
+  const [authorKeyword, setAuthorKeyword] = useState("");
   const [mode, setMode] = useState<SearchMode>("articles");
   const [articleFilters, setArticleFilters] = useState<ArticleFilters>(
     defaultArticleFilters,
   );
-  const [authorFilters, setAuthorFilters] =
-    useState<AuthorFilters>(defaultAuthorFilters);
   const [picker, setPicker] = useState<PickerConfig | null>(null);
   const [controlsHeight, setControlsHeight] = useState(0);
-  const debouncedKeyword = useDebouncedValue(keyword);
+  const debouncedArticleKeyword = useDebouncedValue(articleKeyword);
+  const debouncedAuthorKeyword = useDebouncedValue(authorKeyword);
   const controlsProgress = useRef(new Animated.Value(1)).current;
   const controlsVisible = useRef(true);
   const lastScrollY = useRef(0);
   const isShowingAuthors = mode === "authors";
   const articleQueryParams = useMemo(
-    () => getArticleQueryParams(debouncedKeyword, articleFilters),
-    [debouncedKeyword, articleFilters],
+    () => getArticleQueryParams(debouncedArticleKeyword, articleFilters),
+    [debouncedArticleKeyword, articleFilters],
   );
   const articlesQuery = useArticles(articleQueryParams);
   const authorsQuery = useAuthors({ enabled: isShowingAuthors });
@@ -76,38 +70,38 @@ export function SearchScreen() {
     () => authorsQuery.data?.pages.flatMap((page) => page.items) ?? [],
     [authorsQuery.data],
   );
+  const visibleAuthors = useMemo(
+    () => filterAuthorsByKeyword(authors, debouncedAuthorKeyword),
+    [authors, debouncedAuthorKeyword],
+  );
   const articleYears = useMemo(
     () =>
-      uniqueSorted(
-        articles
-          .map((article) => article.article.publicationYear?.toString())
-          .filter((year): year is string => Boolean(year)),
-      ).sort((left, right) => Number(right) - Number(left)),
-    [articles],
+      getArticleYearOptions({
+        articles,
+        yearFrom: articleFilters.yearFrom,
+        yearTo: articleFilters.yearTo,
+      }),
+    [articles, articleFilters.yearFrom, articleFilters.yearTo],
+  );
+  const articleYearFromOptions = useMemo(
+    () =>
+      getArticleYearFromOptions({
+        selectedYearTo: articleFilters.yearTo,
+        years: articleYears,
+      }),
+    [articleYears, articleFilters.yearTo],
+  );
+  const articleYearToOptions = useMemo(
+    () =>
+      getArticleYearToOptions({
+        selectedYearFrom: articleFilters.yearFrom,
+        years: articleYears,
+      }),
+    [articleYears, articleFilters.yearFrom],
   );
   const articleKeywords = useMemo(
-    () =>
-      uniqueFilterOptions(
-        articles
-          .flatMap((article) => [
-            ...article.keywords.map((item) =>
-              createArticleTermOption("keyword", item.id, item.displayName),
-            ),
-            ...article.topics.map((item) =>
-              createArticleTermOption("topic", item.id, item.displayName),
-            ),
-          ])
-          .filter((option): option is FilterOption => Boolean(option)),
-      ),
+    () => getArticleKeywordOptions(articles),
     [articles],
-  );
-  const visibleArticles = useMemo(
-    () => filterArticles(articles, debouncedKeyword, articleFilters),
-    [articles, debouncedKeyword, articleFilters],
-  );
-  const visibleAuthors = useMemo(
-    () => filterAuthors(authors, debouncedKeyword, authorFilters),
-    [authors, debouncedKeyword, authorFilters],
   );
   const openPicker = (nextPicker: PickerConfig) => {
     setPicker((current) =>
@@ -126,25 +120,29 @@ export function SearchScreen() {
       }));
     }
 
-    if (picker.mode === "article-years") {
+    if (picker.mode === "article-year-from") {
       setArticleFilters((current) => ({
         ...current,
-        years: selectedValues,
+        yearFrom: getNextYearFrom(selectedValues[0] ?? null, current.yearTo),
+        yearTo: getNextYearToForFrom(selectedValues[0] ?? null, current.yearTo),
       }));
     }
 
-    if (picker.mode === "author-publications") {
-      setAuthorFilters((current) => ({
+    if (picker.mode === "article-year-to") {
+      setArticleFilters((current) => ({
         ...current,
-        minimumArticles:
-          (selectedValues[0] as AuthorFilters["minimumArticles"]) ?? "all",
+        yearFrom: getNextYearFromForTo(
+          current.yearFrom,
+          selectedValues[0] ?? null,
+        ),
+        yearTo: getNextYearTo(current.yearFrom, selectedValues[0] ?? null),
       }));
     }
 
-    if (picker.mode === "author-sort") {
-      setAuthorFilters((current) => ({
+    if (picker.mode === "article-sort") {
+      setArticleFilters((current) => ({
         ...current,
-        sort: (selectedValues[0] as AuthorFilters["sort"]) ?? "relevance",
+        sort: (selectedValues[0] as ArticleFilters["sort"]) ?? "relevant",
       }));
     }
 
@@ -210,54 +208,21 @@ export function SearchScreen() {
       >
         <SearchModeTabs mode={mode} onModeChange={setMode} />
 
-        <View
-          style={[
-            styles.searchBox,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.outlineSoft,
-              borderRadius: theme.radii.pill,
-            },
-          ]}
-        >
-          <Ionicons color={theme.colors.textMuted} name="search" size={18} />
-          <TextInput
-            accessibilityLabel={
-              isShowingAuthors ? "Search authors" : "Search articles"
-            }
-            onChangeText={setKeyword}
-            placeholder={
-              isShowingAuthors
-                ? formatAuthorPlaceholder(authorFilters.fields)
-                : formatArticlePlaceholder(articleFilters.fields)
-            }
-            placeholderTextColor={theme.colors.outline}
-            style={[styles.input, { color: theme.colors.text }]}
-            value={keyword}
-          />
-          {keyword ? (
-            <Pressable
-              accessibilityLabel="Clear search"
-              hitSlop={8}
-              onPress={() => setKeyword("")}
-            >
-              <Ionicons
-                color={theme.colors.textMuted}
-                name="close-circle"
-                size={20}
-              />
-            </Pressable>
-          ) : null}
-        </View>
+        <SearchBox
+          articleKeyword={articleKeyword}
+          authorKeyword={authorKeyword}
+          isShowingAuthors={isShowingAuthors}
+          onArticleKeywordChange={setArticleKeyword}
+          onAuthorKeywordChange={setAuthorKeyword}
+        />
 
         <SearchFilters
           articleFilters={articleFilters}
           articleKeywords={articleKeywords}
-          articleYears={articleYears}
-          authorFilters={authorFilters}
+          articleYearFromOptions={articleYearFromOptions}
+          articleYearToOptions={articleYearToOptions}
           mode={mode}
           onArticleFiltersChange={setArticleFilters}
-          onAuthorFiltersChange={setAuthorFilters}
           onOpenPicker={openPicker}
         />
 
@@ -291,19 +256,19 @@ export function SearchScreen() {
             isError={authorsQuery.isError}
             isFetchingNextPage={authorsQuery.isFetchingNextPage}
             isLoading={authorsQuery.isLoading}
-            keyword={debouncedKeyword}
+            keyword={debouncedAuthorKeyword}
             onLoadMore={() => void authorsQuery.fetchNextPage()}
             onRetry={() => void authorsQuery.refetch()}
           />
         ) : (
           <ArticleResults
-            articles={visibleArticles}
+            articles={articles}
             error={articlesQuery.error}
             hasNextPage={articlesQuery.hasNextPage}
             isError={articlesQuery.isError}
             isFetchingNextPage={articlesQuery.isFetchingNextPage}
             isLoading={articlesQuery.isLoading}
-            keyword={debouncedKeyword}
+            keyword={debouncedArticleKeyword}
             onLoadMore={() => void articlesQuery.fetchNextPage()}
             onRetry={() => void articlesQuery.refetch()}
           />
@@ -311,76 +276,6 @@ export function SearchScreen() {
       </Animated.ScrollView>
     </View>
   );
-}
-
-function getArticleQueryParams(
-  keyword: string,
-  filters: ArticleFilters,
-): Omit<ArticleListParams, "cursor" | "limit"> {
-  return {
-    q: keyword.trim() || null,
-    ...getServerTermFilter(filters.keywords),
-    ...getServerYearFilter(filters.years),
-  };
-}
-
-function getServerTermFilter(
-  selectedTerms: string[],
-): Pick<ArticleListParams, "keywordId" | "topicId"> {
-  if (selectedTerms.length !== 1) {
-    return {};
-  }
-
-  const selectedTerm = parseArticleTermFilterValue(selectedTerms[0] ?? "");
-
-  if (!selectedTerm) {
-    return {};
-  }
-
-  return selectedTerm.kind === "keyword"
-    ? { keywordId: selectedTerm.id }
-    : { topicId: selectedTerm.id };
-}
-
-function getServerYearFilter(
-  selectedYears: string[],
-): Pick<
-  ArticleListParams,
-  "publicationYear" | "publicationYearFrom" | "publicationYearTo"
-> {
-  const years = selectedYears
-    .map((year) => Number(year))
-    .filter((year) => Number.isInteger(year));
-
-  if (years.length === 1) {
-    return { publicationYear: years[0] };
-  }
-
-  if (years.length > 1) {
-    return {
-      publicationYearFrom: Math.min(...years),
-      publicationYearTo: Math.max(...years),
-    };
-  }
-
-  return {};
-}
-
-function createArticleTermOption(
-  kind: "keyword" | "topic",
-  id: string,
-  displayName: string | null,
-): FilterOption | null {
-  const label = displayName?.trim();
-
-  if (!label) {
-    return null;
-  }
-
-  return {
-    label,
-    value: createArticleTermFilterValue({ id, kind, label }),
-  };
 }
 
 const styles = StyleSheet.create({
@@ -393,20 +288,6 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     zIndex: 2,
-  },
-  input: {
-    flex: 1,
-    fontSize: 13,
-    paddingVertical: 10,
-  },
-  searchBox: {
-    alignItems: "center",
-    borderCurve: "continuous",
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: 9,
-    minHeight: 44,
-    paddingHorizontal: 14,
   },
   screen: {
     flex: 1,
