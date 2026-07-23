@@ -1,11 +1,27 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
+import { ArticleErrorState } from "@/components/academic/article-error-state";
 import {
   ScreenShell,
   SectionHeading,
   SurfaceCard,
 } from "@/components/layout/screen-shell";
+import {
+  OverviewCard,
+  type DashboardMetric,
+} from "@/features/dashboard/components/dashboard-overview";
+import { CatalogSnapshot } from "@/features/dashboard/components/dashboard-catalog-snapshot";
+import { PublicationGrowthContent } from "@/features/dashboard/components/dashboard-publication-growth";
+import {
+  RecentlyFollowedContent,
+  RecentlySavedContent,
+} from "@/features/dashboard/components/dashboard-recent-lists";
+import { RecentPublicationsContent } from "@/features/dashboard/components/dashboard-recent-publications";
+import { LoadingBlock } from "@/features/dashboard/components/dashboard-state-block";
+import { TopJournalsContent } from "@/features/dashboard/components/dashboard-top-journals";
+import { TrendingTopicsContent } from "@/features/dashboard/components/dashboard-topic-trends";
+import { useDashboard } from "@/features/dashboard/hooks/use-dashboard";
+import { getUserFriendlyApiErrorMessage } from "@/services/api";
 import { useAuthStore } from "@/store/auth.store";
 import { useAppTheme } from "@/theme";
 
@@ -13,181 +29,104 @@ export function DashboardScreen() {
   const theme = useAppTheme();
   const user = useAuthStore((state) => state.user);
   const firstName = user?.firstName || "Scholar";
-  const isResearcher = user?.role === "RESEARCHER";
+  const dashboardQuery = useDashboard();
+  const dashboard = dashboardQuery.data;
+
+  const metrics: DashboardMetric[] = [
+    {
+      icon: "bookmark-outline",
+      label: "Saved",
+      value: dashboard ? String(dashboard.bookmarkCount) : "...",
+    },
+    {
+      icon: "radio-outline",
+      label: "Following",
+      value: dashboard ? String(dashboard.followCount) : "...",
+    },
+  ];
 
   return (
     <ScreenShell
-      eyebrow="Your research pulse"
-      subtitle="A focused view of the topics and journals you follow."
+      showSubtitle={false}
+      subtitle=""
       title={`Welcome back, ${firstName}`}
     >
-      <View style={styles.statsRow}>
-        <StatCard label="Saved works" value="24" icon="bookmark-outline" />
-        <StatCard label="Following" value="8" icon="radio-outline" />
-        <StatCard label="New this week" value="12" icon="sparkles-outline" />
-      </View>
+      <View style={styles.dashboardContent}>
+        <OverviewCard metrics={metrics} />
 
-      <View style={{ gap: theme.spacing.md }}>
-        <SectionHeading title="Research update" />
-        <SurfaceCard>
-          <View style={styles.updateHeader}>
-            <View
-              style={[
-                styles.updateIcon,
-                { backgroundColor: theme.colors.primarySoft },
-              ]}
-            >
-              <Ionicons
-                color={theme.colors.primary}
-                name="trending-up"
-                size={22}
-              />
-            </View>
-            <View style={styles.updateCopy}>
-              <Text
-                selectable
-                style={[theme.typography.label, { color: theme.colors.text }]}
-              >
-                Generative AI continues to accelerate
-              </Text>
-              <Text
-                selectable
-                style={[
-                  theme.typography.caption,
-                  { color: theme.colors.textMuted },
-                ]}
-              >
-                18% publication growth over the last 12 months
-              </Text>
-            </View>
-          </View>
-          <View style={styles.sparkline}>
-            {[22, 31, 27, 40, 38, 54, 65, 61, 78, 88].map((height, index) => (
-              <View
-                key={`${height}-${index}`}
-                style={[
-                  styles.sparkBar,
-                  {
-                    backgroundColor: theme.colors.primary,
-                    height: `${height}%`,
-                  },
-                ]}
-              />
-            ))}
-          </View>
-        </SurfaceCard>
-      </View>
-
-      <View style={{ gap: theme.spacing.md }}>
-        <SectionHeading title="New from your follows" />
-        <SurfaceCard>
-          <Text
-            selectable
-            style={[theme.typography.caption, { color: theme.colors.primary }]}
-          >
-            ARTIFICIAL INTELLIGENCE · 2026
-          </Text>
-          <Text
-            selectable
-            style={[theme.typography.heading, { color: theme.colors.text }]}
-          >
-            A practical framework for trustworthy research agents
-          </Text>
-          <Text
-            selectable
-            style={[theme.typography.body, { color: theme.colors.textMuted }]}
-          >
-            Journal of Intelligent Systems · 4 authors
-          </Text>
-        </SurfaceCard>
-      </View>
-
-      {isResearcher ? (
-        <View style={{ gap: theme.spacing.md }}>
-          <SectionHeading title="Researcher workspace" />
+        {dashboardQuery.isLoading ? (
           <SurfaceCard>
-            <Text
-              selectable
-              style={[
-                theme.typography.caption,
-                { color: theme.colors.primary },
-              ]}
-            >
-              ADVANCED DASHBOARD
-            </Text>
-            <Text
-              selectable
-              style={[theme.typography.heading, { color: theme.colors.text }]}
-            >
-              Compare keywords, heatmaps and journal ranking progress
-            </Text>
+            <LoadingBlock label="Loading dashboard..." />
           </SurfaceCard>
-        </View>
-      ) : null}
+        ) : null}
+
+        {dashboardQuery.isError ? (
+          <ArticleErrorState
+            message={getUserFriendlyApiErrorMessage(dashboardQuery.error)}
+            onRetry={() => void dashboardQuery.refetch()}
+            title="Could not load dashboard"
+          />
+        ) : null}
+
+        {dashboard ? (
+          <>
+            <View style={{ gap: theme.spacing.lg }}>
+              <SectionHeading title="Catalog snapshot" />
+              <CatalogSnapshot catalog={dashboard.catalog} />
+            </View>
+
+            {dashboard.publicationGrowth.length > 0 ? (
+              <View style={{ gap: theme.spacing.lg }}>
+                <SectionHeading title="Publication growth" />
+                <PublicationGrowthContent
+                  growth={dashboard.publicationGrowth}
+                />
+              </View>
+            ) : null}
+
+            <View style={{ gap: theme.spacing.lg }}>
+              <SectionHeading title="Recently saved" />
+              <RecentlySavedContent savedArticles={dashboard.recentBookmarks} />
+            </View>
+
+            <View style={{ gap: theme.spacing.lg }}>
+              <SectionHeading title="Recently followed" />
+              <RecentlyFollowedContent follows={dashboard.recentFollows} />
+            </View>
+
+            {dashboard.trendingTopics.length > 0 ? (
+              <View style={{ gap: theme.spacing.lg }}>
+                <SectionHeading title="Top topics" />
+                <TrendingTopicsContent topics={dashboard.trendingTopics} />
+              </View>
+            ) : null}
+
+            {dashboard.topJournals.length > 0 ? (
+              <View style={{ gap: theme.spacing.lg }}>
+                <SectionHeading
+                  title={`Top journals ${dashboard.ranking.year} ${dashboard.ranking.metric}`}
+                />
+                <TopJournalsContent journals={dashboard.topJournals} />
+              </View>
+            ) : null}
+
+            {dashboard.recentPublications.length > 0 ? (
+              <View style={{ gap: theme.spacing.lg }}>
+                <SectionHeading title="Recent publications" />
+                <RecentPublicationsContent
+                  publications={dashboard.recentPublications}
+                />
+              </View>
+            ) : null}
+          </>
+        ) : null}
+      </View>
     </ScreenShell>
   );
 }
 
-function StatCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentProps<typeof Ionicons>["name"];
-  label: string;
-  value: string;
-}) {
-  const theme = useAppTheme();
-
-  return (
-    <View
-      style={[
-        styles.statCard,
-        {
-          backgroundColor: theme.colors.surface,
-          borderColor: theme.colors.outlineSoft,
-        },
-      ]}
-    >
-      <Ionicons color={theme.colors.primary} name={icon} size={19} />
-      <Text selectable style={[styles.statValue, { color: theme.colors.text }]}>
-        {value}
-      </Text>
-      <Text
-        selectable
-        style={[theme.typography.caption, { color: theme.colors.textMuted }]}
-      >
-        {label}
-      </Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  statsRow: { flexDirection: "row", gap: 8 },
-  statCard: {
-    borderRadius: 10,
-    borderWidth: 1,
-    flex: 1,
-    gap: 5,
-    minWidth: 0,
-    padding: 12,
+  dashboardContent: {
+    gap: 24,
   },
-  statValue: { fontSize: 20, fontVariant: ["tabular-nums"], fontWeight: "700" },
-  updateHeader: { alignItems: "center", flexDirection: "row", gap: 12 },
-  updateIcon: {
-    alignItems: "center",
-    borderRadius: 20,
-    height: 40,
-    justifyContent: "center",
-    width: 40,
-  },
-  updateCopy: { flex: 1, gap: 2 },
-  sparkline: {
-    alignItems: "flex-end",
-    flexDirection: "row",
-    gap: 6,
-    height: 76,
-  },
-  sparkBar: { borderRadius: 3, flex: 1, minHeight: 8, opacity: 0.8 },
 });

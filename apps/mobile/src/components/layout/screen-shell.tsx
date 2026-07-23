@@ -7,12 +7,14 @@ export function ScreenShell({
   children,
   eyebrow,
   showHeader = true,
+  showSubtitle = true,
   hideHeader,
   subtitle,
   title,
 }: PropsWithChildren<{
   eyebrow?: string;
   showHeader?: boolean;
+  showSubtitle?: boolean;
   hideHeader?: boolean;
   subtitle: string;
   title: string;
@@ -46,12 +48,14 @@ export function ScreenShell({
           >
             {title}
           </Text>
-          <Text
-            selectable
-            style={[theme.typography.body, { color: theme.colors.textMuted }]}
-          >
-            {subtitle}
-          </Text>
+          {showSubtitle && subtitle ? (
+            <Text
+              selectable
+              style={[theme.typography.body, { color: theme.colors.textMuted }]}
+            >
+              {subtitle}
+            </Text>
+          ) : null}
         </View>
       ) : null}
       {children}
