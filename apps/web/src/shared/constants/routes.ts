@@ -11,16 +11,16 @@ export const routes = {
     advanced: "/student/advanced",
     journals: "/student/journals",
     journalDetail: (id: string) => `/student/journals/${id}`,
+    rankings: "/student/rankings",
     articles: "/student/articles",
     articleDetail: (id: string) => `/student/articles/${id}`,
-    trends: "/student/trends",
+    // trends: "/student/trends",
     bookmarks: "/student/bookmarks",
     notifications: "/student/notifications",
     profile: "/student/profile",
   },
   admin: {
     users: "/admin/users",
-    apiSources: "/admin/api-sources",
     systemHealth: "/admin/system-health",
   },
 } as const;

@@ -6,7 +6,8 @@ import {
   BookOpen,
   FileText,
   LayoutDashboard,
-  TrendingUp,
+  Trophy,
+  // TrendingUp,
   User,
 } from "lucide-react";
 import type { Permission } from "@/features/auth/types/auth.types";
@@ -41,18 +42,24 @@ export const STUDENT_NAV_ITEMS: StudentNavItem[] = [
     icon: BookOpen,
   },
   {
+    id: "rankings",
+    label: "Rankings",
+    href: "/student/rankings",
+    icon: Trophy,
+  },
+  {
     id: "articles",
     label: "Articles",
     href: "/student/articles",
     icon: FileText,
   },
-  {
-    id: "trends",
-    label: "Trend Analysis",
-    href: "/student/trends",
-    icon: TrendingUp,
-    permission: "trends",
-  },
+  // {
+  //   id: "trends",
+  //   label: "Trend Analysis",
+  //   href: "/student/trends",
+  //   icon: TrendingUp,
+  //   permission: "trends",
+  // },
   {
     id: "bookmarks",
     label: "Bookmarks",

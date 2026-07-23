@@ -154,6 +154,64 @@ describe("auth BFF routes", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
+  it("allows localhost and 127.0.0.1 as equivalent origins", async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        apiResponse(200, {
+          accessToken: "access-token",
+          refreshToken: "refresh-token",
+        }),
+      )
+      .mockResolvedValueOnce(apiResponse(200, apiUser));
+
+    const response = await login(
+      new NextRequest("http://localhost:3000/api/auth/login", {
+        method: "POST",
+        headers: {
+          origin: "http://127.0.0.1:3000",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          email: "student@example.edu",
+          password: "secret",
+          rememberMe: false,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockFetch).toHaveBeenCalled();
+  });
+
+  it("allows same-origin POSTs that omit the Origin header", async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        apiResponse(200, {
+          accessToken: "access-token",
+          refreshToken: "refresh-token",
+        }),
+      )
+      .mockResolvedValueOnce(apiResponse(200, apiUser));
+
+    const response = await login(
+      new NextRequest(`${frontendOrigin}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "sec-fetch-site": "same-origin",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          email: "student@example.edu",
+          password: "secret",
+          rememberMe: false,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockFetch).toHaveBeenCalled();
+  });
+
   it("clears cookies even when upstream logout is unavailable", async () => {
     mockFetch.mockRejectedValueOnce(new Error("offline"));
 

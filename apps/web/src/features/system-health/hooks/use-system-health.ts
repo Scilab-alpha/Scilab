@@ -1,19 +1,33 @@
 "use client";
 
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getUserFriendlyApiErrorMessage } from "@/core/api";
 import { listQueryStaleTimeMs } from "@/core/api/query-config";
-import { fetchSystemHealthSnapshot } from "@/features/system-health/api/system-health.api";
+import { getAdminDashboardMetrics } from "@/features/system-health/api/admin-sync.api";
+import { buildSystemHealthSnapshot } from "@/features/system-health/api/build-system-health-snapshot";
+import { adminDashboardQueryKey } from "@/features/system-health/hooks/admin-sync-query-keys";
 
 export function useSystemHealth() {
   const query = useQuery({
-    queryKey: ["admin", "system-health"] as const,
+    queryKey: adminDashboardQueryKey,
     staleTime: listQueryStaleTimeMs,
-    queryFn: fetchSystemHealthSnapshot,
+    queryFn: getAdminDashboardMetrics,
   });
 
+  const data = useMemo(
+    () =>
+      query.data
+        ? buildSystemHealthSnapshot({
+            dashboard: query.data,
+            syncLogs: query.data.sync.recentLogs ?? [],
+          })
+        : null,
+    [query.data],
+  );
+
   return {
-    data: query.data ?? null,
+    data,
     isLoading: query.isLoading,
     error: query.error ? getUserFriendlyApiErrorMessage(query.error) : null,
     reload: () => query.refetch(),

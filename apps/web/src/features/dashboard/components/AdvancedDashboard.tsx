@@ -1,14 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment } from "react";
-import {
-  ArrowDown,
-  ArrowUp,
-  FileText,
-  Image as ImageIcon,
-  TrendingUp,
-} from "lucide-react";
+import { Fragment, useRef } from "react";
+import { ArrowDown, ArrowUp, TrendingUp } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -27,6 +21,9 @@ import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import Can from "@/shared/components/auth/Can";
 import { useAdvancedDashboard } from "@/features/dashboard/hooks/use-advanced-dashboard";
 import { heatmapCellClass } from "@/features/dashboard/lib/build-advanced-dashboard-insights";
+import DashboardExportActions from "@/features/dashboard/components/DashboardExportActions";
+import { downloadAdvancedDashboardCsv } from "@/features/dashboard/utils/export-dashboard-csv";
+import { exportElementAsPng } from "@/features/dashboard/utils/export-dashboard-png";
 
 const chartTooltipStyle = {
   backgroundColor: "var(--card)",
@@ -37,6 +34,7 @@ const chartTooltipStyle = {
 
 export default function AdvancedDashboard() {
   const { data, isLoading, error, reload } = useAdvancedDashboard();
+  const exportRootRef = useRef<HTMLDivElement>(null);
 
   return (
     <>
@@ -71,20 +69,29 @@ export default function AdvancedDashboard() {
                 className="h-9"
                 disabled={isLoading}
                 onClick={() => void reload()}
+                data-export-ignore="true"
               >
                 Refresh
               </Button>
               <Can permission="export_report">
-                <>
-                  <Button variant="outline" size="sm" className="h-9" disabled>
-                    <ImageIcon className="w-4 h-4 mr-2" />
-                    Export PNG
-                  </Button>
-                  <Button variant="outline" size="sm" className="h-9" disabled>
-                    <FileText className="w-4 h-4 mr-2" />
-                    Export CSV
-                  </Button>
-                </>
+                <DashboardExportActions
+                  disabled={isLoading || !data}
+                  onExportCsv={() => {
+                    if (!data) return;
+                    downloadAdvancedDashboardCsv(data);
+                  }}
+                  onExportPng={async () => {
+                    const node = exportRootRef.current;
+                    if (!node) {
+                      throw new Error(
+                        "Advanced dashboard content is not ready to export.",
+                      );
+                    }
+                    await exportElementAsPng(node, {
+                      filenamePrefix: "scilab-advanced-dashboard",
+                    });
+                  }}
+                />
               </Can>
             </div>
           </div>
@@ -103,15 +110,15 @@ export default function AdvancedDashboard() {
           )}
 
           {!isLoading && data && (
-            <>
+            <div ref={exportRootRef} className="space-y-8">
               <Card className="p-6">
                 <div className="mb-6">
                   <h2 className="font-heading text-lg text-foreground">
                     Multi-Keyword Comparison
                   </h2>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    Publication volume by year for top topics & keywords ·{" "}
-                    {data.sampleHint}
+                    Publication volume by year (2023–2025) for top topics &
+                    keywords · {data.sampleHint}
                   </p>
                 </div>
                 {data.keywordComparisonSeries.length === 0 ||
@@ -169,7 +176,7 @@ export default function AdvancedDashboard() {
                     Research Activity Heatmap
                   </h2>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    Relative intensity (0–100) by field and publication year
+                    Relative intensity (0–100) by field and year (2023–2025)
                   </p>
                 </div>
                 {data.heatmapRows.length === 0 ? (
@@ -227,7 +234,12 @@ export default function AdvancedDashboard() {
                       Ranked by article volume in the catalog sample
                     </p>
                   </div>
-                  <Button asChild variant="ghost" size="sm">
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="sm"
+                    data-export-ignore="true"
+                  >
                     <Link href="/student/journals">Browse journals</Link>
                   </Button>
                 </div>
@@ -318,7 +330,7 @@ export default function AdvancedDashboard() {
                   </div>
                 )}
               </Card>
-            </>
+            </div>
           )}
         </PageContainer>
       </main>

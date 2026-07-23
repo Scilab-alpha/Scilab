@@ -1,5 +1,11 @@
 import type { ArticleGraph } from "@/features/experiments/types/article.types";
 import type { CatalogSample } from "@/features/dashboard/api/fetch-catalog-sample";
+import {
+  CATALOG_INSIGHT_YEAR_FROM,
+  CATALOG_INSIGHT_YEAR_TO,
+  CATALOG_INSIGHT_YEARS,
+  filterArticlesToInsightYears,
+} from "@/features/dashboard/api/fetch-catalog-sample";
 
 export const TREND_SERIES_COLORS = [
   "#D3AB9E",
@@ -103,9 +109,20 @@ export function buildTrendInsights(
     journalId?: string;
     subject?: string;
     yearWindow?: number | "all";
+    yearFrom?: number;
+    yearTo?: number;
   },
 ): TrendInsights {
-  let articles = sample.articles;
+  const yearFrom = filters?.yearFrom ?? CATALOG_INSIGHT_YEAR_FROM;
+  const yearTo = filters?.yearTo ?? CATALOG_INSIGHT_YEAR_TO;
+  let articles = filterArticlesToInsightYears(sample.articles).filter(
+    (item) => {
+      const year = item.article.publicationYear;
+      return (
+        typeof year === "number" && year >= yearFrom && year <= yearTo
+      );
+    },
+  );
 
   if (filters?.journalId) {
     articles = articles.filter(
@@ -122,24 +139,22 @@ export function buildTrendInsights(
     );
   }
 
-  const years = [
-    ...new Set(
-      articles
-        .map((item) => item.article.publicationYear)
-        .filter((year): year is number => typeof year === "number"),
-    ),
-  ].sort((a, b) => a - b);
+  const baseYears = CATALOG_INSIGHT_YEARS.filter(
+    (year) => year >= yearFrom && year <= yearTo,
+  );
 
-  let activeYears = years;
+  let activeYears = [...baseYears];
   if (filters?.yearWindow && filters.yearWindow !== "all") {
-    const minYear = Math.max(...years, 0) - (filters.yearWindow - 1);
-    activeYears = years.filter((year) => year >= minYear);
+    const maxYear = activeYears.at(-1) ?? yearTo;
+    const minYear = maxYear - (filters.yearWindow - 1);
+    activeYears = activeYears.filter((year) => year >= minYear);
     articles = articles.filter((item) => {
       const year = item.article.publicationYear;
-      return typeof year === "number" && year >= minYear;
+      return typeof year === "number" && year >= minYear && year <= maxYear;
     });
   }
 
+  // Keep empty years on the chart axis so 2023–2025 always appear.
   const tagTotals = new Map<
     string,
     { id: string; name: string; type: "TOPIC" | "KEYWORD"; count: number }
@@ -307,8 +322,8 @@ export function buildTrendInsights(
       ).length,
       topKeyword,
       sampleHint: sample.articlesHasMore
-        ? `Based on ${sample.articles.length}+ catalog articles`
-        : `Based on ${sample.articles.length} catalog articles`,
+        ? `Based on ${articles.length}+ catalog articles (${yearFrom}–${yearTo})`
+        : `Based on ${articles.length} catalog articles (${yearFrom}–${yearTo})`,
     },
     keywords,
     multiTrend,

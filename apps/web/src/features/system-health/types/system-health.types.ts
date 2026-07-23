@@ -50,10 +50,9 @@ export type DataGrowthPoint = {
 };
 
 export type ApiAvailabilityPoint = {
-  hour: string;
-  openalex: number;
-  crossref: number;
-  semanticScholar: number;
+  name: string;
+  health: number;
+  active: boolean;
 };
 
 export interface SystemHealthSnapshot {

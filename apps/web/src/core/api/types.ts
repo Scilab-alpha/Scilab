@@ -9,4 +9,6 @@ export type ApiRequestOptions = Omit<RequestInit, "body"> & {
   authenticated?: boolean;
   body?: unknown;
   path: string;
+  /** Override default `apiConfig.requestTimeoutMs`. */
+  timeoutMs?: number;
 };

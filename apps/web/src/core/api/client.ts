@@ -12,13 +12,14 @@ export async function apiRequest<T>({
   headers,
   path,
   signal,
+  timeoutMs,
   ...init
 }: ApiRequestOptions): Promise<T> {
   const controller = new AbortController();
   const abortFromSignal = () => controller.abort();
   const timeout = setTimeout(
     () => controller.abort(),
-    apiConfig.requestTimeoutMs,
+    timeoutMs ?? apiConfig.requestTimeoutMs,
   );
 
   try {

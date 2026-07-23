@@ -1,10 +1,11 @@
 "use client";
 
+import { useRef } from "react";
 import Link from "next/link";
 import {
   BookOpen,
   FileText,
-  ChevronRight,
+  // ChevronRight,
   ArrowUp,
   ArrowDown,
   Hash,
@@ -28,6 +29,9 @@ import StudentTopHeader from "@/shared/components/layout/StudentTopHeader";
 import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import { useAuth } from "@/providers/auth-provider";
 import { useDashboard } from "@/features/dashboard/hooks/use-dashboard";
+import DashboardExportActions from "@/features/dashboard/components/DashboardExportActions";
+import { downloadDashboardCsv } from "@/features/dashboard/utils/export-dashboard-csv";
+import { exportElementAsPng } from "@/features/dashboard/utils/export-dashboard-png";
 
 const CHART_PRIMARY = "#D3AB9E";
 const CHART_TEAL = "#3AC9C1";
@@ -37,6 +41,7 @@ const statIcons = [BookOpen, FileText, Hash, Layers] as const;
 export default function Dashboard() {
   const { user } = useAuth();
   const { data, isLoading, error, reload } = useDashboard();
+  const exportRootRef = useRef<HTMLDivElement>(null);
 
   const chartTooltipStyle = {
     backgroundColor: "var(--card)",
@@ -53,11 +58,32 @@ export default function Dashboard() {
 
       <main className="flex-1 overflow-auto py-8">
         <PageContainer size="wide" className="space-y-8">
-          <div>
-            <h1 className="font-heading text-3xl text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground mt-1">
-              Welcome back, {displayName}. Overview from your academic catalog.
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div>
+              <h1 className="font-heading text-3xl text-foreground">
+                Dashboard
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Welcome back, {displayName}. Overview from your academic
+                catalog.
+              </p>
+            </div>
+            <DashboardExportActions
+              disabled={isLoading || !data}
+              onExportCsv={() => {
+                if (!data) return;
+                downloadDashboardCsv(data);
+              }}
+              onExportPng={async () => {
+                const node = exportRootRef.current;
+                if (!node) {
+                  throw new Error("Dashboard content is not ready to export.");
+                }
+                await exportElementAsPng(node, {
+                  filenamePrefix: "scilab-dashboard",
+                });
+              }}
+            />
           </div>
 
           {error && (
@@ -72,7 +98,7 @@ export default function Dashboard() {
           {isLoading && <RouteDataLoading label="Loading dashboard…" />}
 
           {!isLoading && data && (
-            <>
+            <div ref={exportRootRef} className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {data.stats.map((stat, index) => {
                   const Icon = statIcons[index] ?? Layers;
@@ -139,7 +165,7 @@ export default function Dashboard() {
                       Publication Growth
                     </h3>
                     <p className="text-sm text-muted-foreground mt-0.5">
-                      Articles by publication year in catalog sample
+                      Articles by publication year (2023–2025)
                     </p>
                   </div>
                   {data.publicationGrowth.length === 0 ? (
@@ -191,7 +217,7 @@ export default function Dashboard() {
                       Year Distribution
                     </h3>
                     <p className="text-sm text-muted-foreground mt-0.5">
-                      How sampled articles spread across years
+                      How sampled articles spread across 2023–2025
                     </p>
                   </div>
                   {data.yearDistribution.length === 0 ? (
@@ -245,6 +271,7 @@ export default function Dashboard() {
                       Most frequent topics & keywords in the sample
                     </p>
                   </div>
+                  {/* Trend Analysis temporarily disabled
                   <Button
                     asChild
                     variant="ghost"
@@ -259,6 +286,7 @@ export default function Dashboard() {
                       />
                     </Link>
                   </Button>
+                  */}
                 </div>
 
                 {data.trendingTopics.length === 0 ? (
@@ -409,10 +437,10 @@ export default function Dashboard() {
                 Sample: {data.sampleSize.articles} articles
                 {data.sampleSize.articlesHasMore ? "+" : ""} ·{" "}
                 {data.sampleSize.journals} journals
-                {data.sampleSize.journalsHasMore ? "+" : ""}. Metrics are
-                computed from the live catalog, not mock data.
+                {data.sampleSize.journalsHasMore ? "+" : ""} · years 2023–2025.
+                Metrics are computed from the live catalog.
               </p>
-            </>
+            </div>
           )}
         </PageContainer>
       </main>

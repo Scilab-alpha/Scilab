@@ -1,4 +1,8 @@
 import type { CatalogSample } from "@/features/dashboard/api/fetch-catalog-sample";
+import {
+  CATALOG_INSIGHT_YEARS,
+  filterArticlesToInsightYears,
+} from "@/features/dashboard/api/fetch-catalog-sample";
 import { TREND_SERIES_COLORS } from "@/features/reports/lib/build-trend-insights";
 
 export type AdvancedKeywordLine = {
@@ -40,7 +44,7 @@ function slugify(value: string) {
 
 function collectTagNames(sample: CatalogSample) {
   const totals = new Map<string, number>();
-  for (const item of sample.articles) {
+  for (const item of filterArticlesToInsightYears(sample.articles)) {
     for (const topic of item.topics) {
       const name = topic.displayName?.trim();
       if (!name) continue;
@@ -68,18 +72,11 @@ export function heatmapCellClass(value: number): string {
 export function buildAdvancedDashboardInsights(
   sample: CatalogSample,
 ): AdvancedDashboardInsights {
-  const years = [
-    ...new Set(
-      sample.articles
-        .map((item) => item.article.publicationYear)
-        .filter((year): year is number => typeof year === "number"),
-    ),
-  ].sort((a, b) => a - b);
-
-  const activeYears = years.length > 6 ? years.slice(years.length - 6) : years;
+  const articles = filterArticlesToInsightYears(sample.articles);
+  const activeYears = [...CATALOG_INSIGHT_YEARS];
   const yearLabels = activeYears.map(String);
 
-  const rankedTags = collectTagNames(sample).slice(0, 5);
+  const rankedTags = collectTagNames({ ...sample, articles }).slice(0, 5);
   const keywordLines: AdvancedKeywordLine[] = rankedTags.map(
     ([label], index) => ({
       key: slugify(label) || `series_${index}`,
@@ -93,7 +90,7 @@ export function buildAdvancedDashboardInsights(
     tagYearCounts.set(label, new Map());
   }
 
-  for (const item of sample.articles) {
+  for (const item of articles) {
     const year = item.article.publicationYear;
     if (typeof year !== "number" || !activeYears.includes(year)) continue;
     const names = new Set(
@@ -149,7 +146,7 @@ export function buildAdvancedDashboardInsights(
     });
   }
 
-  for (const item of sample.articles) {
+  for (const item of articles) {
     if (!item.journal?.id) continue;
     const name = item.journal.displayName?.trim() || item.journal.id;
     const row = journalCounts.get(item.journal.id) ?? {
@@ -210,7 +207,7 @@ export function buildAdvancedDashboardInsights(
     heatmapRows,
     rankingProgress,
     sampleHint: sample.articlesHasMore
-      ? `Based on ${sample.articles.length}+ catalog articles`
-      : `Based on ${sample.articles.length} catalog articles`,
+      ? `Based on ${articles.length}+ catalog articles (2023–2025)`
+      : `Based on ${articles.length} catalog articles (2023–2025)`,
   };
 }

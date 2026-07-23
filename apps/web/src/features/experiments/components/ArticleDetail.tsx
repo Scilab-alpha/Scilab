@@ -19,12 +19,17 @@ import StudentTopHeader from "@/shared/components/layout/StudentTopHeader";
 import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import Can from "@/shared/components/auth/Can";
 import { Card } from "@/shared/components/ui/card";
+import { useQueryClient } from "@tanstack/react-query";
 import { useArticleDetail } from "@/features/experiments/hooks/use-article-detail";
+import { RelatedWorksGraph } from "@/features/experiments/components/RelatedWorksGraph";
+import { toGraphPaperInfo } from "@/features/experiments/hooks/use-graph-paper-details";
 import { toggleBookmark } from "@/features/submissions/api/bookmarks.api";
+import { bookmarksRootQueryKey } from "@/features/submissions/hooks/use-bookmarks";
 import { isLocallyBookmarked } from "@/features/submissions/api/local-bookmarks";
 import {
   formatVolumeNumber,
   getArticleAbstract,
+  getArticleCitationCount,
   getArticleDoi,
   getArticleJournal,
   getArticleTitle,
@@ -39,6 +44,7 @@ interface ArticleDetailProps {
 
 export default function ArticleDetail({ articleId }: ArticleDetailProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { article, isLoading, error } = useArticleDetail(articleId);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isBookmarkPending, setIsBookmarkPending] = useState(false);
@@ -66,6 +72,8 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
         },
       });
       setIsBookmarked(result.bookmarked);
+      // Keep the bookmarks page in sync with the new toggle state.
+      void queryClient.invalidateQueries({ queryKey: bookmarksRootQueryKey });
     } catch {
       // Keep previous bookmark state if the API call fails.
     } finally {
@@ -170,11 +178,25 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
               </div>
 
               <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-base text-muted-foreground pb-6 border-b border-border">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-muted-foreground" />
-                  <span className="font-medium">
-                    {getArticleJournal(article)}
-                  </span>
+                <div className="flex items-center gap-2 min-w-0">
+                  <BookOpen className="w-5 h-5 text-muted-foreground shrink-0" />
+                  {article.journal?.id ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        router.push(
+                          `/student/journals/${encodeURIComponent(article.journal!.id)}`,
+                        )
+                      }
+                      className="font-medium text-foreground hover:underline text-left"
+                    >
+                      {getArticleJournal(article)}
+                    </button>
+                  ) : (
+                    <span className="font-medium">
+                      {getArticleJournal(article)}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-muted-foreground" />
@@ -182,7 +204,7 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
                 </div>
                 <div className="flex items-center gap-2">
                   <Quote className="w-5 h-5 text-muted-foreground" />
-                  <span>{article.citedArticleIds.length} citations</span>
+                  <span>{getArticleCitationCount(article)} citations</span>
                 </div>
               </div>
             </div>
@@ -274,6 +296,17 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
 
             <section className="space-y-4">
               <h2 className="font-heading text-2xl text-foreground">
+                Related Works Graph
+              </h2>
+              <RelatedWorksGraph
+                articleId={articleId}
+                citedArticleIds={article.citedArticleIds}
+                rootPaper={toGraphPaperInfo(article)}
+              />
+            </section>
+
+            <section className="space-y-4">
+              <h2 className="font-heading text-2xl text-foreground">
                 Citation
               </h2>
               <Card className="p-6 bg-background border-border">
@@ -308,6 +341,28 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
                   </div>
 
                   <div className="pt-4 border-t border-border grid grid-cols-2 gap-6">
+                    <div className="col-span-2">
+                      <p className="text-sm font-semibold text-muted-foreground mb-1">
+                        Journal
+                      </p>
+                      {article.journal?.id ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            router.push(
+                              `/student/journals/${encodeURIComponent(article.journal!.id)}`,
+                            )
+                          }
+                          className="text-base text-foreground hover:underline text-left"
+                        >
+                          {getArticleJournal(article)}
+                        </button>
+                      ) : (
+                        <p className="text-base text-foreground">
+                          {getArticleJournal(article)}
+                        </p>
+                      )}
+                    </div>
                     <div>
                       <p className="text-sm font-semibold text-muted-foreground mb-1">
                         Volume
