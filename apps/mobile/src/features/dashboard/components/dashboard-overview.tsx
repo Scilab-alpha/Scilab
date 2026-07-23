@@ -82,7 +82,7 @@ function MetricItem({
           },
         ]}
       >
-        <Ionicons color={theme.colors.primary} name={metric.icon} size={15} />
+        <Ionicons color={theme.colors.primary} name={metric.icon} size={18} />
       </View>
       <Text selectable style={[styles.metricValue, { color: valueColor }]}>
         {metric.value}
@@ -104,26 +104,26 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderWidth: 1,
     flex: 1,
-    gap: 6,
+    gap: 8,
     justifyContent: "center",
     minWidth: 0,
-    padding: 8,
+    padding: 12,
   },
   metricIcon: {
     alignItems: "center",
-    height: 30,
+    height: 36,
     justifyContent: "center",
-    width: 30,
+    width: 36,
   },
   metricRow: {
     flexDirection: "row",
-    gap: 8,
+    gap: 10,
   },
   metricValue: {
-    fontSize: 24,
+    fontSize: 30,
     fontVariant: ["tabular-nums"],
     fontWeight: "800",
-    lineHeight: 27,
+    lineHeight: 34,
   },
   overview: {
     gap: 14,

@@ -1,17 +1,27 @@
-import { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 
-import { useArticles } from "@/features/articles/hooks/use-articles";
-import { useBookmarks } from "@/features/bookmarks/hooks/use-bookmarks";
+import { ArticleErrorState } from "@/components/academic/article-error-state";
+import {
+  ScreenShell,
+  SectionHeading,
+  SurfaceCard,
+} from "@/components/layout/screen-shell";
 import {
   OverviewCard,
   type DashboardMetric,
 } from "@/features/dashboard/components/dashboard-overview";
+import { CatalogSnapshot } from "@/features/dashboard/components/dashboard-catalog-snapshot";
+import { PublicationGrowthContent } from "@/features/dashboard/components/dashboard-publication-growth";
 import {
-  LatestPapersContent,
+  RecentlyFollowedContent,
   RecentlySavedContent,
-} from "@/features/dashboard/components/dashboard-paper-sections";
-import { ScreenShell, SectionHeading } from "@/components/layout/screen-shell";
+} from "@/features/dashboard/components/dashboard-recent-lists";
+import { RecentPublicationsContent } from "@/features/dashboard/components/dashboard-recent-publications";
+import { LoadingBlock } from "@/features/dashboard/components/dashboard-state-block";
+import { TopJournalsContent } from "@/features/dashboard/components/dashboard-top-journals";
+import { TrendingTopicsContent } from "@/features/dashboard/components/dashboard-topic-trends";
+import { useDashboard } from "@/features/dashboard/hooks/use-dashboard";
+import { getUserFriendlyApiErrorMessage } from "@/services/api";
 import { useAuthStore } from "@/store/auth.store";
 import { useAppTheme } from "@/theme";
 
@@ -19,30 +29,19 @@ export function DashboardScreen() {
   const theme = useAppTheme();
   const user = useAuthStore((state) => state.user);
   const firstName = user?.firstName || "Scholar";
-  const bookmarksQuery = useBookmarks();
-  const latestArticlesQuery = useArticles({ sort: "newest" });
+  const dashboardQuery = useDashboard();
+  const dashboard = dashboardQuery.data;
 
-  const savedArticles = useMemo(
-    () => bookmarksQuery.data?.pages.flatMap((page) => page.items) ?? [],
-    [bookmarksQuery.data],
-  );
-  const latestArticles = useMemo(
-    () =>
-      latestArticlesQuery.data?.pages
-        .flatMap((page) => page.items)
-        .slice(0, 3) ?? [],
-    [latestArticlesQuery.data],
-  );
   const metrics: DashboardMetric[] = [
     {
       icon: "bookmark-outline",
       label: "Saved",
-      value: bookmarksQuery.isLoading ? "..." : String(savedArticles.length),
+      value: dashboard ? String(dashboard.bookmarkCount) : "...",
     },
     {
       icon: "radio-outline",
       label: "Following",
-      value: "--",
+      value: dashboard ? String(dashboard.followCount) : "...",
     },
   ];
 
@@ -55,23 +54,72 @@ export function DashboardScreen() {
       <View style={styles.dashboardContent}>
         <OverviewCard metrics={metrics} />
 
-        <View style={{ gap: theme.spacing.lg }}>
-          <SectionHeading title="Recently saved" />
-          <RecentlySavedContent
-            isError={bookmarksQuery.isError}
-            isLoading={bookmarksQuery.isLoading}
-            savedArticles={savedArticles.slice(0, 2)}
-          />
-        </View>
+        {dashboardQuery.isLoading ? (
+          <SurfaceCard>
+            <LoadingBlock label="Loading dashboard..." />
+          </SurfaceCard>
+        ) : null}
 
-        <View style={{ gap: theme.spacing.lg }}>
-          <SectionHeading title="Latest papers" />
-          <LatestPapersContent
-            articles={latestArticles}
-            isError={latestArticlesQuery.isError}
-            isLoading={latestArticlesQuery.isLoading}
+        {dashboardQuery.isError ? (
+          <ArticleErrorState
+            message={getUserFriendlyApiErrorMessage(dashboardQuery.error)}
+            onRetry={() => void dashboardQuery.refetch()}
+            title="Could not load dashboard"
           />
-        </View>
+        ) : null}
+
+        {dashboard ? (
+          <>
+            <View style={{ gap: theme.spacing.lg }}>
+              <SectionHeading title="Catalog snapshot" />
+              <CatalogSnapshot catalog={dashboard.catalog} />
+            </View>
+
+            {dashboard.publicationGrowth.length > 0 ? (
+              <View style={{ gap: theme.spacing.lg }}>
+                <SectionHeading title="Publication growth" />
+                <PublicationGrowthContent
+                  growth={dashboard.publicationGrowth}
+                />
+              </View>
+            ) : null}
+
+            <View style={{ gap: theme.spacing.lg }}>
+              <SectionHeading title="Recently saved" />
+              <RecentlySavedContent savedArticles={dashboard.recentBookmarks} />
+            </View>
+
+            <View style={{ gap: theme.spacing.lg }}>
+              <SectionHeading title="Recently followed" />
+              <RecentlyFollowedContent follows={dashboard.recentFollows} />
+            </View>
+
+            {dashboard.trendingTopics.length > 0 ? (
+              <View style={{ gap: theme.spacing.lg }}>
+                <SectionHeading title="Top topics" />
+                <TrendingTopicsContent topics={dashboard.trendingTopics} />
+              </View>
+            ) : null}
+
+            {dashboard.topJournals.length > 0 ? (
+              <View style={{ gap: theme.spacing.lg }}>
+                <SectionHeading
+                  title={`Top journals ${dashboard.ranking.year} ${dashboard.ranking.metric}`}
+                />
+                <TopJournalsContent journals={dashboard.topJournals} />
+              </View>
+            ) : null}
+
+            {dashboard.recentPublications.length > 0 ? (
+              <View style={{ gap: theme.spacing.lg }}>
+                <SectionHeading title="Recent publications" />
+                <RecentPublicationsContent
+                  publications={dashboard.recentPublications}
+                />
+              </View>
+            ) : null}
+          </>
+        ) : null}
       </View>
     </ScreenShell>
   );
