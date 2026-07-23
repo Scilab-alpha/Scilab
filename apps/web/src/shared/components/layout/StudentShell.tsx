@@ -27,9 +27,9 @@ export default function StudentShell({ children }: StudentShellProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      <aside className="w-64 bg-card border-r border-border flex flex-col shadow-ambient">
-        <div className="h-16 px-6 flex items-center gap-3 border-b border-border">
+    <div className="h-screen bg-background flex overflow-hidden">
+      <aside className="w-64 bg-card border-r border-border flex flex-col shadow-ambient shrink-0">
+        <div className="h-16 px-6 flex items-center gap-3 border-b border-border shrink-0">
           <div className="w-9 h-9 bg-primary rounded-[var(--radius-button)] flex items-center justify-center">
             <Atom
               className="w-5 h-5 text-primary-foreground"
@@ -46,7 +46,7 @@ export default function StudentShell({ children }: StudentShellProps) {
           </div>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-1">
           {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -69,7 +69,7 @@ export default function StudentShell({ children }: StudentShellProps) {
           })}
         </nav>
 
-        <div className="p-4 border-t border-border space-y-2">
+        <div className="p-4 border-t border-border space-y-2 shrink-0">
           {user ? (
             <>
               <Link
@@ -110,7 +110,9 @@ export default function StudentShell({ children }: StudentShellProps) {
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0">{children}</div>
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+        {children}
+      </div>
     </div>
   );
 }

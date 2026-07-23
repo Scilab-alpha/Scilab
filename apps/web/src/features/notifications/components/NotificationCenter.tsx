@@ -92,7 +92,7 @@ export default function NotificationCenter() {
 
   return (
     <>
-      <header className="h-16 bg-card border-b border-border px-8 flex items-center justify-between">
+      <header className="h-16 shrink-0 bg-card border-b border-border px-8 flex items-center justify-between">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 bg-primary/15 rounded-lg flex items-center justify-center">
             <Bell className="w-5 h-5 text-white" strokeWidth={1.75} />
@@ -116,9 +116,9 @@ export default function NotificationCenter() {
         </Link>
       </header>
 
-      <main className="flex-1 overflow-auto p-8">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden p-8">
+        <div className="max-w-4xl mx-auto w-full flex-1 min-h-0 flex flex-col gap-4">
+          <div className="shrink-0 flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-2 flex-wrap">
               {categories.map((cat) => {
                 const Icon = cat.icon;
@@ -185,7 +185,7 @@ export default function NotificationCenter() {
             </Card>
           )}
 
-          <div className="space-y-2">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
             {filtered.map((item) => {
               const category = toUiCategory(item.relatedObjectType);
               const href = getRelatedHref(item);

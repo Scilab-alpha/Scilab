@@ -24,8 +24,8 @@ export default function AdminShell({
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      <aside className="w-64 bg-card border-r border-border flex flex-col shadow-ambient">
+    <div className="h-screen bg-background flex overflow-hidden">
+      <aside className="w-64 bg-card border-r border-border flex flex-col shadow-ambient shrink-0">
         <div className="h-16 px-6 flex items-center gap-3 border-b border-border">
           <div className="w-9 h-9 bg-primary rounded-[var(--radius-button)] flex items-center justify-center">
             <Shield
@@ -43,7 +43,7 @@ export default function AdminShell({
           </div>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-1">
           {ADMIN_NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -93,7 +93,9 @@ export default function AdminShell({
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0">{children}</div>
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+        {children}
+      </div>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import type { ApiEnvelope } from "@/features/auth/types/auth-api.types";
 export const httpClient = axios.create({
   baseURL: "/api",
   timeout: 15_000,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },

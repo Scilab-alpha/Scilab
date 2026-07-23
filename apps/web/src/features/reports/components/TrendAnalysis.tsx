@@ -229,10 +229,9 @@ export default function TrendAnalysis() {
                     )
                   }
                 >
-                  <option value="1y">Last year</option>
-                  <option value="2y">Last 2 years</option>
-                  <option value="5y">Last 5 years</option>
-                  <option value="all">All years in sample</option>
+                  <option value="1y">2025</option>
+                  <option value="2y">2024–2025</option>
+                  <option value="all">2023–2025</option>
                 </select>
               </div>
 

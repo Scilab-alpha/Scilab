@@ -4,16 +4,42 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getUserFriendlyApiErrorMessage } from "@/core/api";
 import {
-  academicListPageSize,
+  academicArticlePageSize,
   listQueryStaleTimeMs,
 } from "@/core/api/query-config";
 import { listArticles } from "@/features/experiments/api/articles.api";
 import { syncLocalFollowNotifications } from "@/features/notifications/api/local-notifications";
+import type {
+  ArticleApiFilters,
+  ArticleSort,
+} from "@/features/experiments/types/article.types";
 
-const searchDebounceMs = 350;
+const searchDebounceMs = 250;
 
-export function useArticles(searchText: string) {
+function resolveSort(
+  sort: ArticleSort | undefined,
+  hasResearchQuery: boolean,
+): ArticleSort | undefined {
+  if (!sort) {
+    return undefined;
+  }
+
+  // API requires a research query for `relevant`.
+  if (sort === "relevant" && !hasResearchQuery) {
+    return "newest";
+  }
+
+  return sort;
+}
+
+export function useArticles(
+  searchText: string,
+  apiFilters: ArticleApiFilters = {},
+) {
   const [debouncedSearch, setDebouncedSearch] = useState(searchText);
+  const [debouncedPublisher, setDebouncedPublisher] = useState(
+    apiFilters.publisher ?? "",
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -23,8 +49,39 @@ export function useArticles(searchText: string) {
     return () => window.clearTimeout(timer);
   }, [searchText]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedPublisher(apiFilters.publisher ?? "");
+    }, searchDebounceMs);
+
+    return () => window.clearTimeout(timer);
+  }, [apiFilters.publisher]);
+
   const trimmedQuery = debouncedSearch.trim();
-  const queryKey = ["articles", trimmedQuery] as const;
+  const trimmedPublisher = debouncedPublisher.trim();
+  const hasResearchQuery =
+    trimmedQuery.length > 0 ||
+    Boolean(apiFilters.keywordId?.trim()) ||
+    Boolean(apiFilters.topicId?.trim());
+
+  // Default to newest — `relevant` ranking is much slower on the academic API.
+  const effectiveSort = hasResearchQuery
+    ? resolveSort(apiFilters.sort ?? "newest", true)
+    : resolveSort(apiFilters.sort ?? "newest", false);
+
+  const queryKey = [
+    "articles",
+    trimmedQuery,
+    apiFilters.keywordId ?? "",
+    apiFilters.topicId ?? "",
+    apiFilters.journalId ?? "",
+    apiFilters.publicationYear ?? "",
+    apiFilters.publicationYearFrom ?? "",
+    apiFilters.publicationYearTo ?? "",
+    trimmedPublisher,
+    apiFilters.country ?? "",
+    effectiveSort ?? "",
+  ] as const;
 
   const query = useInfiniteQuery({
     queryKey,
@@ -33,7 +90,20 @@ export function useArticles(searchText: string) {
     queryFn: async ({ pageParam }) => {
       const page = await listArticles({
         q: trimmedQuery || undefined,
-        limit: academicListPageSize,
+        keywordId: apiFilters.keywordId || undefined,
+        topicId: apiFilters.topicId || undefined,
+        journalId: apiFilters.journalId || undefined,
+        publicationYear: apiFilters.publicationYear || undefined,
+        publicationYearFrom: apiFilters.publicationYear
+          ? undefined
+          : apiFilters.publicationYearFrom || undefined,
+        publicationYearTo: apiFilters.publicationYear
+          ? undefined
+          : apiFilters.publicationYearTo || undefined,
+        publisher: trimmedPublisher || undefined,
+        country: apiFilters.country || undefined,
+        sort: effectiveSort,
+        limit: academicArticlePageSize,
         cursor: pageParam,
       });
       syncLocalFollowNotifications(page.items);

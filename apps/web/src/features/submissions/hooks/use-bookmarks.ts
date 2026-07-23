@@ -10,7 +10,13 @@ import {
 } from "@/features/submissions/api/bookmarks.api";
 import type { BookmarkItem } from "@/features/submissions/types/bookmark.types";
 
-const bookmarksQueryKey = ["bookmarks", { page: 1, limit: 50 }] as const;
+/** Root key so any screen can invalidate every bookmarks list query. */
+export const bookmarksRootQueryKey = ["bookmarks"] as const;
+
+const bookmarksQueryKey = [
+  ...bookmarksRootQueryKey,
+  { page: 1, limit: 50 },
+] as const;
 
 export function useBookmarks() {
   const queryClient = useQueryClient();

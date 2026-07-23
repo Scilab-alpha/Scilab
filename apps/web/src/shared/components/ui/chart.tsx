@@ -30,6 +30,19 @@ type ChartPayloadItem = Record<string, unknown> & {
   value?: number | string;
 };
 
+function toChartKey(...candidates: unknown[]): string {
+  for (const value of candidates) {
+    if (typeof value === "string" && value !== "") {
+      return value;
+    }
+    if (typeof value === "number" || typeof value === "bigint") {
+      return String(value);
+    }
+  }
+
+  return "value";
+}
+
 const ChartContext = React.createContext<ChartContextProps | null>(null);
 
 function useChart() {
@@ -158,7 +171,7 @@ function ChartTooltipContent({
     }
 
     const [item] = payload;
-    const key = `${labelKey || item?.dataKey || item?.name || "value"}`;
+    const key = toChartKey(labelKey, item?.dataKey, item?.name);
     const itemConfig = getPayloadConfigFromPayload(config, item, key);
     const value =
       !labelKey && typeof label === "string"
@@ -204,7 +217,7 @@ function ChartTooltipContent({
       {!nestLabel ? tooltipLabel : null}
       <div className="grid gap-1.5">
         {payload.map((item, index) => {
-          const key = `${nameKey || item.name || item.dataKey || "value"}`;
+          const key = toChartKey(nameKey, item.name, item.dataKey);
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
           const payloadFill =
             typeof item.payload?.fill === "string"
@@ -304,7 +317,7 @@ function ChartLegendContent({
       )}
     >
       {payload.map((item) => {
-        const key = `${nameKey || item.dataKey || "value"}`;
+        const key = toChartKey(nameKey, item.dataKey);
         const itemConfig = getPayloadConfigFromPayload(config, item, key);
 
         return (

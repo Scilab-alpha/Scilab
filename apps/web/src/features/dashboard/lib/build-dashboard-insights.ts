@@ -5,6 +5,11 @@ import {
   getArticleTitle,
 } from "@/features/experiments/utils/article-format";
 import type { CatalogSample } from "@/features/dashboard/api/fetch-catalog-sample";
+import {
+  CATALOG_INSIGHT_YEARS,
+  filterArticlesToInsightYears,
+} from "@/features/dashboard/api/fetch-catalog-sample";
+import catalogTotals from "@/features/dashboard/data/catalog-totals.json";
 
 export type DashboardStat = {
   label: string;
@@ -63,12 +68,15 @@ function percentChange(current: number, previous: number) {
 
 function countByYear(articles: ArticleGraph[]) {
   const map = new Map<number, number>();
+  for (const year of CATALOG_INSIGHT_YEARS) {
+    map.set(year, 0);
+  }
   for (const item of articles) {
     const year = item.article.publicationYear;
-    if (typeof year !== "number") continue;
+    if (typeof year !== "number" || !map.has(year)) continue;
     map.set(year, (map.get(year) ?? 0) + 1);
   }
-  return [...map.entries()].sort((a, b) => a[0] - b[0]);
+  return CATALOG_INSIGHT_YEARS.map((year) => [year, map.get(year) ?? 0] as const);
 }
 
 function countTopics(articles: ArticleGraph[]) {
@@ -115,7 +123,8 @@ export function buildDashboardInsights(
   sample: CatalogSample,
 ): DashboardInsights {
   void TREND_COLORS_UNUSED;
-  const { articles, journals, articlesHasMore, journalsHasMore } = sample;
+  const articles = filterArticlesToInsightYears(sample.articles);
+  const { journals, articlesHasMore, journalsHasMore } = sample;
   const byYear = countByYear(articles);
   const topicCounts = countTopics(articles);
   const keywordCount = new Set(
@@ -229,16 +238,16 @@ export function buildDashboardInsights(
 
   const stats: DashboardStat[] = [
     {
-      label: "Journals in sample",
-      value: journals.length,
-      hint: journalsHasMore ? "More available in catalog" : "Catalog page",
+      label: "Journals in catalog",
+      value: catalogTotals.journals,
+      hint: `Catalog total (${catalogTotals.generatedAt})`,
       changePercent: null,
       direction: "flat",
     },
     {
-      label: "Articles sampled",
-      value: articles.length,
-      hint: articlesHasMore ? "Load more in Articles" : "Full sample loaded",
+      label: "Articles in catalog",
+      value: catalogTotals.articles,
+      hint: `Catalog total (${catalogTotals.generatedAt})`,
       changePercent: articleYoY,
       direction: articleYoY > 0 ? "up" : articleYoY < 0 ? "down" : "flat",
     },

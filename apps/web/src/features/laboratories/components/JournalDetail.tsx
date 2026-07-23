@@ -13,6 +13,8 @@ import {
   Plus,
   Check,
   Lock,
+  Calendar,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import PageContainer from "@/shared/components/layout/PageContainer";
@@ -21,6 +23,7 @@ import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import Can from "@/shared/components/auth/Can";
 import { Card } from "@/shared/components/ui/card";
 import { useJournalDetail } from "@/features/laboratories/hooks/use-journal-detail";
+import { useJournalArticles } from "@/features/laboratories/hooks/use-journal-articles";
 import { toggleFollow } from "@/features/follows/api/follows.api";
 import { isLocallyFollowing } from "@/features/follows/api/local-follows";
 import {
@@ -30,6 +33,12 @@ import {
   getJournalPublisher,
   getJournalSubjects,
 } from "@/features/laboratories/utils/journal-format";
+import {
+  getArticleAbstract,
+  getArticleAuthors,
+  getArticleTitle,
+  getArticleYear,
+} from "@/features/experiments/utils/article-format";
 
 interface JournalDetailProps {
   journalId: string;
@@ -38,6 +47,14 @@ interface JournalDetailProps {
 export default function JournalDetail({ journalId }: JournalDetailProps) {
   const router = useRouter();
   const { journal, isLoading, error } = useJournalDetail(journalId);
+  const {
+    items: articles,
+    isLoading: isArticlesLoading,
+    isLoadingMore,
+    hasMore,
+    error: articlesError,
+    loadMore,
+  } = useJournalArticles(journalId);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFollowPending, setIsFollowPending] = useState(false);
 
@@ -240,7 +257,7 @@ export default function JournalDetail({ journalId }: JournalDetailProps) {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Source ID</p>
-                      <p className="font-heading text-2xl text-foreground">
+                      <p className="font-heading text-sm text-foreground break-all">
                         {journal.sourceId ?? "—"}
                       </p>
                     </div>
@@ -249,19 +266,88 @@ export default function JournalDetail({ journalId }: JournalDetailProps) {
               </div>
 
               <Card className="p-6 border-border">
-                <h2 className="font-heading text-lg text-foreground mb-4">
-                  Browse related articles
-                </h2>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Articles linked to this journal are available from the article
-                  search page.
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() => router.push("/student/articles")}
-                >
-                  Open Article Search
-                </Button>
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <h2 className="font-heading text-lg text-foreground">
+                    Articles in this journal
+                  </h2>
+                  {articles.length > 0 && (
+                    <span className="text-sm text-muted-foreground">
+                      Showing {articles.length}
+                      {journal.articleCount > articles.length
+                        ? ` of ${journal.articleCount.toLocaleString()}`
+                        : ""}
+                    </span>
+                  )}
+                </div>
+
+                {isArticlesLoading ? (
+                  <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading articles…
+                  </div>
+                ) : articlesError ? (
+                  <p className="text-sm text-destructive py-4">{articlesError}</p>
+                ) : articles.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4">
+                    No articles are linked to this journal in the catalog yet.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {articles.map((item) => {
+                      const year = getArticleYear(item);
+                      return (
+                        <button
+                          key={item.article.id}
+                          type="button"
+                          onClick={() =>
+                            router.push(
+                              `/student/articles/${encodeURIComponent(item.article.id)}`,
+                            )
+                          }
+                          className="w-full text-left rounded-lg border border-border p-4 hover:bg-accent/40 transition-colors"
+                        >
+                          <p className="font-medium text-foreground mb-1 line-clamp-2">
+                            {getArticleTitle(item)}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                            <span className="line-clamp-1">
+                              {getArticleAuthors(item)}
+                            </span>
+                            {year != null && (
+                              <span className="inline-flex items-center gap-1 shrink-0">
+                                <Calendar className="w-3.5 h-3.5" />
+                                {year}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+                            {getArticleAbstract(item)}
+                          </p>
+                        </button>
+                      );
+                    })}
+
+                    {hasMore && (
+                      <div className="pt-2">
+                        <Button
+                          variant="outline"
+                          disabled={isLoadingMore}
+                          onClick={() => void loadMore()}
+                          className="w-full"
+                        >
+                          {isLoadingMore ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Loading more…
+                            </>
+                          ) : (
+                            "Load more articles"
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </Card>
             </div>
 

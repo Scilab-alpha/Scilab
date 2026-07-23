@@ -51,11 +51,48 @@ class AuthBffError extends Error {
 
 export function rejectCrossOriginMutation(request: NextRequest) {
   const origin = request.headers.get("origin");
-  if (origin === request.nextUrl.origin) return null;
+
+  // Some same-origin POSTs omit Origin; allow when the browser reports same-site.
+  if (!origin) {
+    const fetchSite = request.headers.get("sec-fetch-site");
+    if (!fetchSite || fetchSite === "same-origin" || fetchSite === "none") {
+      return null;
+    }
+
+    return bffErrorResponse(403, "Cross-origin request blocked.", {
+      code: "CROSS_ORIGIN_REQUEST_BLOCKED",
+    });
+  }
+
+  if (isAllowedRequestOrigin(origin, request.nextUrl.origin)) {
+    return null;
+  }
 
   return bffErrorResponse(403, "Cross-origin request blocked.", {
     code: "CROSS_ORIGIN_REQUEST_BLOCKED",
   });
+}
+
+/** Treat localhost / 127.0.0.1 / ::1 on the same port as equivalent. */
+function isAllowedRequestOrigin(requestOrigin: string, appOrigin: string) {
+  try {
+    const requestUrl = new URL(requestOrigin);
+    const appUrl = new URL(appOrigin);
+
+    if (requestUrl.origin === appUrl.origin) {
+      return true;
+    }
+
+    const loopbacks = new Set(["localhost", "127.0.0.1", "[::1]"]);
+    return (
+      requestUrl.protocol === appUrl.protocol &&
+      requestUrl.port === appUrl.port &&
+      loopbacks.has(requestUrl.hostname) &&
+      loopbacks.has(appUrl.hostname)
+    );
+  } catch {
+    return false;
+  }
 }
 
 export async function readJsonBody<T>(request: NextRequest): Promise<T> {

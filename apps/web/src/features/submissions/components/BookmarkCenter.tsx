@@ -14,6 +14,10 @@ import { Input } from "@/shared/components/ui/input";
 import { Card } from "@/shared/components/ui/card";
 import PageContainer from "@/shared/components/layout/PageContainer";
 import StudentTopHeader from "@/shared/components/layout/StudentTopHeader";
+import {
+  ListPageMain,
+  ListScrollArea,
+} from "@/shared/components/layout/ListPageScroll";
 import { RouteDataLoading } from "@/shared/components/layout/RouteDataLoading";
 import { useBookmarks } from "@/features/submissions/hooks/use-bookmarks";
 
@@ -50,31 +54,38 @@ export default function BookmarkCenter() {
         onSearchChange={setSearchQuery}
       />
 
-      <main className="flex-1 overflow-auto py-8">
-        <PageContainer size="wide" className="space-y-6">
-          <div>
-            <h1 className="font-heading text-3xl text-foreground">Bookmarks</h1>
-            <p className="text-muted-foreground mt-1">
-              Articles you saved for later
-            </p>
-          </div>
+      <ListPageMain>
+        <PageContainer
+          size="wide"
+          className="flex-1 min-h-0 flex flex-col gap-4 py-6"
+        >
+          <div className="shrink-0 space-y-4">
+            <div>
+              <h1 className="font-heading text-3xl text-foreground">
+                Bookmarks
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Articles you saved for later
+              </p>
+            </div>
 
-          <div className="flex items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">
-              {isLoading
-                ? "Loading..."
-                : `${filtered.length} bookmark${filtered.length === 1 ? "" : "s"}`}
-            </p>
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filter by title or DOI"
-              className="max-w-xs h-9"
-            />
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm text-muted-foreground">
+                {isLoading
+                  ? "Loading..."
+                  : `${filtered.length} bookmark${filtered.length === 1 ? "" : "s"}`}
+              </p>
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Filter by title or DOI"
+                className="max-w-xs h-9"
+              />
+            </div>
           </div>
 
           {error && (
-            <Card className="p-6 border-border">
+            <Card className="p-6 border-border shrink-0">
               <p className="text-sm text-destructive mb-4">{error}</p>
               <Button variant="outline" size="sm" onClick={() => void reload()}>
                 Try again
@@ -97,67 +108,69 @@ export default function BookmarkCenter() {
             </Card>
           )}
 
-          <div className="space-y-4">
-            {filtered.map((item) => (
-              <Card key={item.articleId} className="p-6 border-border">
-                <div className="flex gap-6">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-heading text-xl text-foreground mb-2 line-clamp-2">
-                      {item.article.title}
-                    </h3>
+          <ListScrollArea className="pr-1">
+            <div className="space-y-4 pb-2">
+              {filtered.map((item) => (
+                <Card key={item.articleId} className="p-6 border-border">
+                  <div className="flex gap-6">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-heading text-xl text-foreground mb-2 line-clamp-2">
+                        {item.article.title}
+                      </h3>
 
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        <span>{item.article.publicationYear ?? "—"}</span>
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          <span>{item.article.publicationYear ?? "—"}</span>
+                        </div>
+                        <span className="text-border">•</span>
+                        <div className="flex items-center gap-1">
+                          <BookOpen className="w-4 h-4" />
+                          <span>
+                            Saved{" "}
+                            {new Date(item.bookmarkedAt).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-border">•</span>
-                      <div className="flex items-center gap-1">
-                        <BookOpen className="w-4 h-4" />
-                        <span>
-                          Saved{" "}
-                          {new Date(item.bookmarkedAt).toLocaleDateString()}
-                        </span>
-                      </div>
+
+                      {item.article.abstract && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                          {item.article.abstract}
+                        </p>
+                      )}
+
+                      <p className="text-xs text-muted-foreground">
+                        DOI: {item.article.doi ?? "—"}
+                      </p>
                     </div>
 
-                    {item.article.abstract && (
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                        {item.article.abstract}
-                      </p>
-                    )}
-
-                    <p className="text-xs text-muted-foreground">
-                      DOI: {item.article.doi ?? "—"}
-                    </p>
+                    <div className="flex flex-col gap-2 flex-shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          router.push(`/student/articles/${item.articleId}`)
+                        }
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        View
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void remove(item.articleId)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Remove
+                      </Button>
+                    </div>
                   </div>
-
-                  <div className="flex flex-col gap-2 flex-shrink-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        router.push(`/student/articles/${item.articleId}`)
-                      }
-                    >
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      View
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => void remove(item.articleId)}
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Remove
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+                </Card>
+              ))}
+            </div>
+          </ListScrollArea>
         </PageContainer>
-      </main>
+      </ListPageMain>
     </>
   );
 }

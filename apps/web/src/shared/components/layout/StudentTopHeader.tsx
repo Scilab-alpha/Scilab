@@ -59,7 +59,7 @@ export default function StudentTopHeader({
   }, [user?.id]);
 
   return (
-    <header className="h-16 bg-card border-b border-border px-8 flex items-center justify-between gap-4">
+    <header className="h-16 shrink-0 bg-card border-b border-border px-8 flex items-center justify-between gap-4">
       <div className="flex-1 max-w-xl">
         <div className="relative">
           <Search

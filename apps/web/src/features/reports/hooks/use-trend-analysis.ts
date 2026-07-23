@@ -4,7 +4,11 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getUserFriendlyApiErrorMessage } from "@/core/api";
 import { listQueryStaleTimeMs } from "@/core/api/query-config";
-import { fetchCatalogSample } from "@/features/dashboard/api/fetch-catalog-sample";
+import {
+  CATALOG_INSIGHT_YEAR_FROM,
+  CATALOG_INSIGHT_YEAR_TO,
+  fetchCatalogSample,
+} from "@/features/dashboard/api/fetch-catalog-sample";
 import { buildTrendInsights } from "@/features/reports/lib/build-trend-insights";
 
 export type TrendFilters = {
@@ -28,7 +32,14 @@ function yearWindowFromRange(dateRange: TrendFilters["dateRange"]) {
 
 export function useTrendAnalysis(filters: TrendFilters) {
   const query = useQuery({
-    queryKey: ["trends", "catalog-sample"] as const,
+    queryKey: [
+      "trends",
+      "catalog-api",
+      100,
+      100,
+      CATALOG_INSIGHT_YEAR_FROM,
+      CATALOG_INSIGHT_YEAR_TO,
+    ] as const,
     staleTime: listQueryStaleTimeMs,
     queryFn: fetchCatalogSample,
   });
@@ -41,6 +52,8 @@ export function useTrendAnalysis(filters: TrendFilters) {
       journalId: filters.journalId || undefined,
       subject: filters.subject || undefined,
       yearWindow: yearWindowFromRange(filters.dateRange),
+      yearFrom: CATALOG_INSIGHT_YEAR_FROM,
+      yearTo: CATALOG_INSIGHT_YEAR_TO,
     });
   }, [filters.dateRange, filters.journalId, filters.subject, query.data]);
 

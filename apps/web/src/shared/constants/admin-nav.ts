@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Activity, Database, Users } from "lucide-react";
+import { Activity, Users } from "lucide-react";
 
 export interface AdminNavItem {
   id: string;
@@ -10,12 +10,6 @@ export interface AdminNavItem {
 
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { id: "users", label: "User Management", href: "/admin/users", icon: Users },
-  {
-    id: "api-sources",
-    label: "API Sources",
-    href: "/admin/api-sources",
-    icon: Database,
-  },
   {
     id: "system-health",
     label: "System Health",
